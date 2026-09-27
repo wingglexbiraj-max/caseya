@@ -182,13 +182,11 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
                               // Product Selection Dropdown
                               SearchableDropdown<ProductModel>(
-                                label: 'Select Product',
-                                hint: 'Search product master catalog...',
+                                label: 'Product',
+                                hint: 'Select product from plant catalog...',
                                 items: state.products,
                                 selectedItem: state.selectedProduct,
                                 itemLabel: (p) => p.productName,
-                                itemSubtitle: (p) =>
-                                    'Item: ${p.itemCode} • ${p.piecesPerCrate} pcs/crate (${p.calculatedPerCrateDisplay}) • ₹${Formatters.formatSmart(p.pricePerPiece)}/pc • Shelf: ${p.shelfLife}',
                                 onChanged: (product) {
                                   if (product != null) {
                                     ref.read(productCalculatorProvider.notifier).selectProduct(product);

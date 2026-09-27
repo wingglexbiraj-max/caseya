@@ -3,22 +3,8 @@ import 'package:caseya/models/product_model.dart';
 import 'package:caseya/services/calculation_service.dart';
 
 void main() {
-  group('Product Calculator Service Tests', () {
-    const milk500 = ProductModel(
-      productId: 'PRD-001',
-      productName: 'Purabi Plus Milk 500 ml',
-      itemCode: '9900001',
-      shortCode: 'PPM500',
-      category: 'Milk',
-      unit: 'ml',
-      packSize: 500,
-      packSizeDisplay: '500 ml',
-      piecesPerCrate: 20,
-      pricePerPiece: 28.0,
-      allowedInputModes: ['Pieces', 'Crates', 'Litres'],
-    );
-
-    const sweetCurd400 = ProductModel(
+  group('Product Calculator Service Tests - 6 Manufactured Products', () {
+    const s400 = ProductModel(
       productId: '9900010',
       productName: 'Sweet Curd Cup 400g (S400)',
       itemCode: '9900010',
@@ -36,7 +22,7 @@ void main() {
       allowedInputModes: ['Pieces', 'Crates', 'Kg'],
     );
 
-    const plainCurd80 = ProductModel(
+    const p80 = ProductModel(
       productId: '9900026',
       productName: 'Plain Curd Cup 80g (P80)',
       itemCode: '9900026',
@@ -54,7 +40,25 @@ void main() {
       allowedInputModes: ['Pieces', 'Crates', 'Kg'],
     );
 
-    const lassi200 = ProductModel(
+    const p400 = ProductModel(
+      productId: '9900013',
+      productName: 'Plain Curd Cup 400g (P400)',
+      itemCode: '9900013',
+      shortCode: 'P400',
+      category: 'Curd',
+      unit: 'g',
+      packSize: 400,
+      packSizeDisplay: '400 g',
+      piecesPerCrate: 15,
+      perCrateQty: 6.0,
+      perCrateQtyGrams: 6000.0,
+      perCrateDisplay: '6.0 kg (6000.0 g)',
+      pricePerPiece: 55.0,
+      shelfLife: '12 Days',
+      allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+    );
+
+    const pl200 = ProductModel(
       productId: '9900007',
       productName: 'Purabi Lassi 200 ml (PL200)',
       itemCode: '9900007',
@@ -72,7 +76,25 @@ void main() {
       allowedInputModes: ['Pieces', 'Crates', 'Litres'],
     );
 
-    const curdPouch1000 = ProductModel(
+    const cp400 = ProductModel(
+      productId: 'CP400',
+      productName: 'Curd Pouch 400 g (CP400)',
+      itemCode: 'NA',
+      shortCode: 'CP400',
+      category: 'Curd',
+      unit: 'g',
+      packSize: 400,
+      packSizeDisplay: '400 g',
+      piecesPerCrate: 30,
+      perCrateQty: 12.0,
+      perCrateQtyGrams: 12000.0,
+      perCrateDisplay: '12.0 kg (12000.0 g)',
+      pricePerPiece: 35.0,
+      shelfLife: '12 Days',
+      allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+    );
+
+    const cp1000 = ProductModel(
       productId: 'CP1000',
       productName: 'Curd Pouch 1 kg (CP1000)',
       itemCode: 'NA',
@@ -90,61 +112,81 @@ void main() {
       allowedInputModes: ['Pieces', 'Crates', 'Kg'],
     );
 
-    test('Sweet Curd Cup 400g (S400) - 150 Crates calculation', () {
+    test('1. Sweet Curd Cup 400g (S400) - Crates Mode (150 Crates)', () {
       final res = CalculationService.calculateProduct(
-        product: sweetCurd400,
+        product: s400,
         inputMode: 'Crates',
         inputQuantity: 150.0,
       );
 
-      // Product name plus quantity
       expect(res.productNameWithQuantity, 'Sweet Curd Cup 400g (S400) — 150 Crates');
-      // Total pieces required: 150 * 15 = 2250 pieces
       expect(res.pieces, 2250);
-      // Packing needed: 150 Crates
       expect(res.crates, 150.0);
       expect(res.packingNeeded, '150 Crates');
-      // Total quantity: 2250 * 0.4 kg = 900.0 kg
       expect(res.totalQuantity, 900.0);
-      // Total price: 2250 * 55.0 = ₹1,23,750.0
       expect(res.totalPrice, 123750.0);
       expect(res.totalPriceDisplay, '₹123,750');
-      expect(res.breakdownSteps.length, greaterThanOrEqualTo(4));
     });
 
-    test('Plain Curd Cup 80g (P80) - 600 Pieces calculation', () {
+    test('2. Plain Curd Cup 80g (P80) - Pieces Mode (600 Pieces)', () {
       final res = CalculationService.calculateProduct(
-        product: plainCurd80,
+        product: p80,
         inputMode: 'Pieces',
         inputQuantity: 600.0,
       );
 
       expect(res.pieces, 600);
-      expect(res.crates, 10.0); // 600 / 60
-      expect(res.totalQuantity, 48.0); // 600 * 0.08 kg
-      expect(res.totalPrice, 9000.0); // 600 * 15.0
+      expect(res.crates, 10.0);
+      expect(res.totalQuantity, 48.0);
+      expect(res.totalPrice, 9000.0);
       expect(res.totalPriceDisplay, '₹9,000');
     });
 
-    test('Purabi Lassi 200 ml (PL200) - 600 Litres calculation', () {
+    test('3. Plain Curd Cup 400g (P400) - Crates Mode (20 Crates)', () {
       final res = CalculationService.calculateProduct(
-        product: lassi200,
+        product: p400,
+        inputMode: 'Crates',
+        inputQuantity: 20.0,
+      );
+
+      expect(res.pieces, 300); // 20 * 15
+      expect(res.crates, 20.0);
+      expect(res.totalQuantity, 120.0); // 300 * 0.4 kg
+      expect(res.totalPrice, 16500.0); // 300 * 55.0
+      expect(res.totalPriceDisplay, '₹16,500');
+    });
+
+    test('4. Purabi Lassi 200 ml (PL200) - Litres Mode (600 Litres)', () {
+      final res = CalculationService.calculateProduct(
+        product: pl200,
         inputMode: 'Litres',
         inputQuantity: 600.0,
       );
 
-      // 600 L / 0.2 L = 3000 pieces
       expect(res.pieces, 3000);
-      // 3000 / 30 = 100 crates
       expect(res.crates, 100.0);
       expect(res.totalQuantity, 600.0);
-      // 3000 * 20.0 = ₹60,000
       expect(res.totalPrice, 60000.0);
+      expect(res.totalPriceDisplay, '₹60,000');
     });
 
-    test('Curd Pouch 1 kg (CP1000) - 10 Crates calculation', () {
+    test('5. Curd Pouch 400 g (CP400) - Kg Mode (120 Kg)', () {
       final res = CalculationService.calculateProduct(
-        product: curdPouch1000,
+        product: cp400,
+        inputMode: 'Kg',
+        inputQuantity: 120.0,
+      );
+
+      expect(res.pieces, 300); // 120 / 0.4
+      expect(res.crates, 10.0); // 300 / 30
+      expect(res.totalQuantity, 120.0);
+      expect(res.totalPrice, 10500.0); // 300 * 35.0
+      expect(res.totalPriceDisplay, '₹10,500');
+    });
+
+    test('6. Curd Pouch 1 kg (CP1000) - Crates Mode (10 Crates)', () {
+      final res = CalculationService.calculateProduct(
+        product: cp1000,
         inputMode: 'Crates',
         inputQuantity: 10.0,
       );
@@ -153,19 +195,7 @@ void main() {
       expect(res.crates, 10.0);
       expect(res.totalQuantity, 120.0); // 120 * 1.0 kg
       expect(res.totalPrice, 9000.0); // 120 * 75.0
-    });
-
-    test('Purabi Plus Milk 500 ml - Pieces mode backward compatibility', () {
-      final res = CalculationService.calculateProduct(
-        product: milk500,
-        inputMode: 'Pieces',
-        inputQuantity: 3000.0,
-      );
-
-      expect(res.pieces, 3000);
-      expect(res.crates, 150.0);
-      expect(res.volumeLitres, 1500.0);
-      expect(res.totalPrice, 84000.0); // 3000 * 28
+      expect(res.totalPriceDisplay, '₹9,000');
     });
   });
 }

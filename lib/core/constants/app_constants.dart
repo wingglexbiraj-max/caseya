@@ -30,7 +30,7 @@ class AppConstants {
 
   // Local Storage Keys
   static const String storageKeyUser = 'caseya_current_user';
-  static const String storageKeyProducts = 'caseya_products_master_v5';
+  static const String storageKeyProducts = 'caseya_products_master_v7';
   static const String storageKeyBoilerRecords = 'caseya_boiler_records';
   static const String storageKeyStdRecords = 'caseya_standardization_records';
   static const String storageKeyProductCalcRecords = 'caseya_product_calc_records';

@@ -54,7 +54,9 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Select ${widget.label}',
+                        widget.label.trim().toLowerCase().startsWith('select ')
+                            ? widget.label.trim()
+                            : 'Select ${widget.label.trim()}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -72,7 +74,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                   TextField(
                     autofocus: true,
                     decoration: InputDecoration(
-                      hintText: 'Search ${widget.label.toLowerCase()}...',
+                      hintText: 'Search ${(widget.label.trim().toLowerCase().startsWith('select ') ? widget.label.trim().substring(7) : widget.label).trim()}...',
                       prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textMuted),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       isDense: true,
