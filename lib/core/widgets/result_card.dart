@@ -38,23 +38,30 @@ class ResultCard extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.cardBorder, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0F172A),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Header with Soft Emerald Gradient
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 15),
             decoration: BoxDecoration(
-              color: headerColor ?? AppColors.primaryContainer.withOpacity(0.4),
+              gradient: AppColors.cardHeaderGradient,
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(9),
-                topRight: Radius.circular(9),
+                topLeft: Radius.circular(11),
+                topRight: Radius.circular(11),
               ),
               border: const Border(
-                bottom: BorderSide(color: AppColors.cardBorder, width: 1),
+                bottom: BorderSide(color: AppColors.cardBorder, width: 1.1),
               ),
             ),
             child: Row(
@@ -63,22 +70,36 @@ class ResultCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      title.toUpperCase(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                        color: AppColors.primaryDark,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 15,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          title.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 1.2,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                      ],
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 3),
                       Text(
                         subtitle!,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -89,29 +110,30 @@ class ResultCard extends StatelessWidget {
             ),
           ),
 
-          // Items Grid
+          // Items Grid with Golden Ratio Proportions
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                // Responsive columns
                 final int crossAxisCount = constraints.maxWidth < 450
                     ? 1
                     : (constraints.maxWidth < 750 ? 2 : (items.length <= 4 ? items.length : 3));
 
                 return Wrap(
-                  spacing: 16,
-                  runSpacing: 16,
+                  spacing: 14,
+                  runSpacing: 14,
                   children: items.map((item) {
-                    final itemWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 16)) / crossAxisCount;
+                    final itemWidth =
+                        (constraints.maxWidth - ((crossAxisCount - 1) * 14)) / crossAxisCount;
+
                     return SizedBox(
                       width: itemWidth.clamp(140.0, double.infinity),
                       child: Container(
-                        padding: const EdgeInsets.all(14),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.cardBorder),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.cardBorderSubtle),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,9 +144,10 @@ class ResultCard extends StatelessWidget {
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textSecondary,
+                                letterSpacing: 0.2,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 8),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.baseline,
                               textBaseline: TextBaseline.alphabetic,
@@ -133,9 +156,9 @@ class ResultCard extends StatelessWidget {
                                   child: Text(
                                     item.value,
                                     style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.5,
+                                      fontSize: 28, // Golden ratio metric display
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: -0.8,
                                       color: item.highlightColor ?? AppColors.textPrimary,
                                     ),
                                     overflow: TextOverflow.ellipsis,
@@ -147,7 +170,7 @@ class ResultCard extends StatelessWidget {
                                     item.unit!,
                                     style: const TextStyle(
                                       fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.w700,
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
@@ -155,11 +178,12 @@ class ResultCard extends StatelessWidget {
                               ],
                             ),
                             if (item.subtitle != null) ...[
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 5),
                               Text(
                                 item.subtitle!,
                                 style: const TextStyle(
                                   fontSize: 11,
+                                  fontWeight: FontWeight.w500,
                                   color: AppColors.textMuted,
                                 ),
                               ),

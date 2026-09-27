@@ -58,15 +58,14 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(productCalculatorProvider);
-    final user = ref.watch(authProvider);
     final isMobile = ResponsiveLayout.isMobile(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 14 : 28,
-          vertical: 20,
+          horizontal: isMobile ? 16 : 28,
+          vertical: 22,
         ),
         child: Form(
           key: _formKey,
@@ -79,19 +78,32 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Product Calculator',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textPrimary,
-                          letterSpacing: -0.5,
-                        ),
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 4,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Product Calculator',
+                            style: TextStyle(
+                              fontSize: 23, // Golden ratio headline
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Convert quantities across Pieces, Crates, and Volume using verified product master specifications.',
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Instant high-precision conversions across Pieces, Crates, and Volume using verified master specs.',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -101,25 +113,25 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // Feedback alerts
               if (state.errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.dangerLight,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.danger.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -128,36 +140,49 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 const SizedBox(height: 16),
               ],
 
-              // Main Input Area & Metadata Grid
+              // Golden Ratio Proportional Layout: 61.8% Input Controls vs 38.2% Metadata
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 850;
+                  final isWide = constraints.maxWidth >= 880;
 
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Calculation Controls Form
+                      // Calculation Controls Form (Flex 62 ~ Golden Ratio)
                       Expanded(
-                        flex: isWide ? 6 : 12,
+                        flex: isWide ? 62 : 100,
                         child: AppCard(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'INPUT SPECIFICATIONS',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: 1.0,
-                                  color: AppColors.textSecondary,
-                                ),
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 4,
+                                    height: 14,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Text(
+                                    'INPUT SPECIFICATIONS',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1.1,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 16),
 
                               // Product Selection Dropdown
                               SearchableDropdown<ProductModel>(
                                 label: 'Select Product',
-                                hint: 'Search product master...',
+                                hint: 'Search product master catalog...',
                                 items: state.products,
                                 selectedItem: state.selectedProduct,
                                 itemLabel: (p) => p.productName,
@@ -182,7 +207,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                           'Input Mode',
                                           style: TextStyle(
                                             fontSize: 13,
-                                            fontWeight: FontWeight.w600,
+                                            fontWeight: FontWeight.w700,
                                             color: AppColors.textPrimary,
                                           ),
                                         ),
@@ -192,6 +217,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                           style: const TextStyle(
                                             fontSize: 11.5,
                                             color: AppColors.textMuted,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],
@@ -208,15 +234,15 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                           selectedColor: AppColors.primaryContainer,
                                           backgroundColor: AppColors.background,
                                           shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(6),
+                                            borderRadius: BorderRadius.circular(8),
                                             side: BorderSide(
                                               color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                                              width: isSelected ? 1.5 : 1.0,
+                                              width: isSelected ? 1.6 : 1.0,
                                             ),
                                           ),
                                           labelStyle: TextStyle(
                                             fontSize: 13,
-                                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                                             color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
                                           ),
                                           onSelected: (selected) {
@@ -254,7 +280,10 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                               SizedBox(
                                 width: double.infinity,
                                 child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.calculate, size: 20),
+                                  style: ElevatedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                  ),
+                                  icon: const Icon(Icons.calculate_rounded, size: 20),
                                   label: const Text('Calculate'),
                                   onPressed: _onCalculate,
                                 ),
@@ -266,10 +295,10 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
                       if (isWide) const SizedBox(width: 20),
 
-                      // Product Metadata Card
+                      // Product Metadata Card (Flex 38 ~ Golden Ratio)
                       if (isWide && state.selectedProduct != null)
                         Expanded(
-                          flex: 6,
+                          flex: 38,
                           child: _buildMetadataCard(state.selectedProduct!),
                         ),
                     ],
@@ -277,7 +306,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 },
               ),
 
-              // If mobile, show metadata card underneath
+              // Mobile Metadata Card underneath
               if (isMobile && state.selectedProduct != null) ...[
                 const SizedBox(height: 16),
                 _buildMetadataCard(state.selectedProduct!),
@@ -292,7 +321,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   trailingAction: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                     icon: const Icon(Icons.save_outlined, size: 16),
                     label: const Text('Save Record', style: TextStyle(fontSize: 12.5)),
@@ -351,19 +380,32 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'PRODUCT METADATA',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                  color: AppColors.primaryDark,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: AppColors.goldAccent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'PRODUCT METADATA',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                ],
               ),
               StatusBadge.neutral(product.category),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           _buildMetaRow('Product Code', product.productId),
           _buildMetaRow('Pack Size', product.packSizeDisplay),
           _buildMetaRow('Base Unit', product.baseUnitLabel),
@@ -380,7 +422,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
   Widget _buildMetaRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -401,12 +443,12 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.cardBorder),
         ),
         child: Column(
           children: const [
-            Icon(Icons.history, size: 36, color: AppColors.textMuted),
+            Icon(Icons.history_rounded, size: 36, color: AppColors.textMuted),
             SizedBox(height: 8),
             Text(
               'No previous product calculation records yet.',
@@ -424,19 +466,32 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'RECENT PRODUCT CALCULATIONS',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                  color: AppColors.textSecondary,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'RECENT PRODUCT CALCULATIONS',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
               StatusBadge.info('${history.length} Saved Records'),
             ],
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -460,7 +515,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   children: [
                     Text(
                       '${Formatters.formatInt(item.pieces)} pcs (${Formatters.formatSmart(item.crates)} crt)',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: AppColors.primaryDark),
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.primaryDark),
                     ),
                     Text(
                       '${Formatters.formatSmart(item.volumeLitres)} L',

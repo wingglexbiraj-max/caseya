@@ -9,29 +9,38 @@ class AppCard extends StatelessWidget {
   final Color? borderColor;
   final double borderRadius;
   final VoidCallback? onTap;
+  final bool hasGlow;
 
   const AppCard({
     super.key,
     required this.child,
-    this.padding = const EdgeInsets.all(20),
+    this.padding = const EdgeInsets.all(22), // Golden ratio padding ~21px
     this.margin,
     this.backgroundColor,
     this.borderColor,
-    this.borderRadius = 10,
+    this.borderRadius = 12,
     this.onTap,
+    this.hasGlow = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final border = BorderSide(
-      color: borderColor ?? AppColors.cardBorder,
-      width: 1.0,
-    );
-
     final decoration = BoxDecoration(
       color: backgroundColor ?? AppColors.surface,
       borderRadius: BorderRadius.circular(borderRadius),
-      border: Border.all(color: borderColor ?? AppColors.cardBorder, width: 1.0),
+      border: Border.all(
+        color: borderColor ?? AppColors.cardBorder,
+        width: 1.1,
+      ),
+      boxShadow: [
+        BoxShadow(
+          color: hasGlow
+              ? AppColors.primary.withOpacity(0.08)
+              : const Color(0x080F172A),
+          blurRadius: hasGlow ? 18 : 10,
+          offset: const Offset(0, 3),
+        ),
+      ],
     );
 
     if (onTap != null) {

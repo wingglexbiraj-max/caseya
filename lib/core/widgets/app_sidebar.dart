@@ -27,29 +27,29 @@ class AppSidebar extends StatelessWidget {
   });
 
   static const List<SidebarItem> primaryItems = [
-    SidebarItem(index: 0, title: 'Dashboard', icon: Icons.dashboard_outlined),
-    SidebarItem(index: 1, title: 'Product Calculator', icon: Icons.calculate_outlined),
-    SidebarItem(index: 2, title: 'Milk Standardization', icon: Icons.water_drop_outlined),
-    SidebarItem(index: 3, title: 'Boiler Fuel', icon: Icons.local_fire_department_outlined),
+    SidebarItem(index: 0, title: 'Dashboard', icon: Icons.grid_view_rounded),
+    SidebarItem(index: 1, title: 'Product Calculator', icon: Icons.calculate_rounded),
+    SidebarItem(index: 2, title: 'Milk Standardization', icon: Icons.water_drop_rounded),
+    SidebarItem(index: 3, title: 'Boiler Fuel', icon: Icons.local_fire_department_rounded),
   ];
 
   static const List<SidebarItem> operationsItems = [
-    SidebarItem(index: 4, title: 'Production', icon: Icons.factory_outlined),
-    SidebarItem(index: 5, title: 'Dispatch', icon: Icons.local_shipping_outlined),
-    SidebarItem(index: 6, title: 'Packaging', icon: Icons.inventory_2_outlined),
-    SidebarItem(index: 7, title: 'Stock & Inventory', icon: Icons.warehouse_outlined),
-    SidebarItem(index: 8, title: 'Reports & Export', icon: Icons.bar_chart_outlined),
+    SidebarItem(index: 4, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
+    SidebarItem(index: 5, title: 'Dispatch Logistics', icon: Icons.local_shipping_rounded),
+    SidebarItem(index: 6, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
+    SidebarItem(index: 7, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
+    SidebarItem(index: 8, title: 'Reports & Export', icon: Icons.insights_rounded),
   ];
 
   static const List<SidebarItem> adminItems = [
-    SidebarItem(index: 9, title: 'Products Master', icon: Icons.format_list_bulleted_outlined),
-    SidebarItem(index: 10, title: 'Settings & Config', icon: Icons.tune_outlined),
+    SidebarItem(index: 9, title: 'Products Master', icon: Icons.tune_rounded),
+    SidebarItem(index: 10, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 250,
+      width: 258,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -58,31 +58,38 @@ class AppSidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Brand Header
+          // Brand Header with Gradient Logo
           Container(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+            padding: const EdgeInsets.fromLTRB(21, 24, 21, 18),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 40,
+                  height: 40,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.25),
+                        blurRadius: 10,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
                   ),
                   child: const Center(
                     child: Text(
                       'C',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -1,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 13),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -90,18 +97,18 @@ class AppSidebar extends StatelessWidget {
                       Text(
                         AppConstants.appName,
                         style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.8,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.9,
                           color: AppColors.primaryDark,
                         ),
                       ),
                       Text(
-                        'Dairy Operations',
+                        'Dairy Plant OS',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 11.5,
+                          color: AppColors.textSecondary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -115,47 +122,54 @@ class AppSidebar extends StatelessWidget {
           // Menu Navigation List
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
               children: [
-                _buildSectionHeader('CORE CALCULATION'),
+                _buildSectionHeader('CORE ENGINES'),
                 ...primaryItems.map((item) => _buildNavItem(item)),
-                const SizedBox(height: 12),
-                _buildSectionHeader('OPERATIONS'),
+                const SizedBox(height: 13),
+                _buildSectionHeader('MANUFACTURING & FLEET'),
                 ...operationsItems.map((item) => _buildNavItem(item)),
-                const SizedBox(height: 12),
-                _buildSectionHeader('MANAGEMENT'),
+                const SizedBox(height: 13),
+                _buildSectionHeader('CONTROL & STANDARDS'),
                 ...adminItems.map((item) => _buildNavItem(item)),
               ],
             ),
           ),
 
-          // Plant Location Footer
+          // Plant Location Footer with Golden Ratio Badge
           Container(
-            padding: const EdgeInsets.all(14),
-            margin: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            margin: const EdgeInsets.all(13),
             decoration: BoxDecoration(
               color: AppColors.background,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.cardBorder),
             ),
             child: Row(
               children: [
-                const Icon(Icons.location_on_outlined, size: 18, color: AppColors.primary),
-                const SizedBox(width: 8),
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: AppColors.accentMint,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Plant Unit #01',
+                        'Processing Plant #01',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
                       ),
                       Text(
-                        'System v1.0.0',
+                        'Engine Calibrated • v1.0',
                         style: TextStyle(
                           fontSize: 10.5,
                           color: AppColors.textMuted,
@@ -174,13 +188,13 @@ class AppSidebar extends StatelessWidget {
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 8, 10, 6),
+      padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
       child: Text(
         title,
         style: const TextStyle(
-          fontSize: 10,
+          fontSize: 10.5,
           fontWeight: FontWeight.w800,
-          letterSpacing: 1.0,
+          letterSpacing: 1.1,
           color: AppColors.textMuted,
         ),
       ),
@@ -191,22 +205,22 @@ class AppSidebar extends StatelessWidget {
     final isSelected = selectedIndex == item.index;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 2),
+      margin: const EdgeInsets.only(bottom: 3),
       decoration: BoxDecoration(
         color: isSelected ? AppColors.primaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(9),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(9),
         child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
           dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
           leading: Icon(
             item.icon,
-            size: 19,
-            color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
+            size: 20,
+            color: isSelected ? AppColors.primary : AppColors.textSecondary,
           ),
           title: Text(
             item.title,
@@ -219,7 +233,7 @@ class AppSidebar extends StatelessWidget {
           trailing: isSelected
               ? Container(
                   width: 5,
-                  height: 16,
+                  height: 18,
                   decoration: BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.circular(3),

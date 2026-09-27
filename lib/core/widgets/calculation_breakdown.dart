@@ -45,8 +45,8 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
     return Container(
       decoration: BoxDecoration(
         color: const Color(0xFFF9FBFA),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.cardBorder, width: 1.1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,17 +54,24 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
           // Header / Toggle
           InkWell(
             onTap: () => setState(() => _expanded = !_expanded),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 15),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.calculate_outlined,
-                    size: 20,
-                    color: AppColors.primary,
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: const Icon(
+                      Icons.architecture_rounded,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       widget.title,
@@ -72,22 +79,36 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primaryDark,
+                        letterSpacing: -0.2,
                       ),
                     ),
                   ),
-                  Text(
-                    _expanded ? 'Hide' : 'Show',
-                    style: const TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.cardBorderSubtle),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    _expanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                    size: 20,
-                    color: AppColors.primary,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _expanded ? 'Collapse' : 'Expand',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          _expanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                          size: 18,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -98,16 +119,23 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
           if (_expanded) ...[
             const Divider(height: 1),
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(18),
               child: Column(
                 children: widget.steps.map((step) {
                   return Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(14),
+                    padding: const EdgeInsets.all(15),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.cardBorder),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.cardBorderSubtle),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x040F172A),
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,17 +143,18 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: AppColors.primaryContainer,
-                                borderRadius: BorderRadius.circular(4),
+                                borderRadius: BorderRadius.circular(5),
                               ),
                               child: Text(
                                 step.stepTitle,
                                 style: const TextStyle(
                                   fontSize: 11,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: FontWeight.w800,
                                   color: AppColors.primaryDark,
+                                  letterSpacing: 0.5,
                                 ),
                               ),
                             ),
@@ -143,26 +172,27 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF4F7F5),
-                            borderRadius: BorderRadius.circular(6),
+                            color: const Color(0xFFF6FBF9),
+                            borderRadius: BorderRadius.circular(7),
+                            border: Border.all(color: AppColors.primaryContainer),
                           ),
                           child: Text(
                             step.calculation,
                             style: const TextStyle(
                               fontSize: 14,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: FontWeight.w800,
                               color: AppColors.textPrimary,
                               fontFamily: 'monospace',
                             ),
                           ),
                         ),
                         if (step.note != null) ...[
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 7),
                           Text(
                             step.note!,
                             style: const TextStyle(

@@ -28,37 +28,46 @@ class AppTheme {
       textTheme: baseTextTheme.copyWith(
         displayLarge: baseTextTheme.displayLarge?.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.5,
+          fontWeight: FontWeight.w800,
+          fontSize: 38, // Golden ratio headline
+          letterSpacing: -1.0,
         ),
         headlineLarge: baseTextTheme.headlineLarge?.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-          letterSpacing: -0.5,
+          fontWeight: FontWeight.w800,
+          fontSize: 24, // Golden ratio subheadline (~14.5 * 1.618)
+          letterSpacing: -0.6,
         ),
         headlineMedium: baseTextTheme.headlineMedium?.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          fontSize: 18,
+          letterSpacing: -0.3,
         ),
         titleLarge: baseTextTheme.titleLarge?.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
+          fontSize: 16,
         ),
         titleMedium: baseTextTheme.titleMedium?.copyWith(
           color: AppColors.textPrimary,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w600,
+          fontSize: 14.5,
         ),
         bodyLarge: baseTextTheme.bodyLarge?.copyWith(
           color: AppColors.textPrimary,
-          fontSize: 15,
+          fontSize: 14.5,
+          height: 1.5,
         ),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(
           color: AppColors.textSecondary,
-          fontSize: 13.5,
+          fontSize: 13,
+          height: 1.45,
         ),
         labelLarge: baseTextTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w600,
-          fontSize: 14,
+          fontSize: 13.5,
+          letterSpacing: 0.2,
         ),
       ),
       cardTheme: CardThemeData(
@@ -66,42 +75,42 @@ class AppTheme {
         elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(12),
           side: const BorderSide(color: AppColors.cardBorder, width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(9),
           borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.2),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(9),
           borderSide: const BorderSide(color: AppColors.cardBorder, width: 1.2),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(9),
           borderSide: const BorderSide(color: AppColors.danger, width: 1.2),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.danger, width: 2),
+          borderRadius: BorderRadius.circular(9),
+          borderSide: const BorderSide(color: AppColors.danger, width: 1.8),
         ),
         labelStyle: const TextStyle(
           color: AppColors.textSecondary,
-          fontSize: 14,
+          fontSize: 13.5,
           fontWeight: FontWeight.w500,
         ),
         hintStyle: const TextStyle(
           color: AppColors.textMuted,
-          fontSize: 13.5,
+          fontSize: 13,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -109,13 +118,13 @@ class AppTheme {
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(9),
           ),
           textStyle: const TextStyle(
-            fontSize: 14.5,
-            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
             letterSpacing: 0.2,
           ),
         ),
@@ -124,12 +133,12 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primary,
           side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(9),
           ),
           textStyle: const TextStyle(
-            fontSize: 14,
+            fontSize: 13.5,
             fontWeight: FontWeight.w600,
           ),
         ),

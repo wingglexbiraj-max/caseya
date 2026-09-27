@@ -64,7 +64,6 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
             duration: Duration(seconds: 2),
           ),
         );
-        // Reset form for next entry if not editing
         if (ref.read(boilerProvider).editingRecord == null) {
           _remarksController.clear();
           _topUpController.text = '0';
@@ -118,8 +117,8 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
       backgroundColor: AppColors.background,
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: isMobile ? 14 : 28,
-          vertical: 20,
+          horizontal: isMobile ? 16 : 28,
+          vertical: 22,
         ),
         child: Form(
           key: _formKey,
@@ -135,11 +134,20 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     children: [
                       Row(
                         children: [
+                          Container(
+                            width: 4,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              color: AppColors.goldAccent,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           const Text(
                             'Boiler Fuel Consumption',
                             style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 23, // Golden ratio headline
+                              fontWeight: FontWeight.w900,
                               color: AppColors.textPrimary,
                               letterSpacing: -0.5,
                             ),
@@ -152,7 +160,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Record shift fuel levels using plant formula: ((Opening CM - Closing CM) × 900) ÷ 70',
+                        'Shift fuel level monitoring using plant formula: ((Opening CM - Closing CM) × 900) ÷ 70',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -167,25 +175,25 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 22),
 
               // Error messages
               if (state.errorMessage != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.dangerLight,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.danger.withOpacity(0.3)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: AppColors.danger, size: 20),
-                      const SizedBox(width: 8),
+                      const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w600),
+                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -202,23 +210,36 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'SHIFT FUEL LOGGING',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.0,
-                            color: AppColors.textSecondary,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'SHIFT FUEL LOGGING',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.1,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                         // Top-up toggle
                         Row(
                           children: [
                             const Text(
                               'Include Top-up in Net:',
-                              style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: 8),
                             Switch(
                               value: state.includeTopUpInNet,
                               activeColor: AppColors.primary,
@@ -230,7 +251,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
 
                     // Date & Shift Row
                     Row(
@@ -240,16 +261,16 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 6),
                               InkWell(
                                 onTap: _selectDate,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(9),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(9),
                                     border: Border.all(color: AppColors.cardBorder, width: 1.2),
                                   ),
                                   child: Row(
@@ -257,9 +278,9 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                                     children: [
                                       Text(
                                         Formatters.formatDate(state.selectedDate),
-                                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                                       ),
-                                      const Icon(Icons.calendar_today, size: 16, color: AppColors.textSecondary),
+                                      const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
                                     ],
                                   ),
                                 ),
@@ -274,13 +295,13 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
                               const SizedBox(height: 6),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(9),
                                   border: Border.all(color: AppColors.cardBorder, width: 1.2),
                                 ),
                                 child: DropdownButtonHideUnderline(
@@ -290,7 +311,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                                     items: AppConstants.shifts.map((s) {
                                       return DropdownMenuItem(
                                         value: s,
-                                        child: Text(s, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w500)),
+                                        child: Text(s, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
                                       );
                                     }).toList(),
                                     onChanged: (newShift) {
@@ -443,17 +464,20 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     // Remarks
                     AppTextField(
                       label: 'Remarks / Observations',
-                      hint: 'e.g. Normal pasteurizer steam load, burner pressure stable',
+                      hint: 'e.g. Normal steam pressure maintained across shift',
                       controller: _remarksController,
                       onChanged: (_) => _onFieldChanged(),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 20),
 
                     // Save / Record Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        icon: Icon(state.editingRecord != null ? Icons.check : Icons.save_outlined, size: 20),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        icon: Icon(state.editingRecord != null ? Icons.check_rounded : Icons.save_outlined, size: 20),
                         label: Text(state.editingRecord != null ? 'Update Boiler Record' : 'Record Boiler Entry'),
                         onPressed: _onSave,
                       ),
@@ -496,7 +520,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                         label: 'Fuel Top-up',
                         value: Formatters.formatSmart(state.liveResult!.fuelTopUp),
                         unit: 'Litres',
-                        highlightColor: AppColors.warning,
+                        highlightColor: AppColors.goldAccent,
                       ),
                     ResultItem(
                       label: 'Consumption / Hour',
@@ -534,14 +558,27 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'RECENT BOILER ENTRIES (DATE-WISE)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.0,
-                  color: AppColors.textSecondary,
-                ),
+              Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'RECENT BOILER ENTRIES (DATE-WISE)',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.1,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
               ),
               StatusBadge.info('${state.filteredRecords.length} Entries'),
             ],
@@ -561,9 +598,9 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                       controller: _searchController,
                       decoration: const InputDecoration(
                         hintText: 'Search date, shift, employee, remarks...',
-                        prefixIcon: Icon(Icons.search, size: 18),
+                        prefixIcon: Icon(Icons.search_rounded, size: 19),
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       ),
                       onChanged: (val) {
                         ref.read(boilerProvider.notifier).setSearchQuery(val);
@@ -606,16 +643,16 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
               itemBuilder: (context, index) {
                 final item = state.filteredRecords[index];
                 return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 9),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
                           color: AppColors.metricBgBoiler,
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(Icons.local_fire_department, color: Color(0xFFD97706), size: 22),
+                        child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
                       ),
                       const SizedBox(width: 14),
                       Expanded(
@@ -640,7 +677,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                             if (item.fuelTopUp > 0)
                               Text(
                                 'Fuel Top-up: ${Formatters.formatSmart(item.fuelTopUp)} L',
-                                style: const TextStyle(fontSize: 11.5, color: AppColors.warning, fontWeight: FontWeight.w600),
+                                style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
                               ),
                             if (item.remarks.isNotEmpty)
                               Text(
@@ -656,8 +693,8 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                           Text(
                             '${Formatters.formatSmart(item.netReportedConsumption)} L',
                             style: const TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w900,
                               color: AppColors.primaryDark,
                             ),
                           ),
@@ -670,7 +707,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                       const SizedBox(width: 8),
                       // Actions (Edit, Delete)
                       PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert, size: 20, color: AppColors.textSecondary),
+                        icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
                         onSelected: (val) async {
                           if (val == 'edit') {
                             _loadRecordIntoForm(item);
