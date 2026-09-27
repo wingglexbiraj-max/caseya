@@ -1,0 +1,210 @@
+import 'package:flutter/material.dart';
+import '../../core/constants/app_colors.dart';
+import '../../core/utils/responsive_layout.dart';
+import '../../core/widgets/app_header.dart';
+import '../../core/widgets/app_sidebar.dart';
+import '../../core/widgets/app_bottom_nav.dart';
+import '../dashboard/dashboard_page.dart';
+import '../product_calculator/product_calculator_page.dart';
+import '../milk_standardization/milk_standardization_page.dart';
+import '../boiler/boiler_page.dart';
+import '../production/production_page.dart';
+import '../dispatch/dispatch_page.dart';
+import '../packaging/packaging_page.dart';
+import '../stock/stock_page.dart';
+import '../reports/reports_page.dart';
+import '../products_master/products_master_page.dart';
+import '../settings/settings_page.dart';
+
+class MainShellPage extends StatefulWidget {
+  const MainShellPage({super.key});
+
+  @override
+  State<MainShellPage> createState() => _MainShellPageState();
+}
+
+class _MainShellPageState extends State<MainShellPage> {
+  int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  static const List<String> _pageTitles = [
+    'Dashboard',
+    'Product Calculator',
+    'Milk Standardization',
+    'Boiler Fuel Consumption',
+    'Production Register',
+    'Dispatch & Fleet Logistics',
+    'Packaging Tracker',
+    'Cold Room Stock',
+    'Reports & Export',
+    'Products & Standards Master',
+    'Settings & Permissions',
+  ];
+
+  void _onNavigate(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _openMoreMenu() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.cardBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'More Plant Modules',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                ),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.factory_outlined, color: AppColors.primary),
+                title: const Text('Production Register'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(4);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.local_shipping_outlined, color: AppColors.primary),
+                title: const Text('Dispatch Logistics'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(5);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
+                title: const Text('Packaging Tracker'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(6);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.warehouse_outlined, color: AppColors.primary),
+                title: const Text('Stock & Inventory'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(7);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bar_chart_outlined, color: AppColors.primary),
+                title: const Text('Reports & Export'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(8);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.format_list_bulleted, color: AppColors.primary),
+                title: const Text('Products Master'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(9);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.tune_outlined, color: AppColors.primary),
+                title: const Text('Settings & Roles'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _onNavigate(10);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = ResponsiveLayout.isMobile(context);
+
+    final Widget bodyWidget = IndexedStack(
+      index: _selectedIndex,
+      children: [
+        DashboardPage(onNavigate: _onNavigate),
+        const ProductCalculatorPage(),
+        const MilkStandardizationPage(),
+        const BoilerPage(),
+        const ProductionPage(),
+        const DispatchPage(),
+        const PackagingPage(),
+        const StockPage(),
+        const ReportsPage(),
+        const ProductsMasterPage(),
+        const SettingsPage(),
+      ],
+    );
+
+    return Scaffold(
+      key: _scaffoldKey,
+      backgroundColor: AppColors.background,
+      drawer: isMobile
+          ? Drawer(
+              child: AppSidebar(
+                selectedIndex: _selectedIndex,
+                onItemSelected: _onNavigate,
+              ),
+            )
+          : null,
+      bottomNavigationBar: isMobile
+          ? AppBottomNav(
+              selectedIndex: _selectedIndex,
+              onItemSelected: _onNavigate,
+              onMorePressed: _openMoreMenu,
+            )
+          : null,
+      body: Row(
+        children: [
+          // Desktop Persistent Sidebar
+          if (!isMobile)
+            AppSidebar(
+              selectedIndex: _selectedIndex,
+              onItemSelected: _onNavigate,
+            ),
+
+          // Main View Content with AppHeader
+          Expanded(
+            child: Column(
+              children: [
+                AppHeader(
+                  activeTitle: _pageTitles[_selectedIndex],
+                  onMenuPressed: () {
+                    _scaffoldKey.currentState?.openDrawer();
+                  },
+                ),
+                Expanded(child: bodyWidget),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
