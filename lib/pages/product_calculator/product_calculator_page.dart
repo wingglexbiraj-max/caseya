@@ -12,6 +12,7 @@ import '../../core/widgets/status_badge.dart';
 import '../../providers/product_calculator_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/product_model.dart';
+import '../../models/product_calculation_record.dart';
 
 class ProductCalculatorPage extends ConsumerStatefulWidget {
   const ProductCalculatorPage({super.key});
@@ -93,7 +94,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                           const Text(
                             'Product Calculator',
                             style: TextStyle(
-                              fontSize: 23, // Golden ratio headline
+                              fontSize: 23,
                               fontWeight: FontWeight.w900,
                               color: AppColors.textPrimary,
                               letterSpacing: -0.5,
@@ -103,7 +104,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       ),
                       const SizedBox(height: 4),
                       const Text(
-                        'Instant high-precision conversions across Pieces, Crates, and Volume using verified master specs.',
+                        'Instant plant conversions: Total Pieces, Packing Needed, Total Quantity, and Commercial Price.',
                         style: TextStyle(
                           fontSize: 13,
                           color: AppColors.textSecondary,
@@ -140,7 +141,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 const SizedBox(height: 16),
               ],
 
-              // Golden Ratio Proportional Layout: 61.8% Input Controls vs 38.2% Metadata
+              // Golden Ratio Layout: 61.8% Input Controls vs 38.2% Metadata
               LayoutBuilder(
                 builder: (context, constraints) {
                   final isWide = constraints.maxWidth >= 880;
@@ -148,7 +149,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Calculation Controls Form (Flex 62 ~ Golden Ratio)
+                      // Calculation Controls Form (Flex 62)
                       Expanded(
                         flex: isWide ? 62 : 100,
                         child: AppCard(
@@ -187,7 +188,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                 selectedItem: state.selectedProduct,
                                 itemLabel: (p) => p.productName,
                                 itemSubtitle: (p) =>
-                                    '${p.category} • ${p.packSizeDisplay} • ${p.piecesPerCrate} pcs/crate',
+                                    'Item: ${p.itemCode} • ${p.piecesPerCrate} pcs/crate (${p.calculatedPerCrateDisplay}) • ₹${Formatters.formatSmart(p.pricePerPiece)}/pc • Shelf: ${p.shelfLife}',
                                 onChanged: (product) {
                                   if (product != null) {
                                     ref.read(productCalculatorProvider.notifier).selectProduct(product);
@@ -261,7 +262,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                               // Quantity Input
                               AppTextField(
                                 label: 'Enter Quantity',
-                                hint: 'e.g. 3000',
+                                hint: 'e.g. 150',
                                 controller: _quantityController,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 suffixText: state.selectedInputMode,
@@ -295,7 +296,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
                       if (isWide) const SizedBox(width: 20),
 
-                      // Product Metadata Card (Flex 38 ~ Golden Ratio)
+                      // Product Metadata Card (Flex 38)
                       if (isWide && state.selectedProduct != null)
                         Expanded(
                           flex: 38,
@@ -315,9 +316,11 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
               // Results Section
               if (state.result != null) ...[
                 const SizedBox(height: 24),
+
+                // Primary Results Card
                 ResultCard(
-                  title: 'Calculation Result',
-                  subtitle: '${state.selectedProduct?.productName} (${state.selectedInputMode}: ${Formatters.formatSmart(state.enteredQuantity)})',
+                  title: 'CALCULATION RESULT',
+                  subtitle: state.result!.productNameWithQuantity,
                   trailingAction: ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primary,
@@ -329,26 +332,32 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   ),
                   items: [
                     ResultItem(
-                      label: 'Pieces / Pouches',
+                      label: 'Total Pieces Required',
                       value: Formatters.formatInt(state.result!.pieces),
-                      unit: 'Pcs',
-                      highlightColor: AppColors.primaryDark,
+                      unit: 'Pieces',
+                      subtitle: 'Pack size: ${state.selectedProduct?.packSizeDisplay}',
+                      highlightColor: AppColors.primary,
                     ),
                     ResultItem(
-                      label: 'Total Crates',
+                      label: 'Packing Needed',
                       value: Formatters.formatSmart(state.result!.crates),
                       unit: 'Crates',
+                      subtitle: state.result!.packingBreakdown,
                       highlightColor: AppColors.primaryDark,
                     ),
                     ResultItem(
-                      label: state.selectedProduct?.baseUnitLabel == 'Litres' ? 'Net Volume' : 'Net Weight',
-                      value: Formatters.formatSmart(
-                        state.selectedProduct?.baseUnitLabel == 'Litres'
-                            ? state.result!.volumeLitres
-                            : state.result!.weightKg,
-                      ),
-                      unit: state.selectedProduct?.baseUnitLabel ?? 'Litres',
-                      highlightColor: AppColors.primary,
+                      label: 'Total Quantity',
+                      value: Formatters.formatSmart(state.result!.totalQuantity),
+                      unit: state.selectedProduct?.baseUnitLabel ?? 'kg',
+                      subtitle: state.result!.totalQuantityDisplay,
+                      highlightColor: AppColors.accentCyanDeep,
+                    ),
+                    ResultItem(
+                      label: 'Total Price',
+                      value: state.result!.totalPriceDisplay,
+                      unit: 'INR',
+                      subtitle: '@ ₹${Formatters.formatSmart(state.result!.pricePerPiece)} / piece',
+                      highlightColor: AppColors.goldAccent,
                     ),
                   ],
                 ),
@@ -356,7 +365,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
                 // Collapsible Calculation Breakdown Card
                 CalculationBreakdownCard(
-                  title: 'How was this calculated?',
+                  title: 'Calculation Breakdown & Formula Details',
                   steps: state.result!.breakdownSteps,
                 ),
               ],
@@ -406,15 +415,21 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
             ],
           ),
           const SizedBox(height: 16),
-          _buildMetaRow('Product Code', product.productId),
+          _buildMetaRow('Product Code / ID', product.productId),
+          _buildMetaRow('Item Code', product.itemCode),
+          if (product.shortCode.isNotEmpty)
+            _buildMetaRow('Short Code', product.shortCode),
+          _buildMetaRow('Pieces per Crate', '${product.piecesPerCrate} pcs/crate'),
+          _buildMetaRow('Per Crate Qty', product.calculatedPerCrateDisplay),
+          _buildMetaRow('Price per Piece', '₹${Formatters.formatSmart(product.pricePerPiece)}'),
+          _buildMetaRow('Shelf Life', product.shelfLife),
           _buildMetaRow('Pack Size', product.packSizeDisplay),
           _buildMetaRow('Base Unit', product.baseUnitLabel),
-          _buildMetaRow('Pieces per Crate', '${product.piecesPerCrate} pcs/crate'),
           if (product.targetFat != null)
             _buildMetaRow('Target FAT %', Formatters.formatPercent(product.targetFat!)),
           if (product.targetSnf != null)
             _buildMetaRow('Target SNF %', Formatters.formatPercent(product.targetSnf!)),
-          _buildMetaRow('Input Modes', product.allowedInputModes.join(' • ')),
+          _buildMetaRow('Allowed Modes', product.allowedInputModes.join(' • ')),
         ],
       ),
     );
@@ -422,21 +437,24 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
   Widget _buildMetaRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: 5.5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary)),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHistorySection(List history) {
+  Widget _buildHistorySection(List<ProductCalculationRecord> history) {
     if (history.isEmpty) {
       return Container(
         padding: const EdgeInsets.all(24),
@@ -499,14 +517,20 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
             separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = history[index];
+              final titleText = item.productNameWithQuantity.isNotEmpty
+                  ? item.productNameWithQuantity
+                  : '${item.productName} — ${Formatters.formatSmart(item.inputQuantity)} ${item.inputMode}';
+
               return ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
                 title: Text(
-                  item.productName,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                  titleText,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
                 ),
                 subtitle: Text(
-                  '${item.date} • ${item.time} • ${item.employeeName}\nInput: ${Formatters.formatSmart(item.inputQuantity)} ${item.inputMode}',
+                  '${item.date} • ${item.time} • ${item.employeeName}\n'
+                  'Packing: ${item.packingNeeded.isNotEmpty ? item.packingNeeded : '${Formatters.formatSmart(item.crates)} Crates'} | '
+                  'Quantity: ${item.totalQuantityDisplay.isNotEmpty ? item.totalQuantityDisplay : '${Formatters.formatSmart(item.volumeLitres)} L'}',
                   style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                 ),
                 trailing: Column(
@@ -514,13 +538,14 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '${Formatters.formatInt(item.pieces)} pcs (${Formatters.formatSmart(item.crates)} crt)',
+                      '${Formatters.formatInt(item.pieces)} pcs',
                       style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.primaryDark),
                     ),
-                    Text(
-                      '${Formatters.formatSmart(item.volumeLitres)} L',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                    ),
+                    if (item.totalPriceDisplay.isNotEmpty)
+                      Text(
+                        item.totalPriceDisplay,
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.goldAccent),
+                      ),
                   ],
                 ),
               );

@@ -5,11 +5,18 @@ from datetime import datetime
 class ProductSchema(BaseModel):
     product_id: str
     product_name: str
+    item_code: Optional[str] = "NA"
+    short_code: Optional[str] = ""
     category: str
     unit: str
     pack_size: float
     pack_size_display: str
     pieces_per_crate: int
+    per_crate_qty: Optional[float] = None
+    per_crate_qty_grams: Optional[float] = None
+    per_crate_display: Optional[str] = None
+    price_per_piece: Optional[float] = 0.0
+    shelf_life: Optional[str] = "12 Days"
     allowed_input_modes: List[str]
     target_fat: Optional[float] = None
     target_snf: Optional[float] = None
