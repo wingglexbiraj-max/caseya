@@ -1,28 +1,29 @@
 import 'package:flutter/material.dart';
 
-/// CASEYA Golden Ratio & Precision Industrial Dairy Color Palette
-/// Designed with harmonious HSL tones, emerald botanical depth,
-/// and luminous golden dairy accents (butterfat & steam warmth).
+/// CASEYA Deep Precision Cobalt Navy & Arctic Cyan Color Palette
+/// Inspired by modern dairy tech, milk cold-chain, and automated plant control rooms
+/// (Tetra Pak, GEA, Alfa Laval industrial standard).
 class AppColors {
-  // Brand Primary (Luminous Emerald & Nordic Forest)
-  static const Color primary = Color(0xFF0F5A47);          // Core Deep Emerald
-  static const Color primaryDark = Color(0xFF09382C);      // Rich Obsidian Forest
-  static const Color primaryLight = Color(0xFF137A60);     // Lush Pine
-  static const Color primaryContainer = Color(0xFFE8F7F2);  // Soft Seafoam Wash
-  static const Color primarySurface = Color(0xFFF2FAF7);    // Subtle Botanical Surface
+  // Brand Primary (Deep Precision Cobalt Navy)
+  static const Color primary = Color(0xFF1E40AF);          // Core Deep Cobalt (Blue 800)
+  static const Color primaryDark = Color(0xFF0F2448);      // Midnight Navy
+  static const Color primaryLight = Color(0xFF2563EB);     // Vibrant Precision Blue (Blue 600)
+  static const Color primaryContainer = Color(0xFFEFF6FF);  // Soft Arctic Ice Wash (Blue 50)
+  static const Color primarySurface = Color(0xFFF4F8FE);    // Subtle Porcelain Tint
 
-  // Energetic Accent (Vibrant Mint Glow)
-  static const Color accentMint = Color(0xFF10B981);       // Electric Mint
-  static const Color accentTeal = Color(0xFF0D9488);       // Industrial Teal
+  // Energetic Accent (Arctic Cyan & Glacier Flow)
+  static const Color accentCyan = Color(0xFF0EA5E9);       // Electric Sky Cyan
+  static const Color accentCyanDeep = Color(0xFF0284C7);   // Chilled Marine Blue
+  static const Color accentCyanLight = Color(0xFFE0F2FE);  // Frosted Ice
+  static const Color coolIce = Color(0xFF0284C7);          // Chilled Arctic Blue
+  static const Color coolIceLight = Color(0xFFE0F2FE);     // Frosted Arctic Ice Light
+  static const Color accentMint = Color(0xFF0EA5E9);       // Cyan pulse
+  static const Color accentTeal = Color(0xFF0284C7);       // Marine accent
 
-  // Golden Dairy Butterfat & Steam Accents (Golden Ratio Harmonizer)
+  // Golden Dairy Butterfat & Steam Accents
   static const Color goldAccent = Color(0xFFD97706);       // Warm Amber Gold
   static const Color goldLight = Color(0xFFFEF3C7);        // Cream Butterfat
   static const Color goldDark = Color(0xFF92400E);         // Deep Bronze
-
-  // Cool Cold-Chain Accents
-  static const Color coolIce = Color(0xFF0284C7);          // Chilled Sky
-  static const Color coolIceLight = Color(0xFFE0F2FE);     // Frost White
 
   // Secondary & Industrial Slate
   static const Color secondary = Color(0xFF1E293B);        // Deep Slate 800
@@ -42,33 +43,39 @@ class AppColors {
   static const Color textMuted = Color(0xFF94A3B8);        // Slate 400
   static const Color textLight = Color(0xFFFFFFFF);
 
-  // Status & Operational Indicators
-  static const Color success = Color(0xFF059669);          // Emerald 600
-  static const Color successLight = Color(0xFFD1FAE5);     // Emerald 100
+  // Operational Status Indicators
+  static const Color success = Color(0xFF0284C7);          // Verified Cyan-Blue
+  static const Color successLight = Color(0xFFE0F2FE);     // Frost Light
   static const Color warning = Color(0xFFD97706);          // Amber 600
   static const Color warningLight = Color(0xFFFEF3C7);     // Amber 100
   static const Color danger = Color(0xFFDC2626);           // Rose 600
   static const Color dangerLight = Color(0xFFFEE2E2);      // Rose 100
-  static const Color info = Color(0xFF2563EB);             // Blue 600
+  static const Color info = Color(0xFF1D4ED8);             // Pure Cobalt 700
   static const Color infoLight = Color(0xFFDBEAFE);        // Blue 100
 
   // Metric Highlight Cards
-  static const Color metricBgMilk = Color(0xFFECFDF5);
-  static const Color metricBgBoiler = Color(0xFFFFFBEB);
-  static const Color metricBgStock = Color(0xFFEFF6FF);
-  static const Color metricBgDispatch = Color(0xFFFAF5FF);
+  static const Color metricBgMilk = Color(0xFFEFF6FF);     // Milk Ice Blue
+  static const Color metricBgBoiler = Color(0xFFFFFBEB);   // Steam Amber Warmth
+  static const Color metricBgStock = Color(0xFFF0F9FF);    // Finished Storage Sky Tint
+  static const Color metricBgDispatch = Color(0xFFFAF5FF); // Dispatch Lavender
 
   // Gradients
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF0F5A47), Color(0xFF0A4032)],
+    colors: [Color(0xFF1E40AF), Color(0xFF0F2850)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient cardHeaderGradient = LinearGradient(
-    colors: [Color(0xFFF0FDF8), Color(0xFFF8FAFC)],
+    colors: [Color(0xFFEFF6FF), Color(0xFFF8FAFC)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
+  );
+
+  static const LinearGradient cyanGradient = LinearGradient(
+    colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
   );
 
   static const LinearGradient goldGradient = LinearGradient(
