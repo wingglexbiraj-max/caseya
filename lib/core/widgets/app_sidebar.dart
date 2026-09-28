@@ -59,22 +59,36 @@ class AppSidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Brand Header with Gradient Logo
+          // Brand Header with Gradient Logo (Precision Midnight Navy, Height 66 matching AppHeader)
           Container(
-            padding: const EdgeInsets.fromLTRB(21, 24, 21, 18),
+            height: 66,
+            padding: const EdgeInsets.symmetric(horizontal: 18),
+            decoration: const BoxDecoration(
+              color: AppColors.headerBackground,
+              gradient: AppColors.headerGradient,
+              border: Border(
+                bottom: BorderSide(color: AppColors.headerBorder, width: 1.2),
+                right: BorderSide(color: AppColors.headerBorder, width: 1.2),
+              ),
+            ),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    borderRadius: BorderRadius.circular(10),
+                    gradient: AppColors.cyanGradient,
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      width: 1.2,
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withOpacity(0.25),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withValues(alpha: 0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -83,42 +97,26 @@ class AppSidebar extends StatelessWidget {
                       'C',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: 22,
+                        fontSize: 20,
                         fontWeight: FontWeight.w900,
-                        letterSpacing: -1,
+                        letterSpacing: -0.5,
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 13),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        AppConstants.appName,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.9,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                      Text(
-                        'Dairy Plant OS',
-                        style: TextStyle(
-                          fontSize: 11.5,
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+                const SizedBox(width: 12),
+                const Text(
+                  AppConstants.appName,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.5,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
-          const Divider(height: 1),
 
           // Menu Navigation List
           Expanded(
