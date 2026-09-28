@@ -160,6 +160,30 @@ class AppTheme {
           fontWeight: FontWeight.w700,
         ),
       ),
+      chipTheme: ChipThemeData(
+        backgroundColor: AppColors.background,
+        selectedColor: AppColors.primary,
+        secondarySelectedColor: AppColors.primary,
+        checkmarkColor: Colors.white,
+        labelStyle: const TextStyle(
+          color: AppColors.textPrimary,
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        secondaryLabelStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 13,
+          fontWeight: FontWeight.w700,
+        ),
+        iconTheme: const IconThemeData(
+          size: 16,
+          color: AppColors.textSecondary,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: const BorderSide(color: AppColors.cardBorder),
+        ),
+      ),
     );
   }
 }

@@ -56,6 +56,27 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
     }
   }
 
+  IconData _getInputModeIcon(String mode) {
+    switch (mode.toLowerCase()) {
+      case 'pieces':
+      case 'piece':
+        return Icons.widgets_outlined;
+      case 'crates':
+      case 'crate':
+        return Icons.all_inbox_rounded;
+      case 'litres':
+      case 'litre':
+      case 'liters':
+      case 'liter':
+        return Icons.water_drop_rounded;
+      case 'kg':
+      case 'kgs':
+        return Icons.scale_rounded;
+      default:
+        return Icons.tune_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(productCalculatorProvider);
@@ -228,10 +249,17 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                       children: state.selectedProduct!.allowedInputModes.map((mode) {
                                         final isSelected = state.selectedInputMode == mode;
                                         return ChoiceChip(
+                                          avatar: Icon(
+                                            _getInputModeIcon(mode),
+                                            size: 16,
+                                            color: isSelected ? Colors.white : AppColors.textSecondary,
+                                          ),
                                           label: Text(mode),
                                           selected: isSelected,
-                                          selectedColor: AppColors.primaryContainer,
+                                          showCheckmark: false,
+                                          selectedColor: AppColors.primary,
                                           backgroundColor: AppColors.background,
+                                          elevation: isSelected ? 1 : 0,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(8),
                                             side: BorderSide(
@@ -242,7 +270,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                           labelStyle: TextStyle(
                                             fontSize: 13,
                                             fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                                            color: isSelected ? AppColors.primaryDark : AppColors.textSecondary,
+                                            color: isSelected ? Colors.white : AppColors.textSecondary,
                                           ),
                                           onSelected: (selected) {
                                             if (selected) {
