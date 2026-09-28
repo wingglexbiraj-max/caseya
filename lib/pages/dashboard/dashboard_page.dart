@@ -34,8 +34,25 @@ class DashboardPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Plant Welcome Banner with Golden Ratio Padding
-            AppCard(
+            Container(
               padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: AppColors.headerBackground,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.headerBorder, width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F2448).withValues(alpha: 0.22),
+                    blurRadius: 14,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -45,50 +62,51 @@ class DashboardPage extends ConsumerWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              'Plant Control Center',
+                            const Text(
+                              'PLANT CONTROL CENTER',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 1.1,
-                                color: AppColors.primary,
+                                color: Color(0xFF38BDF8),
                               ),
                             ),
                             const SizedBox(width: 8),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
                               decoration: BoxDecoration(
-                                color: AppColors.goldLight,
+                                color: AppColors.goldAccent.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: AppColors.goldAccent.withValues(alpha: 0.4)),
                               ),
                               child: Text(
                                 user.role.toUpperCase(),
                                 style: const TextStyle(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w800,
-                                  color: AppColors.goldDark,
+                                  color: Color(0xFFFDE68A),
                                   letterSpacing: 0.5,
                                 ),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         Text(
                           'Welcome back, ${user.name}',
                           style: const TextStyle(
                             fontSize: 22, // Golden ratio subheadline
                             fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
+                            color: Colors.white,
                             letterSpacing: -0.5,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 5),
                         Text(
                           'Operations Active • ${user.department} • Shift Schedule: Standard 24h Plant Cycle',
                           style: const TextStyle(
                             fontSize: 13,
-                            color: AppColors.textSecondary,
+                            color: Color(0xFFBAE6FD),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -99,9 +117,9 @@ class DashboardPage extends ConsumerWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: AppColors.primarySurface,
+                        color: Colors.white.withValues(alpha: 0.09),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -110,7 +128,7 @@ class DashboardPage extends ConsumerWidget {
                             width: 8,
                             height: 8,
                             decoration: const BoxDecoration(
-                              color: AppColors.accentMint,
+                              color: Color(0xFF38BDF8),
                               shape: BoxShape.circle,
                             ),
                           ),
@@ -120,7 +138,7 @@ class DashboardPage extends ConsumerWidget {
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.primaryDark,
+                              color: Colors.white,
                             ),
                           ),
                         ],

@@ -72,6 +72,15 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
+  // Header Section (Deep Precision Midnight Navy)
+  static const Color headerBackground = Color(0xFF0F2448);
+  static const Color headerBorder = Color(0xFF1E3A8A);
+  static const LinearGradient headerGradient = LinearGradient(
+    colors: [Color(0xFF0F2448), Color(0xFF162E56)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
   static const LinearGradient cyanGradient = LinearGradient(
     colors: [Color(0xFF0EA5E9), Color(0xFF0284C7)],
     begin: Alignment.topLeft,

@@ -28,17 +28,25 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
     return Container(
       height: 66,
       padding: const EdgeInsets.symmetric(horizontal: 21),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: AppColors.cardBorder, width: 1.1),
+      decoration: BoxDecoration(
+        color: AppColors.headerBackground,
+        gradient: AppColors.headerGradient,
+        border: const Border(
+          bottom: BorderSide(color: AppColors.headerBorder, width: 1.2),
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           if (isMobile) ...[
             IconButton(
-              icon: const Icon(Icons.menu_rounded, color: AppColors.primary),
+              icon: const Icon(Icons.menu_rounded, color: Colors.white),
               onPressed: onMenuPressed,
               tooltip: 'Open Menu',
             ),
@@ -52,7 +60,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
               style: TextStyle(
                 fontSize: isMobile ? 17 : 20,
                 fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
+                color: Colors.white,
                 letterSpacing: -0.4,
               ),
               overflow: TextOverflow.ellipsis,
@@ -71,9 +79,9 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.primarySurface,
+                      color: Colors.white.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.primary.withOpacity(0.18)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -82,7 +90,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                           width: 8,
                           height: 8,
                           decoration: const BoxDecoration(
-                            color: AppColors.accentMint,
+                            color: AppColors.accentCyan,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -92,7 +100,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: AppColors.primaryDark,
+                            color: Color(0xFFE2E8F0),
                           ),
                         ),
                       ],
@@ -108,27 +116,29 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
             decoration: BoxDecoration(
-              color: AppColors.secondaryLight,
+              color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.cardBorder),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: user.role,
+                dropdownColor: AppColors.headerBackground,
                 isDense: true,
-                icon: const Icon(Icons.expand_more_rounded, size: 18, color: AppColors.textSecondary),
+                icon: const Icon(Icons.expand_more_rounded, size: 18, color: Color(0xFF94A3B8)),
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white),
                 items: const [
                   DropdownMenuItem(
                     value: AppConstants.roleAdmin,
-                    child: Text('Admin', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    child: Text('Admin', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
                   ),
                   DropdownMenuItem(
                     value: AppConstants.roleSupervisor,
-                    child: Text('Supervisor', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    child: Text('Supervisor', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
                   ),
                   DropdownMenuItem(
                     value: AppConstants.roleOperator,
-                    child: Text('Operator', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+                    child: Text('Operator', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
                   ),
                 ],
                 onChanged: (newRole) {
@@ -148,12 +158,13 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
+                  gradient: AppColors.cyanGradient,
                   shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.primary.withOpacity(0.2),
-                      blurRadius: 6,
+                      color: AppColors.accentCyan.withValues(alpha: 0.3),
+                      blurRadius: 8,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -180,14 +191,14 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
+                        color: Colors.white,
                       ),
                     ),
                     Text(
                       user.employeeCode,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: AppColors.textMuted,
+                        color: Color(0xFF94A3B8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
