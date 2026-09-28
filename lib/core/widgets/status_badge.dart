@@ -47,6 +47,46 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
+  factory StatusBadge.danger(String text, {IconData? icon, double fontSize = 12}) {
+    return StatusBadge(
+      text: text,
+      textColor: AppColors.alert,
+      backgroundColor: AppColors.alertLight,
+      icon: icon ?? Icons.error_outline_rounded,
+      fontSize: fontSize,
+    );
+  }
+
+  factory StatusBadge.alert(String text, {IconData? icon, double fontSize = 12}) {
+    return StatusBadge(
+      text: text,
+      textColor: AppColors.alert,
+      backgroundColor: AppColors.alertLight,
+      icon: icon ?? Icons.warning_amber_rounded,
+      fontSize: fontSize,
+    );
+  }
+
+  factory StatusBadge.noEntry(String text, {IconData? icon, double fontSize = 12}) {
+    return StatusBadge(
+      text: text,
+      textColor: AppColors.alert,
+      backgroundColor: AppColors.alertLight,
+      icon: icon ?? Icons.block_rounded,
+      fontSize: fontSize,
+    );
+  }
+
+  factory StatusBadge.empty(String text, {IconData? icon, double fontSize = 12}) {
+    return StatusBadge(
+      text: text,
+      textColor: AppColors.alert,
+      backgroundColor: AppColors.alertLight,
+      icon: icon ?? Icons.inbox_outlined,
+      fontSize: fontSize,
+    );
+  }
+
   factory StatusBadge.neutral(String text, {IconData? icon, double fontSize = 12}) {
     return StatusBadge(
       text: text,

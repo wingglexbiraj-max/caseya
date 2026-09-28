@@ -778,11 +778,18 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
         padding: const EdgeInsets.symmetric(vertical: 40),
         child: Column(
           children: [
-            const Icon(Icons.blender_outlined, size: 56, color: AppColors.textMuted),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: AppColors.alertLight,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.inbox_outlined, size: 48, color: AppColors.alert),
+            ),
             const SizedBox(height: 14),
             const Text(
               'No Batch Records Found',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.alert),
             ),
             const SizedBox(height: 6),
             const Text(

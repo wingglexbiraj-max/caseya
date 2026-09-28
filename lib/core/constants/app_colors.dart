@@ -81,13 +81,23 @@ class AppColors {
   static const Color cardBorderSubtle = Color(0xFFF3F4F6);
   static const Color divider = Color(0xFFE5E7EB); // Sharp Divider
 
-  // Status Colors mapped into 4-color system:
+  // Status Colors:
   static const Color info = Color(0xFF0F2448); // Midnight Navy
   static const Color infoLight = Color(0xFFF0F7FF);
   static const Color success = Color(0xFF0F2448); // Midnight Navy Verified
   static const Color successLight = Color(0xFFF0F7FF);
-  static const Color danger = Color(0xFF991B1B); // Crimson Black Accent
+
+  // Alert / No Entry / Empty / Error Red (Color(0xFF991B1B))
+  static const Color alert = Color(0xFF991B1B); // Alert Red
+  static const Color alertLight = Color(0xFFFEF2F2); // Soft Alert Tint
+  static const Color danger = Color(0xFF991B1B); // Critical / Danger Red
   static const Color dangerLight = Color(0xFFFEF2F2);
+  static const Color error = Color(0xFF991B1B);
+  static const Color errorLight = Color(0xFFFEF2F2);
+  static const Color noEntry = Color(0xFF991B1B); // No Entry Restriction
+  static const Color noEntryLight = Color(0xFFFEF2F2);
+  static const Color empty = Color(0xFF991B1B); // Empty State Red Accent
+  static const Color emptyLight = Color(0xFFFEF2F2);
 
   // ===========================================================================
   // 4. GOLDEN (10% - Golden Ratio Accent, Badges & High-Value Highlights)

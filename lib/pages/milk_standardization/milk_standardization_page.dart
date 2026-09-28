@@ -1387,15 +1387,15 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
         ),
         child: const Column(
           children: [
-            Icon(Icons.history_rounded, size: 36, color: AppColors.textMuted),
+            Icon(Icons.inbox_outlined, size: 36, color: AppColors.alert),
             SizedBox(height: 8),
             Text(
               'No previous standardization records found.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5),
+              style: TextStyle(color: AppColors.alert, fontSize: 13.5, fontWeight: FontWeight.w700),
             ),
           ],
         ),

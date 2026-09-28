@@ -569,15 +569,15 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.cardBorder),
+          border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
         ),
-        child: Column(
-          children: const [
-            Icon(Icons.history_rounded, size: 36, color: AppColors.textMuted),
+        child: const Column(
+          children: [
+            Icon(Icons.inbox_outlined, size: 36, color: AppColors.alert),
             SizedBox(height: 8),
             Text(
               'No previous product calculation records yet.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 13.5),
+              style: TextStyle(color: AppColors.alert, fontSize: 13.5, fontWeight: FontWeight.w700),
             ),
           ],
         ),

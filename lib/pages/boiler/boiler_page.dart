@@ -630,9 +630,21 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
           // Entries List
           if (state.filteredRecords.isEmpty) ...[
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(20),
               alignment: Alignment.center,
-              child: const Text('No boiler records matching current filter.', style: TextStyle(color: AppColors.textMuted)),
+              decoration: BoxDecoration(
+                color: AppColors.alertLight,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
+              ),
+              child: const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.inbox_outlined, size: 20, color: AppColors.alert),
+                  SizedBox(width: 8),
+                  Text('No boiler records matching current filter.', style: TextStyle(color: AppColors.alert, fontWeight: FontWeight.w700)),
+                ],
+              ),
             ),
           ] else ...[
             ListView.separated(
