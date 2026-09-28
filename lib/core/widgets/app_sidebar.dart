@@ -35,15 +35,16 @@ class AppSidebar extends StatelessWidget {
 
   static const List<SidebarItem> operationsItems = [
     SidebarItem(index: 4, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
-    SidebarItem(index: 5, title: 'Dispatch Logistics', icon: Icons.local_shipping_rounded),
-    SidebarItem(index: 6, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
-    SidebarItem(index: 7, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
-    SidebarItem(index: 8, title: 'Reports & Export', icon: Icons.insights_rounded),
+    SidebarItem(index: 5, title: 'Daily Batch Making', icon: Icons.blender_rounded),
+    SidebarItem(index: 6, title: 'Dispatch Logistics', icon: Icons.local_shipping_rounded),
+    SidebarItem(index: 7, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
+    SidebarItem(index: 8, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
+    SidebarItem(index: 9, title: 'Reports & Export', icon: Icons.insights_rounded),
   ];
 
   static const List<SidebarItem> adminItems = [
-    SidebarItem(index: 9, title: 'Products Master', icon: Icons.tune_rounded),
-    SidebarItem(index: 10, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
+    SidebarItem(index: 10, title: 'Products Master', icon: Icons.tune_rounded),
+    SidebarItem(index: 11, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
   ];
 
   @override

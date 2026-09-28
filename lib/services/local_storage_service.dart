@@ -8,6 +8,7 @@ import '../models/product_calculation_record.dart';
 import '../models/lab_record.dart';
 import '../models/user_model.dart';
 import '../models/operations_models.dart';
+import '../models/batch_record_model.dart';
 
 class LocalStorageService {
   static SharedPreferences? _prefs;
@@ -31,6 +32,9 @@ class LocalStorageService {
     }
     if (!prefs.containsKey(AppConstants.storageKeyStockRecords)) {
       await _seedInitialStockRecords(prefs);
+    }
+    if (!prefs.containsKey(AppConstants.storageKeyBatchRecords)) {
+      await _seedInitialBatchRecords(prefs);
     }
   }
 
@@ -764,6 +768,166 @@ class LocalStorageService {
     await prefs.setString(
       AppConstants.storageKeyStockRecords,
       jsonEncode(stockSeeds.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  // ===========================================================================
+  // DAILY BATCH MAKING RECORDS
+  // ===========================================================================
+
+  static Future<List<BatchRecordModel>> getBatchRecords() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeyBatchRecords);
+    if (jsonStr == null || jsonStr.isEmpty) {
+      await _seedInitialBatchRecords(prefs);
+      final seededStr = prefs.getString(AppConstants.storageKeyBatchRecords);
+      if (seededStr == null || seededStr.isEmpty) return [];
+      try {
+        final List<dynamic> list = jsonDecode(seededStr);
+        return list.map((e) => BatchRecordModel.fromJson(e as Map<String, dynamic>)).toList();
+      } catch (_) {
+        return [];
+      }
+    }
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => BatchRecordModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveBatchRecords(List<BatchRecordModel> records) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeyBatchRecords, jsonStr);
+  }
+
+  static Future<void> addBatchRecord(BatchRecordModel record) async {
+    final list = await getBatchRecords();
+    list.insert(0, record);
+    await saveBatchRecords(list);
+  }
+
+  static Future<void> updateBatchRecord(BatchRecordModel record) async {
+    final list = await getBatchRecords();
+    final index = list.indexWhere((b) => b.id == record.id);
+    if (index >= 0) {
+      list[index] = record;
+    } else {
+      list.insert(0, record);
+    }
+    await saveBatchRecords(list);
+  }
+
+  static Future<void> deleteBatchRecord(String id) async {
+    final list = await getBatchRecords();
+    list.removeWhere((b) => b.id == id);
+    await saveBatchRecords(list);
+  }
+
+  static Future<void> _seedInitialBatchRecords(SharedPreferences prefs) async {
+    final now = DateTime.now();
+    final initialBatches = [
+      BatchRecordModel(
+        id: 'BATCH-20260928-01',
+        productionDate: '2026-09-28',
+        productId: 'LASSI',
+        productName: 'Lassi',
+        batchNumber: 'BT-20260928-01',
+        batchQuantity: 500.0,
+        batchUnit: 'L',
+        shift: 'Shift A (06:00 - 14:00)',
+        operatorName: 'R. K. Baruah',
+        notes: 'Standard sweet lassi formulation batch 1',
+        ingredients: const [
+          BatchIngredientModel(id: 'ING-01', batchId: 'BATCH-20260928-01', ingredientName: 'Milk', quantity: 300.0, unit: 'L'),
+          BatchIngredientModel(id: 'ING-02', batchId: 'BATCH-20260928-01', ingredientName: 'Water', quantity: 200.0, unit: 'L'),
+          BatchIngredientModel(id: 'ING-03', batchId: 'BATCH-20260928-01', ingredientName: 'SMP', quantity: 29.0, unit: 'kg'),
+          BatchIngredientModel(id: 'ING-04', batchId: 'BATCH-20260928-01', ingredientName: 'Sugar', quantity: 46.0, unit: 'kg'),
+        ],
+        createdAt: now.subtract(const Duration(hours: 4)),
+        updatedAt: now.subtract(const Duration(hours: 4)),
+      ),
+      BatchRecordModel(
+        id: 'BATCH-20260928-02',
+        productionDate: '2026-09-28',
+        productId: 'CURD',
+        productName: 'Curd',
+        batchNumber: 'BT-20260928-02',
+        batchQuantity: 1000.0,
+        batchUnit: 'L',
+        shift: 'Shift A (06:00 - 14:00)',
+        operatorName: 'R. K. Baruah',
+        notes: 'Plain curd bulk vat incubation',
+        ingredients: const [
+          BatchIngredientModel(id: 'ING-05', batchId: 'BATCH-20260928-02', ingredientName: 'Milk', quantity: 1000.0, unit: 'L'),
+        ],
+        createdAt: now.subtract(const Duration(hours: 3)),
+        updatedAt: now.subtract(const Duration(hours: 3)),
+      ),
+      BatchRecordModel(
+        id: 'BATCH-20260928-03',
+        productionDate: '2026-09-28',
+        productId: 'LASSI',
+        productName: 'Lassi',
+        batchNumber: 'BT-20260928-03',
+        batchQuantity: 1000.0,
+        batchUnit: 'L',
+        shift: 'Shift B (14:00 - 22:00)',
+        operatorName: 'M. Hazarika',
+        notes: 'Standard sweet lassi second shift batch',
+        ingredients: const [
+          BatchIngredientModel(id: 'ING-06', batchId: 'BATCH-20260928-03', ingredientName: 'Milk', quantity: 500.0, unit: 'L'),
+          BatchIngredientModel(id: 'ING-07', batchId: 'BATCH-20260928-03', ingredientName: 'Water', quantity: 200.0, unit: 'L'),
+          BatchIngredientModel(id: 'ING-08', batchId: 'BATCH-20260928-03', ingredientName: 'SMP', quantity: 29.0, unit: 'kg'),
+          BatchIngredientModel(id: 'ING-09', batchId: 'BATCH-20260928-03', ingredientName: 'Sugar', quantity: 46.0, unit: 'kg'),
+        ],
+        createdAt: now.subtract(const Duration(hours: 1)),
+        updatedAt: now.subtract(const Duration(hours: 1)),
+      ),
+      BatchRecordModel(
+        id: 'BATCH-20260929-01',
+        productionDate: '2026-09-29',
+        productId: 'MILK_POUCH',
+        productName: 'Milk Pouch',
+        batchNumber: 'BT-20260929-01',
+        batchQuantity: 2000.0,
+        batchUnit: 'L',
+        shift: 'Shift A (06:00 - 14:00)',
+        operatorName: 'D. Kalita',
+        notes: 'Pasteurized standardized milk pouch batch',
+        ingredients: const [
+          BatchIngredientModel(id: 'ING-10', batchId: 'BATCH-20260929-01', ingredientName: 'Milk', quantity: 2000.0, unit: 'L'),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      ),
+      BatchRecordModel(
+        id: 'BATCH-20260929-02',
+        productionDate: '2026-09-29',
+        productId: 'LASSI',
+        productName: 'Lassi',
+        batchNumber: 'BT-20260929-02',
+        batchQuantity: 500.0,
+        batchUnit: 'L',
+        shift: 'Shift A (06:00 - 14:00)',
+        operatorName: 'R. K. Baruah',
+        notes: 'Morning sweet lassi production',
+        ingredients: const [
+          BatchIngredientModel(id: 'ING-11', batchId: 'BATCH-20260929-02', ingredientName: 'Milk', quantity: 300.0, unit: 'L'),
+          BatchIngredientModel(id: 'ING-12', batchId: 'BATCH-20260929-02', ingredientName: 'Water', quantity: 200.0, unit: 'L'),
+          BatchIngredientModel(id: 'ING-13', batchId: 'BATCH-20260929-02', ingredientName: 'SMP', quantity: 29.0, unit: 'kg'),
+          BatchIngredientModel(id: 'ING-14', batchId: 'BATCH-20260929-02', ingredientName: 'Sugar', quantity: 46.0, unit: 'kg'),
+        ],
+        createdAt: now,
+        updatedAt: now,
+      ),
+    ];
+
+    await prefs.setString(
+      AppConstants.storageKeyBatchRecords,
+      jsonEncode(initialBatches.map((e) => e.toJson()).toList()),
     );
   }
 }

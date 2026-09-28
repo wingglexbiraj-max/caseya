@@ -208,7 +208,7 @@ class DashboardPage extends ConsumerWidget {
                         icon: Icons.local_shipping_rounded,
                         iconColor: const Color(0xFF7C3AED),
                         iconBgColor: AppColors.metricBgDispatch,
-                        onTap: () => onNavigate(5),
+                        onTap: () => onNavigate(6),
                       ),
                     ),
                     SizedBox(
@@ -221,7 +221,7 @@ class DashboardPage extends ConsumerWidget {
                         icon: Icons.ac_unit_rounded,
                         iconColor: AppColors.coolIce,
                         iconBgColor: AppColors.metricBgStock,
-                        onTap: () => onNavigate(7),
+                        onTap: () => onNavigate(8),
                       ),
                     ),
                     SizedBox(
@@ -415,11 +415,19 @@ class DashboardPage extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 10),
                                   _buildEngineShortcut(
+                                    icon: Icons.blender_rounded,
+                                    title: 'Daily Batch Making',
+                                    subtitle: 'Recipe Formulation & Ingredients',
+                                    badge: 'Daily Module',
+                                    onTap: () => onNavigate(5),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildEngineShortcut(
                                     icon: Icons.insights_rounded,
                                     title: 'Daily Shift Reports',
                                     subtitle: 'Export CSV & Printable Log',
                                     badge: 'Analytics',
-                                    onTap: () => onNavigate(8),
+                                    onTap: () => onNavigate(9),
                                   ),
                                 ],
                               ),
