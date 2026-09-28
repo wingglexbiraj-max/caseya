@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
+import '../utils/formatters.dart';
 
 class SidebarItem {
   final int index;
@@ -59,16 +61,22 @@ class AppSidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Brand Header with Gradient Logo (Precision Midnight Navy, Height 66 matching AppHeader)
+          // Brand Header with Complete Blue Background (Matching AppHeader)
           Container(
             height: 66,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: AppColors.headerBackground,
               gradient: AppColors.headerGradient,
               border: Border(
-                bottom: BorderSide(color: AppColors.headerBorder, width: 1.2),
-                right: BorderSide(color: AppColors.headerBorder, width: 1.2),
+                bottom: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 1.2,
+                ),
+                right: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.15),
+                  width: 1.2,
+                ),
               ),
             ),
             child: Row(
@@ -81,12 +89,12 @@ class AppSidebar extends StatelessWidget {
                     gradient: AppColors.cyanGradient,
                     borderRadius: BorderRadius.circular(9),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.25),
+                      color: Colors.white.withValues(alpha: 0.35),
                       width: 1.2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.2),
+                        color: Colors.black.withValues(alpha: 0.2),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -111,97 +119,36 @@ class AppSidebar extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
-                    color: AppColors.primaryDark,
+                    color: Colors.white,
                   ),
                 ),
               ],
             ),
           ),
 
-          // Menu Navigation List
+          // Menu Navigation List (Clean without section headings)
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 13),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
               children: [
-                _buildSectionHeader('CORE ENGINES'),
                 ...primaryItems.map((item) => _buildNavItem(item)),
-                const SizedBox(height: 13),
-                _buildSectionHeader('MANUFACTURING & FLEET'),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Divider(height: 1, color: AppColors.divider),
+                ),
                 ...operationsItems.map((item) => _buildNavItem(item)),
-                const SizedBox(height: 13),
-                _buildSectionHeader('CONTROL & STANDARDS'),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  child: Divider(height: 1, color: AppColors.divider),
+                ),
                 ...adminItems.map((item) => _buildNavItem(item)),
               ],
             ),
           ),
 
-          // Plant Location Footer with Golden Ratio Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            margin: const EdgeInsets.all(13),
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.cardBorder),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: AppColors.accentMint,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Processing Plant #01',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                      Text(
-                        'Engine Calibrated • v1.0',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          color: AppColors.textMuted,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
+          // Plant Facility Active Chip with Real-time Clock & Date
+          const _LivePlantSidebarChip(),
         ],
-      ),
-    );
-  }
-
-  Widget _buildSectionHeader(String title) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(4, 12, 4, 6),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
-      ),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 10,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.1,
-          color: AppColors.primaryDark,
-        ),
       ),
     );
   }
@@ -247,6 +194,92 @@ class AppSidebar extends StatelessWidget {
               : null,
           onTap: () => onItemSelected(item.index),
         ),
+      ),
+    );
+  }
+}
+
+class _LivePlantSidebarChip extends StatefulWidget {
+  const _LivePlantSidebarChip();
+
+  @override
+  State<_LivePlantSidebarChip> createState() => _LivePlantSidebarChipState();
+}
+
+class _LivePlantSidebarChipState extends State<_LivePlantSidebarChip> {
+  late DateTime _currentTime;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final timeStr = Formatters.formatTimeWithSeconds(_currentTime);
+    final dateStr = Formatters.formatDate(_currentTime);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
+      margin: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 9,
+            height: 9,
+            decoration: const BoxDecoration(
+              color: Color(0xFF10B981), // Emerald active indicator
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Plant Facility Active',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '$timeStr • $dateStr',
+                  style: const TextStyle(
+                    fontSize: 10.5,
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
