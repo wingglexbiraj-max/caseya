@@ -389,10 +389,11 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Collapsible Calculation Breakdown Card
+                // Collapsible Calculation Breakdown Card (Collapsed by default)
                 CalculationBreakdownCard(
                   title: 'Calculation Breakdown & Formula Details',
                   steps: state.result!.breakdownSteps,
+                  initiallyExpanded: false,
                 ),
               ],
 

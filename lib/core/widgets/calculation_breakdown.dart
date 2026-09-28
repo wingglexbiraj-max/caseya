@@ -24,7 +24,7 @@ class CalculationBreakdownCard extends StatefulWidget {
     super.key,
     this.title = 'How was this calculated?',
     required this.steps,
-    this.initiallyExpanded = true,
+    this.initiallyExpanded = false,
   });
 
   @override
