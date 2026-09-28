@@ -62,7 +62,7 @@ class AppSidebar extends StatelessWidget {
           // Brand Header with Gradient Logo (Precision Midnight Navy, Height 66 matching AppHeader)
           Container(
             height: 66,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: const BoxDecoration(
               color: AppColors.headerBackground,
               gradient: AppColors.headerGradient,
@@ -72,7 +72,7 @@ class AppSidebar extends StatelessWidget {
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Container(
                   width: 36,
