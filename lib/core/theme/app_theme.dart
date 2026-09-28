@@ -150,12 +150,12 @@ class AppTheme {
       ),
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.headerBackground,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
-          color: Colors.white,
+          color: AppColors.textPrimary,
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),

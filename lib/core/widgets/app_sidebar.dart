@@ -61,20 +61,20 @@ class AppSidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Brand Header with Complete Blue Background (Matching AppHeader)
+          // Brand Header with Deep Welcome Card Navy Blue Background
           Container(
             height: 66,
             padding: const EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: AppColors.headerBackground,
-              gradient: AppColors.headerGradient,
+            decoration: const BoxDecoration(
+              color: AppColors.brandHeaderBackground,
+              gradient: AppColors.brandHeaderGradient,
               border: Border(
                 bottom: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Color(0xFF1E3A8A),
                   width: 1.2,
                 ),
                 right: BorderSide(
-                  color: Colors.white.withValues(alpha: 0.15),
+                  color: Color(0xFF1E3A8A),
                   width: 1.2,
                 ),
               ),

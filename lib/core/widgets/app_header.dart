@@ -28,16 +28,16 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
       decoration: BoxDecoration(
         color: AppColors.headerBackground,
         gradient: AppColors.headerGradient,
-        border: Border(
+        border: const Border(
           bottom: BorderSide(
-            color: Colors.white.withValues(alpha: 0.15),
+            color: AppColors.headerBorder,
             width: 1.2,
           ),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 8,
+            color: const Color(0xFF0F2448).withValues(alpha: 0.04),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -46,28 +46,43 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
         children: [
           if (isMobile) ...[
             IconButton(
-              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              icon: const Icon(Icons.menu_rounded, color: AppColors.textPrimary),
               onPressed: onMenuPressed,
               tooltip: 'Open Menu',
             ),
             const SizedBox(width: 8),
           ],
 
-          // Clean Page Title (Complete Blue Header, Crisp White Typography)
+          // Clean Page Title (Low-Opacity Blue Header with Deep Executive Navy Typography)
           Expanded(
-            child: Text(
-              activeTitle,
-              style: TextStyle(
-                fontSize: isMobile ? 18 : 22,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: -0.4,
-              ),
-              overflow: TextOverflow.ellipsis,
+            child: Row(
+              children: [
+                Container(
+                  width: 3.5,
+                  height: 18,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    activeTitle,
+                    style: TextStyle(
+                      fontSize: isMobile ? 18 : 21,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0F2448),
+                      letterSpacing: -0.4,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
 
-          // User Profile Tag with Emerald Gradient Avatar
+          // User Profile Tag with Emerald/Cyan Avatar and Crisp Dark Typography
           Row(
             children: [
               Container(
@@ -77,12 +92,12 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                   gradient: AppColors.cyanGradient,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.4),
+                    color: AppColors.primary.withValues(alpha: 0.25),
                     width: 1.5,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                       blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
@@ -109,16 +124,16 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                       user.name,
                       style: const TextStyle(
                         fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       user.employeeCode,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 11,
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontWeight: FontWeight.w500,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],

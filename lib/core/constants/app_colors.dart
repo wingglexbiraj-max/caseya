@@ -89,7 +89,25 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
-  // Header Section (Modern Low-Opacity Precision Blue)
+  // Welcome Back Card Blue (Plant Control Center / Deep Executive Navy)
+  static const Color welcomeCardBgStart = Color(0xFF0F2448);
+  static const Color welcomeCardBgEnd = Color(0xFF1E3A8A);
+  static const LinearGradient welcomeCardGradient = LinearGradient(
+    colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Left Sidebar CASEYA Brand Header (Uses Welcome Card Blue)
+  static const Color brandHeaderBackground = Color(0xFF0F2448);
+  static const Color brandHeaderBorder = Color(0xFF1E3A8A);
+  static const LinearGradient brandHeaderGradient = LinearGradient(
+    colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  // Right Page Heading Header Section (Modern Low-Opacity Precision Blue)
   static const Color headerBackground = Color(0xFFF0F7FF);
   static const Color headerBorder = Color(0xFFCCE2FE);
   static const LinearGradient headerGradient = LinearGradient(
