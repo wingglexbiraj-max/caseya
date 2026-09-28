@@ -447,7 +447,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             ),
             if (selected != null)
               Text(
-                'Specs: FAT ${selected.targetFat ?? 0.0}% • SNF ${selected.targetSnf ?? 0.0}%',
+                'Specs: FAT ${selected.targetFat ?? 0.0}% • SNF ${selected.targetSnf ?? 0.0}% • Sugar ${selected.targetSugarDisplay}',
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -581,7 +581,14 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     valueColor: AppColors.primaryDark,
                   ),
                   const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: true),
+                  _buildTabulatedRow(
+                    'Target Sugar',
+                    product.targetSugarDisplay,
+                    isEven: true,
+                    valueColor: AppColors.accentTeal,
+                  ),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: false),
                 ],
               ),
             ),

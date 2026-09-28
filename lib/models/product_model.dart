@@ -17,6 +17,7 @@ class ProductModel {
   final List<String> allowedInputModes; // ['Pieces', 'Crates', 'Litres', 'Kg']
   final double? targetFat; // e.g. 4.5 for toned, 6.0 for full cream
   final double? targetSnf; // e.g. 8.5, 9.0
+  final double? targetSugar; // e.g. 12.0%, 15.0% or null (NA)
   final bool active;
 
   const ProductModel({
@@ -38,8 +39,18 @@ class ProductModel {
     required this.allowedInputModes,
     this.targetFat,
     this.targetSnf,
+    this.targetSugar,
     this.active = true,
   });
+
+  /// Formatted target sugar string (e.g. "12%", "15%", "NA")
+  String get targetSugarDisplay {
+    if (targetSugar == null) return 'NA';
+    final formatted = targetSugar == targetSugar!.roundToDouble()
+        ? targetSugar!.toInt().toString()
+        : targetSugar!.toStringAsFixed(1);
+    return '$formatted%';
+  }
 
   /// Pack size in base unit: Litres (for liquid) or Kg (for solids)
   double get packSizeInBaseUnit {
@@ -106,6 +117,7 @@ class ProductModel {
       'allowed_input_modes': allowedInputModes,
       'target_fat': targetFat,
       'target_snf': targetSnf,
+      'target_sugar': targetSugar,
       'active': active,
     };
   }
@@ -137,6 +149,7 @@ class ProductModel {
           ['Pieces', 'Crates', 'Kg'],
       targetFat: (json['target_fat'] as num?)?.toDouble(),
       targetSnf: (json['target_snf'] as num?)?.toDouble(),
+      targetSugar: (json['target_sugar'] as num?)?.toDouble(),
       active: json['active'] as bool? ?? true,
     );
   }
@@ -160,6 +173,7 @@ class ProductModel {
     List<String>? allowedInputModes,
     double? targetFat,
     double? targetSnf,
+    double? targetSugar,
     bool? active,
   }) {
     return ProductModel(
@@ -181,6 +195,7 @@ class ProductModel {
       allowedInputModes: allowedInputModes ?? this.allowedInputModes,
       targetFat: targetFat ?? this.targetFat,
       targetSnf: targetSnf ?? this.targetSnf,
+      targetSugar: targetSugar ?? this.targetSugar,
       active: active ?? this.active,
     );
   }

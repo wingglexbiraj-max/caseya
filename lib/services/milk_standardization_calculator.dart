@@ -1,5 +1,6 @@
 import '../core/widgets/calculation_breakdown.dart';
 import '../core/utils/formatters.dart';
+import '../models/product_model.dart';
 
 class StandardizationResult {
   final double initialQuantity;
@@ -36,17 +37,109 @@ class StandardizationResult {
 /// ============================================================================
 /// CASEYA MILK STANDARDIZATION CALCULATION ENGINE
 /// ============================================================================
-///
-/// NOTE TO PLANT ADMINISTRATOR / ENGINEER:
-/// This calculation engine is designed to be modular.
-/// When you provide the exact plant standardization formula or Pearson Square
-/// matrix, you can replace or customize the logic inside the marked block
-/// `[PLANT_STANDARDIZATION_FORMULA_START]` to `[PLANT_STANDARDIZATION_FORMULA_END]`.
-///
-/// Default baseline: Mass-Balance / Pearson's Square standard dairy methodology
-/// with Skimmed Milk Powder (SMP: ~96% SNF, 0.5% Fat) and dilution water.
 class MilkStandardizationCalculator {
   static const String formulaVersion = 'v1.2-Standard-Dairy-MassBalance';
+
+  /// Official Dairy Plant Standardization Target Products
+  static const List<ProductModel> standardizationProducts = [
+    ProductModel(
+      productId: 'STD_MILK',
+      productName: 'std milk',
+      itemCode: 'NA',
+      shortCode: 'STD',
+      category: 'Milk',
+      unit: 'Litres',
+      packSize: 1000,
+      packSizeDisplay: 'Bulk Standardized Milk',
+      piecesPerCrate: 24,
+      shelfLife: '2 Days',
+      allowedInputModes: ['Litres', 'Kg'],
+      targetFat: 4.5,
+      targetSnf: 8.5,
+      targetSugar: null,
+    ),
+    ProductModel(
+      productId: 'ARMY_MILK',
+      productName: 'army milk',
+      itemCode: 'NA',
+      shortCode: 'ARMY',
+      category: 'Milk',
+      unit: 'Litres',
+      packSize: 1000,
+      packSizeDisplay: 'Defence Supply Bulk',
+      piecesPerCrate: 24,
+      priceCustomLabel: 'Defence Supply',
+      shelfLife: '2 Days',
+      allowedInputModes: ['Litres', 'Kg'],
+      targetFat: 3.5,
+      targetSnf: 8.5,
+      targetSugar: null,
+    ),
+    ProductModel(
+      productId: 'PLAIN_CURD_CUP',
+      productName: 'plain curd cup',
+      itemCode: 'NA',
+      shortCode: 'P-CUP',
+      category: 'Curd',
+      unit: 'Kg',
+      packSize: 1000,
+      packSizeDisplay: 'Cup Curd Incubation Vat',
+      piecesPerCrate: 60,
+      shelfLife: '12 Days',
+      allowedInputModes: ['Litres', 'Kg'],
+      targetFat: 3.0,
+      targetSnf: 14.0,
+      targetSugar: null,
+    ),
+    ProductModel(
+      productId: 'PLAIN_CURD_POUCH',
+      productName: 'plain curd pouch',
+      itemCode: 'NA',
+      shortCode: 'P-POUCH',
+      category: 'Curd',
+      unit: 'Kg',
+      packSize: 1000,
+      packSizeDisplay: 'Pouch Curd Vat',
+      piecesPerCrate: 30,
+      shelfLife: '12 Days',
+      allowedInputModes: ['Litres', 'Kg'],
+      targetFat: 3.0,
+      targetSnf: 11.0,
+      targetSugar: null,
+    ),
+    ProductModel(
+      productId: 'SWEETENED_CURD',
+      productName: 'sweetened curd',
+      itemCode: 'NA',
+      shortCode: 'S-CURD',
+      category: 'Curd',
+      unit: 'Kg',
+      packSize: 1000,
+      packSizeDisplay: 'Sweet Curd Incubation Vat',
+      piecesPerCrate: 60,
+      shelfLife: '12 Days',
+      allowedInputModes: ['Litres', 'Kg'],
+      targetFat: 3.0,
+      targetSnf: 14.0,
+      targetSugar: 12.0,
+    ),
+    ProductModel(
+      productId: 'LASSI',
+      productName: 'lassi',
+      itemCode: 'NA',
+      shortCode: 'LASSI',
+      category: 'Fermented',
+      unit: 'Litres',
+      packSize: 1000,
+      packSizeDisplay: 'Bulk Lassi Tank',
+      piecesPerCrate: 30,
+      shelfLife: '7 Days',
+      allowedInputModes: ['Litres', 'Kg'],
+      targetFat: 1.5,
+      targetSnf: 7.0,
+      targetSugar: 15.0,
+    ),
+  ];
 
   /// Standard Milk Powder (SMP) constants (configurable per plant specifications)
   static const double standardSmpSnfPercent = 96.0; // 96% SNF in SMP
@@ -60,7 +153,7 @@ class MilkStandardizationCalculator {
     required double targetFat,
     required double targetSnf,
     double smpSnfRatio = standardSmpSnfPercent,
-    double sugarPercent = 0.0, // For sweetened products like Curd / Lassi (e.g. 7-10%)
+    double sugarPercent = 0.0,
   }) {
     // =========================================================================
     // [PLANT_STANDARDIZATION_FORMULA_START]
@@ -98,12 +191,12 @@ class MilkStandardizationCalculator {
       smpRequired = snfDeficitKg / (smpSnfRatio / 100.0);
     }
 
-    // 4. Sugar Addition (if target product is sweetened, e.g. Sweet Curd, Lassi)
-    final bool isSweetened = targetProduct.toLowerCase().contains('lassi') ||
-        targetProduct.toLowerCase().contains('sweet');
+    // 4. Sugar Addition (if target product is sweetened, e.g. Sweetened Curd: 12%, Lassi: 15%)
     final double effectiveSugarPercent = sugarPercent > 0.0
         ? sugarPercent
-        : (isSweetened ? 8.0 : 0.0); // 8% standard for sweetened curd/lassi
+        : (targetProduct.toLowerCase().contains('lassi')
+            ? 15.0
+            : (targetProduct.toLowerCase().contains('sweet') ? 12.0 : 0.0));
 
     if (effectiveSugarPercent > 0.0) {
       sugarRequired = (finalQuantity * effectiveSugarPercent) / 100.0;

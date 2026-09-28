@@ -106,15 +106,14 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
 
   Future<void> init() async {
     state = state.copyWith(isLoading: true);
-    final allProducts = await _productRepo.getProducts();
-    // Filter products suitable for standardization target
-    final targets = allProducts.where((p) => p.targetFat != null && p.targetSnf != null).toList();
+    // Use official dairy plant standardization target products
+    final targets = MilkStandardizationCalculator.standardizationProducts;
     final history = await _stdRepo.getRecords();
 
     ProductModel? defaultTarget;
     if (targets.isNotEmpty) {
       defaultTarget = targets.firstWhere(
-        (p) => p.productName.toLowerCase().contains('lassi'),
+        (p) => p.productName.toLowerCase().contains('std milk'),
         orElse: () => targets.first,
       );
     }
@@ -122,8 +121,8 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     state = state.copyWith(
       targetProducts: targets,
       selectedTargetProduct: defaultTarget,
-      targetFat: defaultTarget?.targetFat ?? 2.5,
-      targetSnf: defaultTarget?.targetSnf ?? 9.0,
+      targetFat: defaultTarget?.targetFat ?? 4.5,
+      targetSnf: defaultTarget?.targetSnf ?? 8.5,
       history: history,
       isLoading: false,
     );
@@ -209,6 +208,7 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
       targetProduct: state.selectedTargetProduct?.productName ?? 'Standardized Milk',
       targetFat: state.targetFat,
       targetSnf: state.targetSnf,
+      sugarPercent: state.selectedTargetProduct?.targetSugar ?? 0.0,
     );
 
     state = state.copyWith(
