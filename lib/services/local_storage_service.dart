@@ -54,6 +54,168 @@ class LocalStorageService {
       var products = list.map((e) => ProductModel.fromJson(e as Map<String, dynamic>)).toList();
 
       bool needsResave = false;
+
+      // Canonical product definitions matching official plant metadata
+      const pp250 = ProductModel(
+        productId: '9900095',
+        productName: 'Purabi Plus 250 ml (PP250)',
+        itemCode: '9900095',
+        shortCode: 'PP250',
+        category: 'Milk',
+        unit: 'ml',
+        packSize: 250,
+        packSizeDisplay: '250 ml',
+        piecesPerCrate: 48,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 L (12000.0 ml)',
+        pricePerPiece: 18.0,
+        shelfLife: '2 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+        targetFat: 4.5,
+        targetSnf: 8.5,
+      );
+
+      const std500 = ProductModel(
+        productId: 'STD500',
+        productName: 'Purabi Plus 500 ml (STD 500)',
+        itemCode: '9900001',
+        shortCode: 'STD 500',
+        category: 'Milk',
+        unit: 'ml',
+        packSize: 500,
+        packSizeDisplay: '500 ml',
+        piecesPerCrate: 24,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 L (12000.0 ml)',
+        pricePerPiece: 28.0,
+        shelfLife: '2 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+        targetFat: 4.5,
+        targetSnf: 8.5,
+      );
+
+      const sm500 = ProductModel(
+        productId: 'SM500',
+        productName: 'Purabi Smart Plus 500 ml (SM+ 500)',
+        itemCode: '9900003',
+        shortCode: 'SM+ 500',
+        category: 'Milk',
+        unit: 'ml',
+        packSize: 500,
+        packSizeDisplay: '500 ml',
+        piecesPerCrate: 24,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 L (12000.0 ml)',
+        pricePerPiece: 26.0,
+        shelfLife: '2 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+        targetFat: 3.0,
+        targetSnf: 8.5,
+      );
+
+      const s80 = ProductModel(
+        productId: '9900025',
+        productName: 'Sweet Curd Cup 80g (S80)',
+        itemCode: '9900025',
+        shortCode: 'S80',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 80,
+        packSizeDisplay: '80 g',
+        piecesPerCrate: 60,
+        perCrateQty: 4.8,
+        perCrateQtyGrams: 4800.0,
+        perCrateDisplay: '4.8 kg (4800.0 g)',
+        pricePerPiece: 15.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.5,
+        targetSnf: 10.0,
+      );
+
+      const s400 = ProductModel(
+        productId: '9900010',
+        productName: 'Sweet Curd Cup 400g (S400)',
+        itemCode: '9900010',
+        shortCode: 'S400',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 400,
+        packSizeDisplay: '400 g',
+        piecesPerCrate: 15,
+        perCrateQty: 6.0,
+        perCrateQtyGrams: 6000.0,
+        perCrateDisplay: '6.0 kg (6000.0 g)',
+        pricePerPiece: 55.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.5,
+        targetSnf: 10.0,
+      );
+
+      const p80 = ProductModel(
+        productId: '9900026',
+        productName: 'Plain Curd Cup 80g (P80)',
+        itemCode: '9900026',
+        shortCode: 'P80',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 80,
+        packSizeDisplay: '80 g',
+        piecesPerCrate: 60,
+        perCrateQty: 4.8,
+        perCrateQtyGrams: 4800.0,
+        perCrateDisplay: '4.8 kg (4800.0 g)',
+        pricePerPiece: 15.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.2,
+        targetSnf: 9.0,
+      );
+
+      const p400 = ProductModel(
+        productId: '9900013',
+        productName: 'Plain Curd Cup 400g (P400)',
+        itemCode: '9900013',
+        shortCode: 'P400',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 400,
+        packSizeDisplay: '400 g',
+        piecesPerCrate: 15,
+        perCrateQty: 6.0,
+        perCrateQtyGrams: 6000.0,
+        perCrateDisplay: '6.0 kg (6000.0 g)',
+        pricePerPiece: 55.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.2,
+        targetSnf: 9.0,
+      );
+
+      const pl200 = ProductModel(
+        productId: '9900007',
+        productName: 'Purabi Lassi 200 ml (PL200)',
+        itemCode: '9900007',
+        shortCode: 'PL200',
+        category: 'Fermented',
+        unit: 'ml',
+        packSize: 200,
+        packSizeDisplay: '200 ml',
+        piecesPerCrate: 30,
+        perCrateQty: 6.0,
+        perCrateQtyGrams: 6000.0,
+        perCrateDisplay: '6.0 L (6000.0 ml)',
+        pricePerPiece: 20.0,
+        shelfLife: '7 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+        targetFat: 2.5,
+        targetSnf: 9.0,
+      );
+
       const cp400 = ProductModel(
         productId: 'CP400',
         productName: 'Curd Pouch 400 g (CP400)',
@@ -122,37 +284,40 @@ class LocalStorageService {
           p.productId == 'SCP1000');
       if (products.length != initialLength) needsResave = true;
 
-      final idx400 = products.indexWhere((p) => p.productId == 'CP400' || p.shortCode == 'CP400');
-      if (idx400 >= 0) {
-        if (products[idx400].piecesPerCrate != 30 ||
-            products[idx400].pricePerPiece != 35.0 ||
-            products[idx400].productName != 'Curd Pouch 400 g (CP400)') {
-          products[idx400] = cp400;
+      void syncCanonical(ProductModel canonical, List<String> matchIdentifiers) {
+        final idx = products.indexWhere((p) =>
+            matchIdentifiers.contains(p.productId) ||
+            matchIdentifiers.contains(p.shortCode) ||
+            matchIdentifiers.contains(p.itemCode));
+        if (idx >= 0) {
+          final curr = products[idx];
+          if (curr.piecesPerCrate != canonical.piecesPerCrate ||
+              curr.pricePerPiece != canonical.pricePerPiece ||
+              curr.perCrateQty != canonical.perCrateQty ||
+              curr.itemCode != canonical.itemCode ||
+              curr.shortCode != canonical.shortCode ||
+              curr.shelfLife != canonical.shelfLife ||
+              curr.productName != canonical.productName) {
+            products[idx] = canonical;
+            needsResave = true;
+          }
+        } else {
+          products.add(canonical);
           needsResave = true;
         }
-      } else {
-        products.add(cp400);
-        needsResave = true;
       }
 
-      final idx1000 = products.indexWhere((p) => p.productId == 'CP1000' || p.shortCode == 'CP1000');
-      if (idx1000 >= 0) {
-        if (products[idx1000].piecesPerCrate != 12 ||
-            products[idx1000].pricePerPiece != 75.0 ||
-            products[idx1000].productName != 'Curd Pouch 1 kg (CP1000)') {
-          products[idx1000] = cp1000;
-          needsResave = true;
-        }
-      } else {
-        products.add(cp1000);
-        needsResave = true;
-      }
-
-      final idx200 = products.indexWhere((p) => p.productId == 'P200' || p.shortCode == 'P200');
-      if (idx200 < 0) {
-        products.add(p200);
-        needsResave = true;
-      }
+      syncCanonical(pp250, ['9900095', 'PP250', 'STD250', 'STD 250', '9900002']);
+      syncCanonical(std500, ['STD500', 'STD 500', 'PP500', '9900001']);
+      syncCanonical(sm500, ['SM500', 'SM+ 500', '9900003']);
+      syncCanonical(s80, ['9900025', 'S80']);
+      syncCanonical(s400, ['9900010', 'S400']);
+      syncCanonical(p80, ['9900026', 'P80']);
+      syncCanonical(p400, ['9900013', 'P400']);
+      syncCanonical(pl200, ['9900007', 'PL200']);
+      syncCanonical(cp400, ['CP400']);
+      syncCanonical(cp1000, ['CP1000']);
+      syncCanonical(p200, ['P200']);
 
       if (needsResave) {
         await saveProducts(products);
@@ -380,31 +545,31 @@ class LocalStorageService {
         unit: 'ml',
         packSize: 500,
         packSizeDisplay: '500 ml',
-        piecesPerCrate: 20,
-        perCrateQty: 10.0,
-        perCrateQtyGrams: 10000.0,
-        perCrateDisplay: '10.0 L (10000.0 ml)',
+        piecesPerCrate: 24,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 L (12000.0 ml)',
         pricePerPiece: 28.0,
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
         targetFat: 4.5,
         targetSnf: 8.5,
       ),
-      // 2. Purabi Plus 250 ml (STD 250)
+      // 2. Purabi Plus 250 ml (PP250)
       const ProductModel(
-        productId: 'STD250',
-        productName: 'Purabi Plus 250 ml (STD 250)',
-        itemCode: '9900002',
-        shortCode: 'STD 250',
+        productId: '9900095',
+        productName: 'Purabi Plus 250 ml (PP250)',
+        itemCode: '9900095',
+        shortCode: 'PP250',
         category: 'Milk',
         unit: 'ml',
         packSize: 250,
         packSizeDisplay: '250 ml',
-        piecesPerCrate: 40,
-        perCrateQty: 10.0,
-        perCrateQtyGrams: 10000.0,
-        perCrateDisplay: '10.0 L (10000.0 ml)',
-        pricePerPiece: 15.0,
+        piecesPerCrate: 48,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 L (12000.0 ml)',
+        pricePerPiece: 18.0,
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
         targetFat: 4.5,
@@ -420,10 +585,10 @@ class LocalStorageService {
         unit: 'ml',
         packSize: 500,
         packSizeDisplay: '500 ml',
-        piecesPerCrate: 20,
-        perCrateQty: 10.0,
-        perCrateQtyGrams: 10000.0,
-        perCrateDisplay: '10.0 L (10000.0 ml)',
+        piecesPerCrate: 24,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 L (12000.0 ml)',
         pricePerPiece: 26.0,
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
@@ -725,7 +890,7 @@ class LocalStorageService {
         productName: 'Purabi Plus Milk 500 ml',
         category: 'Milk',
         pieces: 4200,
-        crates: 210,
+        crates: 175,
         volumeLitres: 2100,
         unit: 'Litres',
         minThresholdLitres: 500,
@@ -733,10 +898,10 @@ class LocalStorageService {
       ),
       StockRecord(
         productId: 'PRD-002',
-        productName: 'Purabi Plus Milk 250 ml',
+        productName: 'Purabi Plus Milk 250 ml (PP250)',
         category: 'Milk',
         pieces: 3600,
-        crates: 90,
+        crates: 75,
         volumeLitres: 900,
         unit: 'Litres',
         minThresholdLitres: 300,

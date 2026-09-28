@@ -112,6 +112,42 @@ void main() {
       allowedInputModes: ['Pieces', 'Crates', 'Kg'],
     );
 
+    const pp250 = ProductModel(
+      productId: '9900095',
+      productName: 'Purabi Plus 250 ml (PP250)',
+      itemCode: '9900095',
+      shortCode: 'PP250',
+      category: 'Milk',
+      unit: 'ml',
+      packSize: 250,
+      packSizeDisplay: '250 ml',
+      piecesPerCrate: 48,
+      perCrateQty: 12.0,
+      perCrateQtyGrams: 12000.0,
+      perCrateDisplay: '12.0 L (12000.0 ml)',
+      pricePerPiece: 18.0,
+      shelfLife: '2 Days',
+      allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+    );
+
+    const std500 = ProductModel(
+      productId: 'STD500',
+      productName: 'Purabi Plus 500 ml (STD 500)',
+      itemCode: '9900001',
+      shortCode: 'STD 500',
+      category: 'Milk',
+      unit: 'ml',
+      packSize: 500,
+      packSizeDisplay: '500 ml',
+      piecesPerCrate: 24,
+      perCrateQty: 12.0,
+      perCrateQtyGrams: 12000.0,
+      perCrateDisplay: '12.0 L (12000.0 ml)',
+      pricePerPiece: 28.0,
+      shelfLife: '2 Days',
+      allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+    );
+
     test('1. Sweet Curd Cup 400g (S400) - Crates Mode (150 Crates)', () {
       final res = CalculationService.calculateProduct(
         product: s400,
@@ -196,6 +232,34 @@ void main() {
       expect(res.totalQuantity, 120.0); // 120 * 1.0 kg
       expect(res.totalPrice, 9000.0); // 120 * 75.0
       expect(res.totalPriceDisplay, '₹9,000');
+    });
+
+    test('7. Purabi Plus 250 ml (PP250) - Crates Mode (10 Crates)', () {
+      final res = CalculationService.calculateProduct(
+        product: pp250,
+        inputMode: 'Crates',
+        inputQuantity: 10.0,
+      );
+
+      expect(res.pieces, 480); // 10 * 48
+      expect(res.crates, 10.0);
+      expect(res.totalQuantity, 120.0); // 480 * 0.25 L = 120 L
+      expect(res.totalPrice, 8640.0); // 480 * 18.0
+      expect(res.totalPriceDisplay, '₹8,640');
+    });
+
+    test('8. Purabi Plus 500 ml (STD 500) - Pieces Mode (120 Pieces)', () {
+      final res = CalculationService.calculateProduct(
+        product: std500,
+        inputMode: 'Pieces',
+        inputQuantity: 120.0,
+      );
+
+      expect(res.pieces, 120);
+      expect(res.crates, 5.0); // 120 / 24 pcs per crate = 5.0 crates
+      expect(res.totalQuantity, 60.0); // 120 * 0.5 L = 60 L
+      expect(res.totalPrice, 3360.0); // 120 * 28.0
+      expect(res.totalPriceDisplay, '₹3,360');
     });
   });
 }

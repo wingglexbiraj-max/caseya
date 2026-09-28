@@ -20,7 +20,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
   final TextEditingController _batchController = TextEditingController(text: 'BT-2026-0927-A');
   final TextEditingController _productController = TextEditingController(text: 'Purabi Plus Milk 500 ml');
   final TextEditingController _qtyController = TextEditingController(text: '4200');
-  final TextEditingController _cratesController = TextEditingController(text: '210');
+  final TextEditingController _cratesController = TextEditingController(text: '175');
   final TextEditingController _fatController = TextEditingController(text: '4.52');
   final TextEditingController _snfController = TextEditingController(text: '8.54');
 
@@ -31,7 +31,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       'batch': 'BT-2026-0927-A',
       'product': 'Purabi Plus Milk 500 ml',
       'qty': 4200.0,
-      'crates': 210,
+      'crates': 175,
       'fat': 4.52,
       'snf': 8.54,
       'employee': 'R. K. Baruah',
@@ -42,7 +42,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       'batch': 'BT-2026-0927-B',
       'product': 'Toned Milk 500 ml',
       'qty': 3000.0,
-      'crates': 150,
+      'crates': 125,
       'fat': 3.02,
       'snf': 8.51,
       'employee': 'R. K. Baruah',
@@ -53,7 +53,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       'batch': 'BT-2026-0926-C',
       'product': 'Curd Pouch 400 g',
       'qty': 1200.0,
-      'crates': 100,
+      'crates': 40,
       'fat': 3.25,
       'snf': 9.60,
       'employee': 'M. Hazarika',
@@ -63,7 +63,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
   void _addEntry() {
     final user = ref.read(authProvider);
     final qty = Formatters.parseDouble(_qtyController.text);
-    final crates = int.tryParse(_cratesController.text) ?? (qty / 20).round();
+    final crates = int.tryParse(_cratesController.text) ?? (qty / 24).round();
 
     setState(() {
       _productionEntries.insert(0, {
