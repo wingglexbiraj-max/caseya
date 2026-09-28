@@ -341,17 +341,20 @@ class MilkStandardizationCalculator {
             : (targetProduct.toLowerCase().contains('sweet') ? 12.0 : 0.0));
     final double sugarRequired = (actualTotalBatch * effectiveSugarPercent) / 100.0;
 
-    // Plant Process Reserve (70 L buffer / starter culture inoculum)
+    // Plant Process Reserve (proportional buffer / starter culture inoculum based on reference ratio: 70 L per 1150 L batch)
+    // Base formulation % = 1080 / 1150 = 93.913043%
+    // Reserve % = 70 / 1150 = 6.086957%
     // When calculating by reverse or giving only total batch without giving how much milk we taken:
-    // Milk Taken (X L) + SMP (Y kg) + Water (Z L) must equal 70 L less than Total Batch (W L)
-    // For example: If Total Batch is 1150 L, then Milk + SMP + Water = 1080 L
-    final bool applyReserve = (isReverse || isAutoCalculatedMilk) && actualTotalBatch > 70.0;
-    final double reserveVolume = applyReserve ? 70.0 : 0.0;
+    // reserveVolume = totalBatch * (70 / 1150)
+    // targetBaseBatch = totalBatch - reserveVolume (or totalBatch * (1080 / 1150))
+    // Milk Taken (X L) + SMP (Y kg) + Water (Z L) = targetBaseBatch
+    final bool applyReserve = (isReverse || isAutoCalculatedMilk) && actualTotalBatch > 0;
+    final double reserveVolume = applyReserve ? (actualTotalBatch * (70.0 / 1150.0)) : 0.0;
     final double targetBaseBatch = actualTotalBatch - reserveVolume;
 
     // 5. Water Required
     // Water = (Total Batch - reserveVolume) - (Milk Taken + SMP Required)
-    // Milk Taken + SMP + Water must together equal targetBaseBatch (Total Batch - 70 L)!
+    // Milk Taken + SMP + Water must together equal targetBaseBatch (Total Batch - reserveVolume)!
     // Sugar is added as an extra ingredient post-standardization and does not displace blending water.
     final double rawWater = targetBaseBatch - (actualMilkTaken + smpRequired);
     final double waterRequired = rawWater > 0.0 ? rawWater : 0.0;
@@ -415,21 +418,21 @@ class MilkStandardizationCalculator {
       BreakdownStep(
         stepTitle: 'STEP 7: PROCESS WATER REQUIRED',
         formula: reserveVolume > 0
-            ? 'Water Required = (Total Batch - 70 L Reserve) - (Milk Taken + SMP Required)'
+            ? 'Water Required = (Total Batch - Proportional Reserve [${Formatters.formatDecimal(reserveVolume)} L]) - (Milk Taken + SMP Required)'
             : 'Water Required = Total Batch - (Milk Taken + SMP Required)',
         calculation: reserveVolume > 0
-            ? '(${Formatters.formatSmart(actualTotalBatch)} - 70) - (${Formatters.formatDecimal(actualMilkTaken)} + ${Formatters.formatDecimal(smpRequired)}) = ${Formatters.formatDecimal(waterRequired)} Litres Water'
+            ? '(${Formatters.formatSmart(actualTotalBatch)} - ${Formatters.formatDecimal(reserveVolume)}) - (${Formatters.formatDecimal(actualMilkTaken)} + ${Formatters.formatDecimal(smpRequired)}) = ${Formatters.formatDecimal(waterRequired)} Litres Water'
             : '${Formatters.formatSmart(actualTotalBatch)} - (${Formatters.formatDecimal(actualMilkTaken)} + ${Formatters.formatDecimal(smpRequired)}) = ${Formatters.formatDecimal(waterRequired)} Litres Water',
       ),
       BreakdownStep(
         stepTitle: 'STEP 8: BATCH MASS-VOLUME BALANCE VERIFICATION',
         formula: reserveVolume > 0
-            ? 'Total Formulation = Milk Taken (L) + SMP (kg) + Water (L) [Must Equal ${Formatters.formatSmart(targetBaseBatch)} L, i.e. 70 L less than ${Formatters.formatSmart(actualTotalBatch)} L Total Batch]'
+            ? 'Total Formulation = Milk Taken (L) + SMP (kg) + Water (L) [Must Equal ${Formatters.formatDecimal(targetBaseBatch)} L Base Formulation (${Formatters.formatDecimal(reserveVolume)} L Reserve)]'
             : 'Total Formulation = Milk Taken (L) + SMP (kg) + Water (L) [Must Equal Total Batch]',
         calculation: '${Formatters.formatDecimal(actualMilkTaken)} L (Milk) + ${Formatters.formatDecimal(smpRequired)} kg (SMP) + ${Formatters.formatDecimal(waterRequired)} L (Water) = ${Formatters.formatDecimal(actualMilkTaken + smpRequired + waterRequired)} L',
         note: (actualMilkTaken + smpRequired + waterRequired - targetBaseBatch).abs() < 0.05
             ? (reserveVolume > 0
-                ? 'VERIFIED: Milk + SMP + Water precisely equals ${Formatters.formatSmart(targetBaseBatch)} L (70 L less than Total Batch ${Formatters.formatSmart(actualTotalBatch)} L for culture/process reserve).'
+                ? 'VERIFIED: Milk + SMP + Water precisely equals ${Formatters.formatDecimal(targetBaseBatch)} L (${Formatters.formatDecimal(reserveVolume)} L proportional reserve based on 70/1150 ratio).'
                 : 'VERIFIED: Milk + SMP + Water precisely equals Total Batch Quantity (${Formatters.formatSmart(actualTotalBatch)} L).')
             : 'DISCREPANCY: Input volumes exceed target base formulation.',
       ),

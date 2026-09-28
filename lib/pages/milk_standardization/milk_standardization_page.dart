@@ -1217,7 +1217,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                         Text(
                           res.isBatchQuantityVerified
                               ? (res.reserveVolume > 0
-                                  ? 'FORMULATION BALANCE: 70 L RESERVE VERIFIED'
+                                  ? 'FORMULATION BALANCE: PROPORTIONAL RESERVE VERIFIED'
                                   : 'FORMULATION MASS-VOLUME BALANCE: VERIFIED 100%')
                               : 'FORMULATION QUANTITY MISMATCH',
                           style: TextStyle(
@@ -1243,7 +1243,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                   ],
                 ),
                 const SizedBox(height: 10),
-                // The formula verification row: Milk + SMP + Water = Total Batch (- 70 L reserve if applicable)
+                // The formula verification row: Milk + SMP + Water = Target Base Batch
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
@@ -1279,7 +1279,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     Expanded(
                       child: Text(
                         res.reserveVolume > 0
-                            ? 'Auto-Reverse Balance: Milk, SMP, and Water = ${Formatters.formatDecimal(res.totalFormulatedQuantity)} L (exactly 70 L less than ${Formatters.formatSmart(res.totalBatch)} L Total Batch for process reserve/culture).'
+                            ? 'Auto-Reverse Balance: Milk, SMP, and Water = ${Formatters.formatDecimal(res.totalFormulatedQuantity)} L (${Formatters.formatDecimal(res.reserveVolume)} L reserve [6.09%] based on 1080/1150 ratio for ${Formatters.formatSmart(res.totalBatch)} L Total Batch).'
                             : (res.sugarRequired > 0
                                 ? 'Sugar Addition (+${Formatters.formatDecimal(res.sugarRequired)} kg): Added as separate ingredient (extra volume); does not displace blending water and will precisely match the batch.'
                                 : 'Milk, SMP, and Water sum precisely to the target batch quantity (${Formatters.formatSmart(res.totalBatch)} L).'),
@@ -1344,7 +1344,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 _buildHighlightMetric(
                   label: 'Water Required',
                   value: '${Formatters.formatDecimal(res.waterRequired)} L',
-                  sub: res.reserveVolume > 0 ? 'Blending (-70L Reserve)' : 'Process blending water',
+                  sub: res.reserveVolume > 0 ? 'Blending (-${Formatters.formatDecimal(res.reserveVolume)}L Reserve)' : 'Process blending water',
                   color: AppColors.primary,
                   icon: Icons.water_drop_rounded,
                 ),
@@ -1376,7 +1376,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     'Formulated Base (Milk+SMP+Water)',
                     '${Formatters.formatDecimal(res.totalFormulatedQuantity)} L',
                     'Process Inoculum / Buffer Reserve',
-                    '-${Formatters.formatDecimal(res.reserveVolume)} L (Headroom)',
+                    '-${Formatters.formatDecimal(res.reserveVolume)} L (${((res.reserveVolume / res.totalBatch) * 100).toStringAsFixed(2)}%)',
                     highlightFirst: true,
                   ),
                 ],

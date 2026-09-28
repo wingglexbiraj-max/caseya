@@ -220,7 +220,7 @@ void main() {
       expect(res.isBatchQuantityVerified, isTrue);
     });
 
-    test('Auto-calculate Milk Taken when Milk Taken is NOT given', () {
+    test('Auto-calculate Milk Taken when Milk Taken is NOT given (1700 L)', () {
       // (remember if we didnot given how much milk we have taken then from total batch quantity
       // when you will find amount of water needed you must remember our products selected products fat snf depending on these you will need to make)
       final res = MilkStandardizationCalculator.calculate(
@@ -239,35 +239,95 @@ void main() {
       expect(res.isAutoCalculatedMilk, isTrue);
       expect(res.milkTaken, closeTo(1383.72, 0.05));
       expect(res.finalFat, closeTo(3.50, 0.01));
-      expect(res.reserveVolume, 70.0);
-      expect(res.targetBaseBatch, 1630.0);
+      // Proportional reserve for 1700 L: 1700 * (70 / 1150) = 103.48 L
+      expect(res.reserveVolume, closeTo(103.48, 0.05));
+      expect(res.targetBaseBatch, closeTo(1596.52, 0.05));
       expect(res.waterRequired, greaterThan(0.0));
-      // Formulation Mass-Volume Balance Verification (1700 - 70 = 1630 L):
-      expect(res.totalFormulatedQuantity, closeTo(1630.0, 0.01));
-      expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1630.0, 0.01));
+      // Formulation Mass-Volume Balance Verification (Milk + SMP + Water == targetBaseBatch):
+      expect(res.totalFormulatedQuantity, closeTo(1596.52, 0.05));
+      expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1596.52, 0.05));
       expect(res.isBatchQuantityVerified, isTrue);
     });
 
-    test('User Specification: Total Batch = 1150 L yields Milk + SMP + Water = 1080 L (70 L Less)', () {
-      final res = MilkStandardizationCalculator.calculate(
-        totalBatch: 1150.0,
-        milkTaken: null, // Giving only total batch without giving how much milk we taken
-        presentFat: 4.3,
-        presentSnf: 8.33,
-        targetProduct: 'plain curd cup',
-        targetFat: 3.0,
-        targetSnf: 14.0,
-        sugarPercent: 0.0,
-        smpFactor: 95.0,
-      );
+    group('Proportional Reserve Scaling Tests (Reference Ratio: 70 L per 1150 L Total Batch)', () {
+      test('1. Example 1150 L -> Base 1080 L, Reserve 70 L', () {
+        final res = MilkStandardizationCalculator.calculate(
+          totalBatch: 1150.0,
+          milkTaken: null,
+          presentFat: 4.3,
+          presentSnf: 8.33,
+          targetProduct: 'plain curd cup',
+          targetFat: 3.0,
+          targetSnf: 14.0,
+          sugarPercent: 0.0,
+          smpFactor: 95.0,
+        );
 
-      // Total Batch = 1150 L
-      // Milk + SMP + Water must equal exactly 1080 L (1150 - 70)
-      expect(res.reserveVolume, 70.0);
-      expect(res.targetBaseBatch, 1080.0);
-      expect(res.totalFormulatedQuantity, closeTo(1080.0, 0.01));
-      expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1080.0, 0.01));
-      expect(res.isBatchQuantityVerified, isTrue);
+        expect(res.reserveVolume, closeTo(70.0, 0.01));
+        expect(res.targetBaseBatch, closeTo(1080.0, 0.01));
+        expect(res.totalFormulatedQuantity, closeTo(1080.0, 0.01));
+        expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1080.0, 0.01));
+        expect(res.isBatchQuantityVerified, isTrue);
+      });
+
+      test('2. Example 1200 L -> Base 1126.96 L, Reserve 73.04 L', () {
+        final res = MilkStandardizationCalculator.calculate(
+          totalBatch: 1200.0,
+          milkTaken: null,
+          presentFat: 4.3,
+          presentSnf: 8.33,
+          targetProduct: 'plain curd cup',
+          targetFat: 3.0,
+          targetSnf: 14.0,
+          sugarPercent: 0.0,
+          smpFactor: 95.0,
+        );
+
+        expect(res.reserveVolume, closeTo(73.04, 0.01));
+        expect(res.targetBaseBatch, closeTo(1126.96, 0.01));
+        expect(res.totalFormulatedQuantity, closeTo(1126.96, 0.01));
+        expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1126.96, 0.01));
+        expect(res.isBatchQuantityVerified, isTrue);
+      });
+
+      test('3. Example 1000 L -> Base 939.13 L, Reserve 60.87 L', () {
+        final res = MilkStandardizationCalculator.calculate(
+          totalBatch: 1000.0,
+          milkTaken: null,
+          presentFat: 4.3,
+          presentSnf: 8.33,
+          targetProduct: 'plain curd cup',
+          targetFat: 3.0,
+          targetSnf: 14.0,
+          sugarPercent: 0.0,
+          smpFactor: 95.0,
+        );
+
+        expect(res.reserveVolume, closeTo(60.87, 0.01));
+        expect(res.targetBaseBatch, closeTo(939.13, 0.01));
+        expect(res.totalFormulatedQuantity, closeTo(939.13, 0.01));
+        expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(939.13, 0.01));
+        expect(res.isBatchQuantityVerified, isTrue);
+      });
+
+      test('4. Example 2500 L -> Base 2347.83 L, Reserve 152.17 L', () {
+        final res = MilkStandardizationCalculator.reverseCalculate(
+          totalBatch: 2500.0,
+          milkTaken: null,
+          presentFat: 4.5,
+          presentSnf: 8.4,
+          desiredFinalFat: 3.0,
+          desiredTargetSnf: 11.0,
+          sugarPercent: 0.0,
+          smpFactor: 95.0,
+        );
+
+        expect(res.reserveVolume, closeTo(152.17, 0.01));
+        expect(res.targetBaseBatch, closeTo(2347.83, 0.01));
+        expect(res.totalFormulatedQuantity, closeTo(2347.83, 0.01));
+        expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(2347.83, 0.01));
+        expect(res.isBatchQuantityVerified, isTrue);
+      });
     });
 
     test('Reverse Calculation for desired Target Fat % and Target SNF %', () {
@@ -284,35 +344,13 @@ void main() {
 
       expect(res.finalFat, closeTo(3.54, 0.01));
       expect(res.smpRequired, closeTo(26.49, 0.05));
-      expect(res.reserveVolume, 70.0);
-      expect(res.targetBaseBatch, 1630.0);
-      // Water = 1630 - (1400 + 26.486) = 203.514 L
-      expect(res.waterRequired, closeTo(203.514, 0.05));
+      // Proportional reserve for 1700 L: 1700 * (70 / 1150) = 103.48 L
+      expect(res.reserveVolume, closeTo(103.48, 0.05));
+      expect(res.targetBaseBatch, closeTo(1596.52, 0.05));
+      // Water = 1596.52 - (1400 + 26.49) = 170.03 L
+      expect(res.waterRequired, closeTo(170.03, 0.05));
       expect(res.sugarRequired, closeTo(204.0, 0.01));
-      expect(res.totalFormulatedQuantity, closeTo(1630.0, 0.01));
-      expect(res.isBatchQuantityVerified, isTrue);
-    });
-
-    test('Auto-calc Reverse with only Total Batch Quantity verifies Milk + SMP + Water == Total Batch - 70 L', () {
-      final res = MilkStandardizationCalculator.reverseCalculate(
-        totalBatch: 2500.0,
-        milkTaken: null, // Only Total Batch Quantity given
-        presentFat: 4.5,
-        presentSnf: 8.4,
-        desiredFinalFat: 3.0,
-        desiredTargetSnf: 11.0,
-        sugarPercent: 0.0,
-        smpFactor: 95.0,
-      );
-
-      // Auto derived milk = 2500 * 3.0 / 4.5 = 1666.67 L
-      expect(res.isAutoCalculatedMilk, isTrue);
-      expect(res.milkTaken, closeTo(1666.67, 0.05));
-      expect(res.finalFat, closeTo(3.0, 0.01));
-      expect(res.reserveVolume, 70.0);
-      expect(res.targetBaseBatch, 2430.0);
-      // Verification: Milk + SMP + Water must exactly equal 2430.0 L (2500 - 70)
-      expect(res.totalFormulatedQuantity, closeTo(2430.0, 0.01));
+      expect(res.totalFormulatedQuantity, closeTo(1596.52, 0.05));
       expect(res.isBatchQuantityVerified, isTrue);
     });
   });
