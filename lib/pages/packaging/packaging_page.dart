@@ -73,6 +73,35 @@ class _PackagingPageState extends State<PackagingPage> {
     );
   }
 
+  Widget _buildRollChip(String label, String stock, String product) {
+    final isSelected = _rollController.text.contains(label);
+    return ActionChip(
+      avatar: Icon(
+        Icons.album_rounded,
+        size: 15,
+        color: isSelected ? Colors.white : AppColors.primary,
+      ),
+      label: Text('$label ($stock)'),
+      backgroundColor: isSelected ? AppColors.primary : AppColors.primaryContainer,
+      labelStyle: TextStyle(
+        fontSize: 11.5,
+        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+        color: isSelected ? Colors.white : AppColors.primaryDark,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: isSelected ? AppColors.primary : AppColors.cardBorder,
+        ),
+      ),
+      onPressed: () {
+        setState(() {
+          _rollController.text = '$label - Batch ${DateTime.now().year}';
+        });
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveLayout.isMobile(context);
@@ -110,6 +139,23 @@ class _PackagingPageState extends State<PackagingPage> {
                   const Text(
                     'RECORD PACKAGING ROLL USAGE',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Quick Select Plant Film Roll (Active Stock):',
+                    style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      _buildRollChip('Poly film 250ml (STD)', '42 roll', 'Purabi Plus Milk 250 ml'),
+                      _buildRollChip('Poly film 500ml (STD)', '8 roll', 'Purabi Plus Milk 500 ml'),
+                      _buildRollChip('Poly film 500ml (SM+)', '5 roll', 'Purabi Smart Plus 500 ml'),
+                      _buildRollChip('Poly film 400gm (p/c)', '3 roll', 'Curd Pouch 400 g (CP400)'),
+                      _buildRollChip('Poly film 400gm (s/c)', '3 roll', 'Sweet Curd Pouch 400 g'),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   Row(

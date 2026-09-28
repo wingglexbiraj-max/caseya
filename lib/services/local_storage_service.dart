@@ -47,7 +47,113 @@ class LocalStorageService {
     }
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
-      return list.map((e) => ProductModel.fromJson(e as Map<String, dynamic>)).toList();
+      var products = list.map((e) => ProductModel.fromJson(e as Map<String, dynamic>)).toList();
+
+      bool needsResave = false;
+      const cp400 = ProductModel(
+        productId: 'CP400',
+        productName: 'Curd Pouch 400 g (CP400)',
+        itemCode: 'NA',
+        shortCode: 'CP400',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 400,
+        packSizeDisplay: '400 g',
+        piecesPerCrate: 30,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 kg (12000.0 g)',
+        pricePerPiece: 35.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.2,
+        targetSnf: 9.5,
+      );
+
+      const cp1000 = ProductModel(
+        productId: 'CP1000',
+        productName: 'Curd Pouch 1 kg (CP1000)',
+        itemCode: 'NA',
+        shortCode: 'CP1000',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 1000,
+        packSizeDisplay: '1 kg (1000 g)',
+        piecesPerCrate: 12,
+        perCrateQty: 12.0,
+        perCrateQtyGrams: 12000.0,
+        perCrateDisplay: '12.0 kg (12000.0 g)',
+        pricePerPiece: 75.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.2,
+        targetSnf: 9.5,
+      );
+
+      const p200 = ProductModel(
+        productId: 'P200',
+        productName: 'Plain Curd Cup 200g (P200)',
+        itemCode: 'NA',
+        shortCode: 'P200',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 200,
+        packSizeDisplay: '200 g',
+        piecesPerCrate: 30,
+        perCrateQty: 6.0,
+        perCrateQtyGrams: 6000.0,
+        perCrateDisplay: '6.0 kg (6000.0 g)',
+        pricePerPiece: 30.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.2,
+        targetSnf: 9.0,
+      );
+
+      final initialLength = products.length;
+      products.removeWhere((p) =>
+          p.productId == 'PCP400' ||
+          p.productId == 'PCP1000' ||
+          p.productId == 'SCP400' ||
+          p.productId == 'SCP1000');
+      if (products.length != initialLength) needsResave = true;
+
+      final idx400 = products.indexWhere((p) => p.productId == 'CP400' || p.shortCode == 'CP400');
+      if (idx400 >= 0) {
+        if (products[idx400].piecesPerCrate != 30 ||
+            products[idx400].pricePerPiece != 35.0 ||
+            products[idx400].productName != 'Curd Pouch 400 g (CP400)') {
+          products[idx400] = cp400;
+          needsResave = true;
+        }
+      } else {
+        products.add(cp400);
+        needsResave = true;
+      }
+
+      final idx1000 = products.indexWhere((p) => p.productId == 'CP1000' || p.shortCode == 'CP1000');
+      if (idx1000 >= 0) {
+        if (products[idx1000].piecesPerCrate != 12 ||
+            products[idx1000].pricePerPiece != 75.0 ||
+            products[idx1000].productName != 'Curd Pouch 1 kg (CP1000)') {
+          products[idx1000] = cp1000;
+          needsResave = true;
+        }
+      } else {
+        products.add(cp1000);
+        needsResave = true;
+      }
+
+      final idx200 = products.indexWhere((p) => p.productId == 'P200' || p.shortCode == 'P200');
+      if (idx200 < 0) {
+        products.add(p200);
+        needsResave = true;
+      }
+
+      if (needsResave) {
+        await saveProducts(products);
+      }
+      return products;
     } catch (_) {
       return [];
     }
@@ -400,7 +506,27 @@ class LocalStorageService {
         targetFat: 3.2,
         targetSnf: 9.0,
       ),
-      // 8. Plain Curd Cup 400g (P400)
+      // 8. Plain Curd Cup 200g (P200)
+      const ProductModel(
+        productId: 'P200',
+        productName: 'Plain Curd Cup 200g (P200)',
+        itemCode: 'NA',
+        shortCode: 'P200',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 200,
+        packSizeDisplay: '200 g',
+        piecesPerCrate: 30,
+        perCrateQty: 6.0,
+        perCrateQtyGrams: 6000.0,
+        perCrateDisplay: '6.0 kg (6000.0 g)',
+        pricePerPiece: 30.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.2,
+        targetSnf: 9.0,
+      ),
+      // 9. Plain Curd Cup 400g (P400)
       const ProductModel(
         productId: '9900013',
         productName: 'Plain Curd Cup 400g (P400)',
@@ -420,7 +546,7 @@ class LocalStorageService {
         targetFat: 3.2,
         targetSnf: 9.0,
       ),
-      // 9. Purabi Lassi 200 ml (PL200)
+      // 10. Purabi Lassi 200 ml (PL200)
       const ProductModel(
         productId: '9900007',
         productName: 'Purabi Lassi 200 ml (PL200)',
@@ -440,12 +566,12 @@ class LocalStorageService {
         targetFat: 2.5,
         targetSnf: 9.0,
       ),
-      // 10. Plain Curd Pouch 400 g (PCP400)
+      // 11. Curd Pouch 400 g (CP400)
       const ProductModel(
-        productId: 'PCP400',
-        productName: 'Plain Curd Pouch 400 g (PCP400)',
+        productId: 'CP400',
+        productName: 'Curd Pouch 400 g (CP400)',
         itemCode: 'NA',
-        shortCode: 'PCP400',
+        shortCode: 'CP400',
         category: 'Curd',
         unit: 'g',
         packSize: 400,
@@ -460,12 +586,12 @@ class LocalStorageService {
         targetFat: 3.2,
         targetSnf: 9.5,
       ),
-      // 11. Plain Curd Pouch 1 kg (PCP1000)
+      // 12. Curd Pouch 1 kg (CP1000)
       const ProductModel(
-        productId: 'PCP1000',
-        productName: 'Plain Curd Pouch 1 kg (PCP1000)',
+        productId: 'CP1000',
+        productName: 'Curd Pouch 1 kg (CP1000)',
         itemCode: 'NA',
-        shortCode: 'PCP1000',
+        shortCode: 'CP1000',
         category: 'Curd',
         unit: 'g',
         packSize: 1000,
@@ -479,46 +605,6 @@ class LocalStorageService {
         allowedInputModes: ['Pieces', 'Crates', 'Kg'],
         targetFat: 3.2,
         targetSnf: 9.5,
-      ),
-      // 12. Sweet Curd Pouch 400 g (SCP400)
-      const ProductModel(
-        productId: 'SCP400',
-        productName: 'Sweet Curd Pouch 400 g (SCP400)',
-        itemCode: 'NA',
-        shortCode: 'SCP400',
-        category: 'Curd',
-        unit: 'g',
-        packSize: 400,
-        packSizeDisplay: '400 g',
-        piecesPerCrate: 30,
-        perCrateQty: 12.0,
-        perCrateQtyGrams: 12000.0,
-        perCrateDisplay: '12.0 kg (12000.0 g)',
-        pricePerPiece: 40.0,
-        shelfLife: '12 Days',
-        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
-        targetFat: 3.5,
-        targetSnf: 10.0,
-      ),
-      // 13. Sweet Curd Pouch 1 kg (SCP1000)
-      const ProductModel(
-        productId: 'SCP1000',
-        productName: 'Sweet Curd Pouch 1 kg (SCP1000)',
-        itemCode: 'NA',
-        shortCode: 'SCP1000',
-        category: 'Curd',
-        unit: 'g',
-        packSize: 1000,
-        packSizeDisplay: '1 kg (1000 g)',
-        piecesPerCrate: 12,
-        perCrateQty: 12.0,
-        perCrateQtyGrams: 12000.0,
-        perCrateDisplay: '12.0 kg (12000.0 g)',
-        pricePerPiece: 85.0,
-        shelfLife: '12 Days',
-        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
-        targetFat: 3.5,
-        targetSnf: 10.0,
       ),
     ];
     await prefs.setString(
@@ -653,12 +739,23 @@ class LocalStorageService {
         lastUpdated: now,
       ),
       StockRecord(
-        productId: 'PRD-003',
+        productId: 'CP400',
         productName: 'Curd Pouch 400 g',
         category: 'Curd',
         pieces: 1800,
-        crates: 72,
+        crates: 60,
         volumeLitres: 720,
+        unit: 'Kg',
+        minThresholdLitres: 200,
+        lastUpdated: now,
+      ),
+      StockRecord(
+        productId: 'CP1000',
+        productName: 'Curd Pouch 1 kg',
+        category: 'Curd',
+        pieces: 1200,
+        crates: 100,
+        volumeLitres: 1200,
         unit: 'Kg',
         minThresholdLitres: 200,
         lastUpdated: now,

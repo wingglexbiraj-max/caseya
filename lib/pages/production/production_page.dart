@@ -53,7 +53,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       'batch': 'BT-2026-0926-C',
       'product': 'Curd Pouch 400 g',
       'qty': 1200.0,
-      'crates': 75,
+      'crates': 100,
       'fat': 3.25,
       'snf': 9.60,
       'employee': 'M. Hazarika',
