@@ -52,17 +52,47 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
             const SizedBox(width: 8),
           ],
 
-          // Title / Breadcrumb
+          // Title / Breadcrumb with Low Opacity Blue Container Background
           Expanded(
-            child: Text(
-              activeTitle,
-              style: TextStyle(
-                fontSize: isMobile ? 17 : 20,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-                letterSpacing: -0.4,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF38BDF8).withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: const Color(0xFF38BDF8).withValues(alpha: 0.28),
+                    width: 1.1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 3.5,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF38BDF8),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(width: 9),
+                    Flexible(
+                      child: Text(
+                        activeTitle,
+                        style: TextStyle(
+                          fontSize: isMobile ? 15 : 18,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: -0.3,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
 
@@ -70,7 +100,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = MediaQuery.of(context).size.width;
-              if (screenWidth < 850) return const SizedBox.shrink();
+              if (screenWidth < 900) return const SizedBox.shrink();
 
               return const Row(
                 mainAxisSize: MainAxisSize.min,
