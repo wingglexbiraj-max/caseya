@@ -125,7 +125,7 @@ class CalculationService {
         steps.add(BreakdownStep(
           stepTitle: 'Step 3: Packing Needed (Crates)',
           formula: 'Crates = Entered Quantity',
-          calculation: '${Formatters.formatSmart(crates)} crates (${piecesPerCrate} pcs/crate)',
+          calculation: '${Formatters.formatSmart(crates)} crates ($piecesPerCrate pcs/crate)',
           note: crates == crates.roundToDouble()
               ? '${crates.toInt()} complete whole crates'
               : '${crates.floor()} full crates + ${(pieces % piecesPerCrate)} loose pieces',
@@ -212,7 +212,7 @@ class CalculationService {
     final isWholeCrates = crates == crates.roundToDouble();
     final packingNeeded = '${Formatters.formatSmart(crates)} Crates';
     final packingBreakdown = isWholeCrates
-        ? '${crates.toInt()} full crates (${piecesPerCrate} pcs/crate)'
+        ? '${crates.toInt()} full crates ($piecesPerCrate pcs/crate)'
         : '${crates.floor()} full crates + ${(pieces % piecesPerCrate)} loose pieces';
 
     final totalQuantityDisplay =

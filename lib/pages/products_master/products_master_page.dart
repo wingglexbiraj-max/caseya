@@ -29,7 +29,6 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
   final TextEditingController _snfController = TextEditingController(text: '8.5');
 
   final List<String> _selectedModes = ['Pieces', 'Crates', 'Litres'];
-  ProductModel? _editingProduct;
   final _formKey = GlobalKey<FormState>();
 
   @override
@@ -46,7 +45,6 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
   }
 
   void _openProductDialog([ProductModel? product]) {
-    _editingProduct = product;
     if (product != null) {
       _nameController.text = product.productName;
       _categoryController.text = product.category;
@@ -221,7 +219,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                       active: true,
                     );
                     await ref.read(productsMasterProvider.notifier).saveProduct(item);
-                    if (mounted) Navigator.pop(ctx);
+                    if (ctx.mounted) Navigator.pop(ctx);
                   }
                 },
                 child: const Text('Save Product'),
@@ -286,7 +284,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: state.products.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, index) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final p = state.products[index];
                   return Padding(

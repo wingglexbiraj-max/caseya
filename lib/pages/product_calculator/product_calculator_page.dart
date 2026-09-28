@@ -146,7 +146,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   decoration: BoxDecoration(
                     color: AppColors.dangerLight,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.danger.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -641,7 +641,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: history.length.clamp(0, 5),
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = history[index];
               final titleText = item.productNameWithQuantity.isNotEmpty

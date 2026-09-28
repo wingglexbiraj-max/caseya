@@ -105,7 +105,7 @@ class ResultCard extends StatelessWidget {
                     ],
                   ],
                 ),
-                if (trailingAction != null) trailingAction!,
+                ?trailingAction,
               ],
             ),
           ),

@@ -297,7 +297,7 @@ class DashboardPage extends ConsumerWidget {
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
                               itemCount: state.recentActivities.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1),
+                              separatorBuilder: (_, index) => const Divider(height: 1),
                               itemBuilder: (context, index) {
                                 final act = state.recentActivities[index];
                                 return Padding(

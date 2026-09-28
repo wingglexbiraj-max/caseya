@@ -236,7 +236,7 @@ class _PackagingPageState extends State<PackagingPage> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _packagingEntries.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, index) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = _packagingEntries[index];
                       return ListTile(

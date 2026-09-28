@@ -16,8 +16,8 @@ class ReportsPage extends StatefulWidget {
 class _ReportsPageState extends State<ReportsPage> {
   String _selectedModule = 'Boiler Consumption Report';
   String _selectedShift = 'All Shifts';
-  DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
-  DateTime _endDate = DateTime.now();
+  final DateTime _startDate = DateTime.now().subtract(const Duration(days: 7));
+  final DateTime _endDate = DateTime.now();
 
   static const List<String> _modules = [
     'Boiler Consumption Report',

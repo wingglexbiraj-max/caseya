@@ -313,7 +313,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               ? 'Modify batch formulation and quantities'
                               : 'Record new production batch & ingredient consumption',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 12,
                           ),
                         ),
@@ -390,7 +390,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                           Expanded(
                             flex: 5,
                             child: DropdownButtonFormField<String>(
-                              value: _selectedProduct,
+                              initialValue: _selectedProduct,
                               decoration: const InputDecoration(
                                 labelText: 'Product Name *',
                                 suffixIcon: Icon(Icons.category_rounded, size: 18),
@@ -461,7 +461,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                           Expanded(
                             flex: 3,
                             child: DropdownButtonFormField<String>(
-                              value: _selectedUnit,
+                              initialValue: _selectedUnit,
                               decoration: const InputDecoration(
                                 labelText: 'Batch Unit *',
                               ),
@@ -489,7 +489,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                         children: [
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedShift,
+                              initialValue: _selectedShift,
                               decoration: const InputDecoration(
                                 labelText: 'Shift',
                                 suffixIcon: Icon(Icons.schedule_rounded, size: 18),
@@ -672,7 +672,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               Expanded(
                                 flex: 2,
                                 child: DropdownButtonFormField<String>(
-                                  value: row.unit,
+                                  initialValue: row.unit,
                                   isDense: true,
                                   decoration: const InputDecoration(
                                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),

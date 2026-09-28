@@ -4,7 +4,6 @@ import '../models/boiler_record.dart';
 import '../services/boiler_calculator.dart';
 import '../services/local_storage_service.dart';
 import '../repositories/boiler_repository.dart';
-import '../core/constants/app_constants.dart';
 import '../core/utils/formatters.dart';
 
 final boilerRepositoryProvider = Provider((ref) => BoilerRepository());

@@ -43,14 +43,14 @@ class _MetricCardState extends State<MetricCard> {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _isHovered
-                ? (widget.iconColor ?? AppColors.primary).withOpacity(0.4)
+                ? (widget.iconColor ?? AppColors.primary).withValues(alpha: 0.4)
                 : AppColors.cardBorder,
             width: _isHovered ? 1.4 : 1.1,
           ),
           boxShadow: [
             BoxShadow(
               color: _isHovered
-                  ? (widget.iconColor ?? AppColors.primary).withOpacity(0.12)
+                  ? (widget.iconColor ?? AppColors.primary).withValues(alpha: 0.12)
                   : const Color(0x060F172A),
               blurRadius: _isHovered ? 18 : 10,
               offset: const Offset(0, 4),
@@ -91,7 +91,7 @@ class _MetricCardState extends State<MetricCard> {
                           borderRadius: BorderRadius.circular(10),
                           boxShadow: [
                             BoxShadow(
-                              color: (widget.iconColor ?? AppColors.primary).withOpacity(0.15),
+                              color: (widget.iconColor ?? AppColors.primary).withValues(alpha: 0.15),
                               blurRadius: 6,
                               offset: const Offset(0, 2),
                             ),

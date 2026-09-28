@@ -99,7 +99,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                       )
                     : ListView.separated(
                         itemCount: filtered.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        separatorBuilder: (_, index) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final item = filtered[index];
                           final isSelected = item == widget.selectedItem;
@@ -108,7 +108,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                             dense: true,
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                             selected: isSelected,
-                            selectedTileColor: AppColors.primaryContainer.withOpacity(0.5),
+                            selectedTileColor: AppColors.primaryContainer.withValues(alpha: 0.5),
                             title: Text(
                               widget.itemLabel(item),
                               style: TextStyle(

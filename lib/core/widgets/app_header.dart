@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
@@ -24,7 +23,6 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
     final isMobile = ResponsiveLayout.isMobile(context);
-    final todayStr = Formatters.formatDate(DateTime.now());
 
     return Container(
       height: 66,

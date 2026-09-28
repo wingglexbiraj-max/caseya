@@ -637,7 +637,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                   decoration: BoxDecoration(
                     color: AppColors.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.primary.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
                   ),
                   child: Text(
                     '${Formatters.formatSmart(batch.batchQuantity)} ${batch.batchUnit}',
@@ -809,7 +809,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.12),
+              color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(icon, color: color, size: 22),

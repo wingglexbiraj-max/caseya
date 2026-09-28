@@ -106,8 +106,15 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
 
   Future<void> init() async {
     state = state.copyWith(isLoading: true);
-    // Use official dairy plant standardization target products
-    final targets = MilkStandardizationCalculator.standardizationProducts;
+    // Use official dairy plant standardization target products and any custom catalog targets
+    final catalogProducts = await _productRepo.getProducts();
+    final customTargets = catalogProducts.where(
+      (p) => p.targetFat != null && p.targetSnf != null && !MilkStandardizationCalculator.standardizationProducts.any((std) => std.productId == p.productId),
+    );
+    final targets = [
+      ...MilkStandardizationCalculator.standardizationProducts,
+      ...customTargets,
+    ];
     final history = await _stdRepo.getRecords();
 
     ProductModel? defaultTarget;

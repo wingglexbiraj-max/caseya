@@ -194,7 +194,7 @@ class _DispatchPageState extends State<DispatchPage> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _dispatches.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, index) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = _dispatches[index];
                       return ListTile(

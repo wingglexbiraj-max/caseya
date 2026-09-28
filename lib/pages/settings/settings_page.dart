@@ -136,7 +136,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                     ),
                     value: boilerState.includeTopUpInNet,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (val) {
                       ref.read(boilerProvider.notifier).toggleTopUpInclusion(val);
                     },
@@ -199,7 +199,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
                     ),
                     value: ApiService.useBackend,
-                    activeColor: AppColors.primary,
+                    activeThumbColor: AppColors.primary,
                     onChanged: (val) {
                       setState(() {
                         ApiService.useBackend = val;

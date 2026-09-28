@@ -249,7 +249,7 @@ class MilkStandardizationCalculator {
         calculation: smpRequired > 0
             ? '${Formatters.formatDecimal(smpRequired)} Kg SMP'
             : '0.00 Kg (Initial SNF meets or exceeds target)',
-        note: 'SMP provides ${smpSnfRatio}% SNF to raise solid levels',
+        note: 'SMP provides $smpSnfRatio% SNF to raise solid levels',
       ),
       BreakdownStep(
         stepTitle: 'STEP 7',

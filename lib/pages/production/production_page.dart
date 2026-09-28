@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
-import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_card.dart';
@@ -218,7 +217,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _productionEntries.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, index) => const Divider(height: 1),
                     itemBuilder: (context, index) {
                       final item = _productionEntries[index];
                       return ListTile(

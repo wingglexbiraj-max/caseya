@@ -184,7 +184,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                   decoration: BoxDecoration(
                     color: AppColors.dangerLight,
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.danger.withOpacity(0.3)),
+                    border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
                   ),
                   child: Row(
                     children: [
@@ -242,7 +242,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                             const SizedBox(width: 8),
                             Switch(
                               value: state.includeTopUpInNet,
-                              activeColor: AppColors.primary,
+                              activeThumbColor: AppColors.primary,
                               onChanged: (val) {
                                 ref.read(boilerProvider.notifier).toggleTopUpInclusion(val);
                               },
@@ -639,7 +639,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: state.filteredRecords.length,
-              separatorBuilder: (_, __) => const Divider(height: 1),
+              separatorBuilder: (_, index) => const Divider(height: 1),
               itemBuilder: (context, index) {
                 final item = state.filteredRecords[index];
                 return Padding(

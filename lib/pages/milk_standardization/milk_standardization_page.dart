@@ -5,7 +5,6 @@ import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
-import '../../core/widgets/searchable_dropdown.dart';
 import '../../core/widgets/result_card.dart';
 import '../../core/widgets/calculation_breakdown.dart';
 import '../../core/widgets/status_badge.dart';
@@ -178,8 +177,8 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: state.hasFetchedLabData
-                          ? AppColors.primary.withOpacity(0.3)
-                          : AppColors.warning.withOpacity(0.3),
+                          ? AppColors.primary.withValues(alpha: 0.3)
+                          : AppColors.warning.withValues(alpha: 0.3),
                     ),
                   ),
                   child: Row(
@@ -473,7 +472,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                   boxShadow: isSelected
                       ? [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.18),
+                            color: AppColors.primary.withValues(alpha: 0.18),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
@@ -514,7 +513,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             decoration: BoxDecoration(
               color: const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -771,7 +770,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: history.length.clamp(0, 6),
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, index) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = history[index];
               return ListTile(
