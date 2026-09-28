@@ -25,6 +25,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   final TextEditingController _quantityController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _historyExpanded = false;
+  bool _metadataExpanded = false;
 
   @override
   void dispose() {
@@ -414,66 +415,148 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          InkWell(
+            onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: AppColors.goldAccent,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.goldAccent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'PRODUCT SPECIFICATIONS & METADATA',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'PRODUCT METADATA',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: AppColors.primaryDark,
-                    ),
+                  Row(
+                    children: [
+                      StatusBadge.neutral(product.category),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _metadataExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ],
                   ),
                 ],
               ),
-              StatusBadge.neutral(product.category),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
-          _buildMetaRow('Item Code', product.itemCode),
-          _buildMetaRow('Product Code', product.productCode),
-          _buildMetaRow('Pieces per Crate', '${product.piecesPerCrate} pcs/crate'),
-          _buildMetaRow('Per Crate Quantity', product.calculatedPerCrateDisplay),
-          _buildMetaRow('Price per Piece', '₹${Formatters.formatSmart(product.pricePerPiece)}'),
-          _buildMetaRow('Pack Size', product.packSizeDisplay),
-          _buildMetaRow('Shelf Life', product.shelfLife),
-          _buildMetaRow('Base Unit', product.baseUnitLabel),
-          _buildMetaRow('Target FAT', product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'),
-          _buildMetaRow('Target SNF', product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'),
-          _buildMetaRow('Allowed Modes', product.allowedInputModes.join(' • ')),
+          if (_metadataExpanded) ...[
+            const SizedBox(height: 14),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.cardBorder, width: 1.1),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _buildTabulatedRow('Item Code', product.itemCode, isEven: false),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Product Code', product.productCode, isEven: true, valueColor: AppColors.primary),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Pieces per Crate', '${product.piecesPerCrate} pcs / crate', isEven: false),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Per Crate Quantity', product.calculatedPerCrateDisplay, isEven: true),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Price per Piece', product.priceDisplay, isEven: false, valueColor: AppColors.goldAccent),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Pack Size', product.packSizeDisplay, isEven: true),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Shelf Life', product.shelfLife, isEven: false),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Base Unit', product.baseUnitLabel, isEven: true),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow(
+                    'Target FAT / SNF',
+                    'FAT: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'}   •   SNF: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
+                    isEven: false,
+                  ),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: true),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildMetaRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5.5),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+  Widget _buildTabulatedRow(
+    String label,
+    String value, {
+    required bool isEven,
+    Color? valueColor,
+  }) {
+    return Container(
+      color: isEven ? const Color(0xFFFBFDFD) : Colors.white,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left Cell: Spec / Parameter Label with subtle distinct background
+            Container(
+              width: 145,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
+              color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF475569),
+                  letterSpacing: -0.2,
+                ),
+              ),
             ),
-          ),
-        ],
+            // Vertical Divider
+            Container(
+              width: 1,
+              color: AppColors.cardBorder,
+            ),
+            // Right Cell: Technical Value
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: valueColor ?? AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
