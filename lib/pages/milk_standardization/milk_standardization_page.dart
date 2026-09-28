@@ -434,57 +434,96 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Select Target Product',
-              style: TextStyle(
-                fontSize: 12.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (selected != null)
-              Text(
-                'Specs: FAT ${selected.targetFat ?? 0.0}% • SNF ${selected.targetSnf ?? 0.0}% • Sugar ${selected.targetSugarDisplay}',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
-                ),
-              ),
-          ],
+        const Text(
+          'Select Target Product',
+          style: TextStyle(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textPrimary,
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: targets.map((p) {
             final isSelected = selected?.productId == p.productId;
-            return ChoiceChip(
-              selected: isSelected,
-              label: Text(p.productName),
-              avatar: isSelected
-                  ? const Icon(Icons.check_circle_rounded, size: 16, color: Colors.white)
-                  : const Icon(Icons.radio_button_unchecked_rounded, size: 15, color: AppColors.textSecondary),
-              selectedColor: AppColors.primary,
-              backgroundColor: Colors.white,
-              side: BorderSide(
-                color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                width: isSelected ? 1.5 : 1.0,
+            return InkWell(
+              onTap: () => _selectProduct(p),
+              borderRadius: BorderRadius.circular(8),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 150),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary : Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                    width: isSelected ? 1.5 : 1.0,
+                  ),
+                  boxShadow: isSelected
+                      ? [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.18),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : null,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isSelected) ...[
+                      const Icon(
+                        Icons.check_rounded,
+                        size: 16,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 6),
+                    ],
+                    Text(
+                      p.productName,
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                        color: isSelected ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              labelStyle: TextStyle(
-                fontSize: 12.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
-              ),
-              elevation: isSelected ? 2 : 0,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              onSelected: (_) => _selectProduct(p),
             );
           }).toList(),
         ),
+
+        // Target specs displayed BELOW the product chips (not in the right side)
+        if (selected != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.primary.withOpacity(0.25)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.tune_rounded, size: 15, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Specs:  FAT ${selected.targetFat ?? 0.0}%   •   SNF ${selected.targetSnf ?? 0.0}%   •   Sugar ${selected.targetSugarDisplay}   •   Shelf Life ${selected.shelfLife}',
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
