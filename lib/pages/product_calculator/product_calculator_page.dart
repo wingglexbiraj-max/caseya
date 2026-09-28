@@ -24,6 +24,7 @@ class ProductCalculatorPage extends ConsumerStatefulWidget {
 class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   final TextEditingController _quantityController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _historyExpanded = false;
 
   @override
   void dispose() {
@@ -504,40 +505,60 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          InkWell(
+            onTap: () => setState(() => _historyExpanded = !_historyExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.primary,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'RECENT PRODUCT CALCULATIONS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'RECENT PRODUCT CALCULATIONS',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: AppColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      StatusBadge.info('${history.length} Saved Records'),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _historyExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ],
                   ),
                 ],
               ),
-              StatusBadge.info('${history.length} Saved Records'),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: history.length.clamp(0, 5),
-            separatorBuilder: (_, __) => const Divider(height: 1),
+          if (_historyExpanded) ...[
+            const SizedBox(height: 16),
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: history.length.clamp(0, 5),
+              separatorBuilder: (_, __) => const Divider(height: 1),
             itemBuilder: (context, index) {
               final item = history[index];
               final titleText = item.productNameWithQuantity.isNotEmpty
@@ -575,7 +596,8 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
             },
           ),
         ],
-      ),
-    );
+      ],
+    ),
+  );
   }
 }
