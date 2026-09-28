@@ -15,8 +15,8 @@ void main() {
       expect(stdMilk.targetSugarDisplay, 'NA');
       expect(stdMilk.shelfLife, '2 Days');
 
-      // 2. army milk: target fat 3.5, target snf 8.5, sugar NA, shelf life 2 days
-      final armyMilk = products.firstWhere((p) => p.productName == 'army milk');
+      // 2. army milk (sm+): target fat 3.5, target snf 8.5, sugar NA, shelf life 2 days
+      final armyMilk = products.firstWhere((p) => p.productName == 'army milk (sm+)');
       expect(armyMilk.targetFat, 3.5);
       expect(armyMilk.targetSnf, 8.5);
       expect(armyMilk.targetSugar, isNull);
@@ -31,21 +31,21 @@ void main() {
       expect(plainCurdCup.targetSugarDisplay, 'NA');
       expect(plainCurdCup.shelfLife, '12 Days');
 
-      // 4. plain curd pouch: target fat 3.0, target snf 11, sugar NA, shelf life 12 days
-      final plainCurdPouch = products.firstWhere((p) => p.productName == 'plain curd pouch');
+      // 4. plain pouch curd: target fat 3.0, target snf 11, sugar NA, shelf life 12 days
+      final plainCurdPouch = products.firstWhere((p) => p.productName == 'plain pouch curd');
       expect(plainCurdPouch.targetFat, 3.0);
       expect(plainCurdPouch.targetSnf, 11.0);
       expect(plainCurdPouch.targetSugar, isNull);
       expect(plainCurdPouch.targetSugarDisplay, 'NA');
       expect(plainCurdPouch.shelfLife, '12 Days');
 
-      // 5. sweetened curd: target fat 3, target snf 14, sugar 12%, shelf life 12 days
-      final sweetenedCurd = products.firstWhere((p) => p.productName == 'sweetened curd');
-      expect(sweetenedCurd.targetFat, 3.0);
-      expect(sweetenedCurd.targetSnf, 14.0);
-      expect(sweetenedCurd.targetSugar, 12.0);
-      expect(sweetenedCurd.targetSugarDisplay, '12%');
-      expect(sweetenedCurd.shelfLife, '12 Days');
+      // 5. sweet curd: target fat 3, target snf 14, sugar 12%, shelf life 12 days
+      final sweetCurd = products.firstWhere((p) => p.productName == 'sweet curd');
+      expect(sweetCurd.targetFat, 3.0);
+      expect(sweetCurd.targetSnf, 14.0);
+      expect(sweetCurd.targetSugar, 12.0);
+      expect(sweetCurd.targetSugarDisplay, '12%');
+      expect(sweetCurd.shelfLife, '12 Days');
 
       // 6. lassi: target fat 1.5, target snf 7.0, sugar 15%, shelf life 7 days
       final lassi = products.firstWhere((p) => p.productName == 'lassi');
@@ -106,38 +106,104 @@ void main() {
       expect(res.breakdownSteps.length, greaterThanOrEqualTo(7));
     });
 
-    test('Lassi Formulation: Sugar 15% on 1700 L Batch', () {
+    test('Sweet Curd Formulation (Target Fat: 3.0%, Target SNF: 14.0%, Sugar: 12%) on 1700 L Batch', () {
       final res = MilkStandardizationCalculator.calculate(
         totalBatch: 1700.0,
         milkTaken: 1400.0,
         presentFat: 4.3,
         presentSnf: 8.33,
-        targetProduct: 'Lassi',
-        targetSnf: 8.5,
+        targetProduct: 'sweet curd',
+        targetFat: 3.0,
+        targetSnf: 14.0,
+        sugarPercent: 12.0,
+        smpFactor: 95.0,
+      );
+
+      // Available SNF: 1400 * 8.33 / 100 = 116.62 kg
+      // Required SNF: 1700 * 14.0 / 100 = 238.00 kg
+      // Deficit: 238.00 - 116.62 = 121.38 kg
+      expect(res.availableSnfKg, closeTo(116.62, 0.01));
+      expect(res.requiredSnfKg, closeTo(238.00, 0.01));
+      expect(res.snfDeficitKg, closeTo(121.38, 0.01));
+
+      // SMP Required = 121.38 * 95 / 100 = 115.311 kg
+      expect(res.smpRequired, closeTo(115.311, 0.01));
+
+      // Sugar Required = 1700 * 12 / 100 = 204 kg
+      expect(res.sugarRequired, closeTo(204.0, 0.01));
+
+      // Water Required = 1700 - (1400 + 121.38) = 178.62 L
+      expect(res.waterRequired, closeTo(178.62, 0.01));
+    });
+
+    test('Lassi Formulation (Target Fat: 1.5%, Target SNF: 7.0%, Sugar: 15%) on 1700 L Batch', () {
+      final res = MilkStandardizationCalculator.calculate(
+        totalBatch: 1700.0,
+        milkTaken: 1400.0,
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        targetProduct: 'lassi',
+        targetFat: 1.5,
+        targetSnf: 7.0, // NOT 8.5
         sugarPercent: 15.0,
         smpFactor: 95.0,
       );
 
+      // Required SNF: 1700 * 7.0 / 100 = 119.00 kg
+      // Deficit: 119.00 - 116.62 = 2.38 kg
+      expect(res.requiredSnfKg, closeTo(119.00, 0.01));
+      expect(res.snfDeficitKg, closeTo(2.38, 0.01));
+
+      // SMP Required: 2.38 * 95 / 100 = 2.261 kg
+      expect(res.smpRequired, closeTo(2.261, 0.01));
+
       // Sugar = 1700 * 15 / 100 = 255 kg
       expect(res.sugarRequired, closeTo(255.0, 0.01));
-      expect(res.waterRequired, closeTo(272.12, 0.01));
+
+      // Water = 1700 - (1400 + 2.38) = 297.62 L
+      expect(res.waterRequired, closeTo(297.62, 0.01));
     });
 
-    test('Plain Curd / Milk Formulation: Sugar 0% on 1700 L Batch', () {
+    test('Plain Pouch Curd Formulation (Target Fat: 3.0%, Target SNF: 11.0%, Sugar: 0%)', () {
       final res = MilkStandardizationCalculator.calculate(
         totalBatch: 1700.0,
         milkTaken: 1400.0,
         presentFat: 4.3,
         presentSnf: 8.33,
-        targetProduct: 'Plain Curd',
-        targetSnf: 8.5,
+        targetProduct: 'plain pouch curd',
+        targetFat: 3.0,
+        targetSnf: 11.0,
         sugarPercent: 0.0,
         smpFactor: 95.0,
       );
 
-      // Sugar = 0 kg
+      // Required SNF: 1700 * 11.0 / 100 = 187.00 kg
+      // Deficit: 187.00 - 116.62 = 70.38 kg
+      expect(res.requiredSnfKg, closeTo(187.00, 0.01));
+      expect(res.snfDeficitKg, closeTo(70.38, 0.01));
+      expect(res.smpRequired, closeTo(66.861, 0.01));
       expect(res.sugarRequired, 0.0);
-      expect(res.waterRequired, closeTo(272.12, 0.01));
+      expect(res.waterRequired, closeTo(229.62, 0.01));
+    });
+
+    test('Plain Curd Cup Formulation (Target Fat: 3.0%, Target SNF: 14.0%, Sugar: 0%)', () {
+      final res = MilkStandardizationCalculator.calculate(
+        totalBatch: 1700.0,
+        milkTaken: 1400.0,
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        targetProduct: 'plain curd cup',
+        targetFat: 3.0,
+        targetSnf: 14.0,
+        sugarPercent: 0.0,
+        smpFactor: 95.0,
+      );
+
+      expect(res.requiredSnfKg, closeTo(238.00, 0.01));
+      expect(res.snfDeficitKg, closeTo(121.38, 0.01));
+      expect(res.smpRequired, closeTo(115.311, 0.01));
+      expect(res.sugarRequired, 0.0);
+      expect(res.waterRequired, closeTo(178.62, 0.01));
     });
 
     test('Auto-calculate Milk Taken when Milk Taken is NOT given', () {

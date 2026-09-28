@@ -451,7 +451,7 @@ class LocalStorageService {
     await prefs.setString(AppConstants.storageKeyStdRecords, jsonEncode(records.map((e) => e.toJson()).toList()));
   }
 
-  static const String storageKeyStdConfig = 'caseya_std_formula_config_v2';
+  static const String storageKeyStdConfig = 'caseya_std_formula_config_v4';
 
   static Future<Map<String, dynamic>> getStandardizationConfig() async {
     final prefs = await _instance;
@@ -461,10 +461,12 @@ class LocalStorageService {
         'smp_factor': 95.0,
         'water_method': 'standard',
         'product_specs': {
-          'MILK_SM_PLUS': {'target_snf': 8.5, 'sugar_percent': 0.0, 'target_fat': 3.5},
-          'PLAIN_CURD': {'target_snf': 8.5, 'sugar_percent': 0.0, 'target_fat': 3.0},
-          'SWEET_CURD': {'target_snf': 8.5, 'sugar_percent': 12.0, 'target_fat': 3.0},
-          'LASSI_BATCH': {'target_snf': 8.5, 'sugar_percent': 15.0, 'target_fat': 1.5},
+          'STD_MILK': {'target_snf': 8.5, 'sugar_percent': 0.0, 'target_fat': 4.5},
+          'ARMY_MILK': {'target_snf': 8.5, 'sugar_percent': 0.0, 'target_fat': 3.5},
+          'PLAIN_CURD_CUP': {'target_snf': 14.0, 'sugar_percent': 0.0, 'target_fat': 3.0},
+          'PLAIN_CURD_POUCH': {'target_snf': 11.0, 'sugar_percent': 0.0, 'target_fat': 3.0},
+          'SWEET_CURD': {'target_snf': 14.0, 'sugar_percent': 12.0, 'target_fat': 3.0},
+          'LASSI': {'target_snf': 7.0, 'sugar_percent': 15.0, 'target_fat': 1.5},
         }
       };
     }

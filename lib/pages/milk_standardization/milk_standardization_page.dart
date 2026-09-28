@@ -30,7 +30,6 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
   final _formKey = GlobalKey<FormState>();
 
   bool _metadataExpanded = false;
-  bool _showAllProducts = false;
   bool _autoCalculateMilk = false;
 
   @override
@@ -290,7 +289,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                       border: Border.all(color: AppColors.cardBorder),
                     ),
                     child: Column(
-                      children: state.targetProducts.take(4).map((p) {
+                      children: state.targetProducts.map((p) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
@@ -298,6 +297,10 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                               Expanded(
                                 flex: 3,
                                 child: Text(p.productName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text('FAT: ${p.targetFat ?? 0}%', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
                               ),
                               Expanded(
                                 flex: 2,
@@ -937,52 +940,24 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
 
   Widget _buildTargetProductChips(StandardizationState state) {
     final allProducts = state.targetProducts;
-    final primaryProducts = allProducts.take(4).toList();
-    final otherProducts = allProducts.skip(4).toList();
     final selected = state.selectedTargetProduct;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Select Product / Batch Type',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            if (otherProducts.isNotEmpty)
-              InkWell(
-                onTap: () => setState(() => _showAllProducts = !_showAllProducts),
-                child: Row(
-                  children: [
-                    Text(
-                      _showAllProducts ? 'Show Primary' : 'More Products (${otherProducts.length})',
-                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
-                    ),
-                    Icon(
-                      _showAllProducts ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                      size: 17,
-                      color: AppColors.primary,
-                    ),
-                  ],
-                ),
-              ),
-          ],
+        const Text(
+          'Select Product / Batch Type',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textPrimary,
+          ),
         ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 10,
           runSpacing: 10,
-          children: [
-            ...primaryProducts.map((p) => _buildProductChip(p, selected)),
-            if (_showAllProducts)
-              ...otherProducts.map((p) => _buildProductChip(p, selected)),
-          ],
+          children: allProducts.map((p) => _buildProductChip(p, selected)).toList(),
         ),
       ],
     );
@@ -995,41 +970,56 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
       borderRadius: BorderRadius.circular(9),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary : Colors.white,
+          color: isSelected ? const Color(0xFFF0F7FF) : Colors.white,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.cardBorder,
-            width: isSelected ? 1.6 : 1.0,
+            width: isSelected ? 1.8 : 1.0,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.22),
-                    blurRadius: 6,
+                    color: AppColors.primary.withValues(alpha: 0.10),
+                    blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ]
               : null,
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (isSelected) ...[
-              const Icon(
-                Icons.check_rounded,
-                size: 16,
-                color: Colors.white,
-              ),
-              const SizedBox(width: 7),
-            ],
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelected) ...[
+                  const Icon(
+                    Icons.check,
+                    size: 16,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 6),
+                ],
+                Text(
+                  p.productName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                    color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
             Text(
-              p.productName,
+              'Fat: ${p.targetFat ?? 0}% • SNF: ${p.targetSnf ?? 0}%${p.targetSugar != null && p.targetSugar! > 0 ? ' • Sugar: ${p.targetSugar}%' : ''}',
               style: TextStyle(
-                fontSize: 13,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                color: isSelected ? Colors.white : AppColors.textPrimary,
+                fontSize: 11,
+                color: isSelected ? AppColors.primaryDark.withValues(alpha: 0.8) : AppColors.textSecondary,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],
@@ -1053,24 +1043,32 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             borderRadius: BorderRadius.circular(10),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${p.productName.toUpperCase()} Formulation Standard',
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${p.productName.toUpperCase()} Formulation Standard',
+                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        _metadataExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        size: 18,
+                        color: AppColors.textMuted,
+                      ),
+                    ],
                   ),
-                  const Spacer(),
-                  Text(
-                    'SNF: ${p.targetSnf ?? 8.5}% • Sugar: ${p.targetSugarDisplay}',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(width: 6),
-                  Icon(
-                    _metadataExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                    size: 18,
-                    color: AppColors.textMuted,
+                  const SizedBox(height: 5),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 24),
+                    child: Text(
+                      'Target Fat: ${p.targetFat ?? 3.5}%  •  Target SNF: ${p.targetSnf ?? 8.5}%  •  Sugar: ${p.targetSugarDisplay}',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                    ),
                   ),
                 ],
               ),

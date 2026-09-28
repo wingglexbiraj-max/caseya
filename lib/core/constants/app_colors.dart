@@ -89,11 +89,11 @@ class AppColors {
     end: Alignment.centerRight,
   );
 
-  // Header Section (Complete Precision Deep Blue)
-  static const Color headerBackground = Color(0xFF1E40AF);
-  static const Color headerBorder = Color(0xFF1D4ED8);
+  // Header Section (Modern Low-Opacity Precision Blue)
+  static const Color headerBackground = Color(0xFFF0F7FF);
+  static const Color headerBorder = Color(0xFFCCE2FE);
   static const LinearGradient headerGradient = LinearGradient(
-    colors: [Color(0xFF1E40AF), Color(0xFF1D4ED8)],
+    colors: [Color(0xFFF0F7FF), Color(0xFFE2EFFF)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );

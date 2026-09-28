@@ -196,13 +196,13 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     state = state.copyWith(
       targetProducts: targets,
       selectedTargetProduct: defaultTarget,
-      targetFat: defaultTarget?.targetFat ?? 3.5,
-      targetSnf: defaultTarget?.targetSnf ?? 8.5,
+      targetFat: defaultTarget?.targetFat ?? 3.0,
+      targetSnf: defaultTarget?.targetSnf ?? 14.0,
       sugarPercent: defaultTarget?.targetSugar ?? 12.0,
       smpFactor: configuredSmpFactor,
       waterCalculationMethod: configuredWaterMethod,
-      desiredFinalFat: defaultTarget?.targetFat ?? 3.5,
-      desiredTargetSnf: defaultTarget?.targetSnf ?? 8.5,
+      desiredFinalFat: defaultTarget?.targetFat ?? 3.0,
+      desiredTargetSnf: defaultTarget?.targetSnf ?? 14.0,
       history: history,
       isLoading: false,
     );
