@@ -31,6 +31,12 @@ class StandardizationResult {
   double get initialFat => presentFat;
   double get initialSnf => presentSnf;
 
+  // Batch Mass-Volume Verification Getters
+  // Milk Taken (L) + SMP Required (kg) + Water Required (L) must precisely equal Total Batch (L)
+  double get totalFormulatedQuantity => milkTaken + smpRequired + waterRequired;
+  bool get isBatchQuantityVerified => (totalFormulatedQuantity - totalBatch).abs() < 0.05;
+  double get quantityWithSugar => totalBatch + sugarRequired;
+
   const StandardizationResult({
     required this.totalBatch,
     required this.milkTaken,
@@ -332,13 +338,10 @@ class MilkStandardizationCalculator {
     final double sugarRequired = (actualTotalBatch * effectiveSugarPercent) / 100.0;
 
     // 5. Water Required
-    // Water = Total Batch - (Milk Taken + SNF Deficit)
-    double rawWater = 0.0;
-    if (waterCalculationMethod == 'withSugarDisplacement') {
-      rawWater = actualTotalBatch - (actualMilkTaken + snfDeficitKg + (sugarRequired * 0.63));
-    } else {
-      rawWater = actualTotalBatch - (actualMilkTaken + snfDeficitKg);
-    }
+    // Water = Total Batch - (Milk Taken + SMP Required)
+    // Milk Taken + SMP + Water must together equal Total Batch!
+    // Sugar is added as an extra ingredient post-standardization and does not displace blending water.
+    final double rawWater = actualTotalBatch - (actualMilkTaken + smpRequired);
     final double waterRequired = rawWater > 0.0 ? rawWater : 0.0;
 
     // Final SNF verification
@@ -353,8 +356,8 @@ class MilkStandardizationCalculator {
     if (requiredSnfKg <= availableSnfKg) {
       warnings.add('Present milk SNF (${Formatters.formatPercent(rawSnf)}) satisfies target SNF (${Formatters.formatPercent(targetSnf)}). No SMP addition required.');
     }
-    if ((actualMilkTaken + snfDeficitKg) > actualTotalBatch) {
-      warnings.add('Sum of Milk Taken and SNF Deficit exceeds Total Batch. Water requirement is 0 L.');
+    if ((actualMilkTaken + smpRequired) > actualTotalBatch) {
+      warnings.add('Sum of Milk Taken and SMP Required exceeds Total Batch. Water requirement is 0 L.');
     }
 
     // Step-by-step breakdown
@@ -393,11 +396,22 @@ class MilkStandardizationCalculator {
         calculation: effectiveSugarPercent > 0
             ? '${Formatters.formatSmart(actualTotalBatch)} × ${Formatters.formatDecimal(effectiveSugarPercent / 100.0)} = ${Formatters.formatDecimal(sugarRequired)} kg Sugar'
             : '0.00 kg (Unsweetened product standard)',
+        note: effectiveSugarPercent > 0
+            ? 'Added as extra recipe component. Does not displace process water; matches precise final batch requirements.'
+            : null,
       ),
       BreakdownStep(
-        stepTitle: 'STEP 7: WATER REQUIRED',
-        formula: 'Water = Total Batch - (Milk Taken + SNF Deficit)',
-        calculation: '${Formatters.formatSmart(actualTotalBatch)} - (${Formatters.formatDecimal(actualMilkTaken)} + ${Formatters.formatDecimal(snfDeficitKg)}) = ${Formatters.formatDecimal(waterRequired)} Litres Water',
+        stepTitle: 'STEP 7: PROCESS WATER REQUIRED',
+        formula: 'Water Required = Total Batch - (Milk Taken + SMP Required)',
+        calculation: '${Formatters.formatSmart(actualTotalBatch)} - (${Formatters.formatDecimal(actualMilkTaken)} + ${Formatters.formatDecimal(smpRequired)}) = ${Formatters.formatDecimal(waterRequired)} Litres Water',
+      ),
+      BreakdownStep(
+        stepTitle: 'STEP 8: BATCH MASS-VOLUME BALANCE VERIFICATION',
+        formula: 'Total Formulation = Milk Taken (L) + SMP (kg) + Water (L) [Must Equal Total Batch]',
+        calculation: '${Formatters.formatDecimal(actualMilkTaken)} L (Milk) + ${Formatters.formatDecimal(smpRequired)} kg (SMP) + ${Formatters.formatDecimal(waterRequired)} L (Water) = ${Formatters.formatDecimal(actualMilkTaken + smpRequired + waterRequired)} L',
+        note: (actualMilkTaken + smpRequired + waterRequired - actualTotalBatch).abs() < 0.05
+            ? 'VERIFIED: Milk + SMP + Water precisely equals Total Batch Quantity (${Formatters.formatSmart(actualTotalBatch)} L).'
+            : 'DISCREPANCY: Input volumes exceed target batch size.',
       ),
     ];
 
@@ -440,14 +454,9 @@ class MilkStandardizationCalculator {
     String targetProduct = 'Reverse Standardized Batch',
     String waterCalculationMethod = 'standard',
   }) {
-    double actualMilk = milkTaken ?? 0.0;
-    if (actualMilk <= 0.0 && presentFat > 0.0) {
-      actualMilk = (totalBatch * desiredFinalFat) / presentFat;
-    }
-
     return calculate(
       totalBatch: totalBatch,
-      milkTaken: actualMilk,
+      milkTaken: (milkTaken != null && milkTaken > 0.0) ? milkTaken : null,
       presentFat: presentFat,
       presentSnf: presentSnf,
       targetProduct: targetProduct,

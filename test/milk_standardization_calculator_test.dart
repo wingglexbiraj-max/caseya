@@ -101,9 +101,13 @@ void main() {
       expect(res.sugarRequired, closeTo(204.0, 0.01));
 
       // 5. Water Required:
-      // Water = 1700 - (1400 + 27.88) = 272.12 L
-      expect(res.waterRequired, closeTo(272.12, 0.01));
-      expect(res.breakdownSteps.length, greaterThanOrEqualTo(7));
+      // Water = 1700 - (1400 + 26.486) = 273.514 L (~273.51 L)
+      expect(res.waterRequired, closeTo(273.514, 0.01));
+      // Formulation Mass-Volume Balance Verification:
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
+      expect(res.breakdownSteps.length, greaterThanOrEqualTo(8));
     });
 
     test('Sweet Curd Formulation (Target Fat: 3.0%, Target SNF: 14.0%, Sugar: 12%) on 1700 L Batch', () {
@@ -129,11 +133,13 @@ void main() {
       // SMP Required = 121.38 * 95 / 100 = 115.311 kg
       expect(res.smpRequired, closeTo(115.311, 0.01));
 
-      // Sugar Required = 1700 * 12 / 100 = 204 kg
+      // Sugar Required = 1700 * 12 / 100 = 204 kg (added extra)
       expect(res.sugarRequired, closeTo(204.0, 0.01));
 
-      // Water Required = 1700 - (1400 + 121.38) = 178.62 L
-      expect(res.waterRequired, closeTo(178.62, 0.01));
+      // Water Required = 1700 - (1400 + 115.311) = 184.689 L (~184.69 L)
+      expect(res.waterRequired, closeTo(184.689, 0.01));
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
     });
 
     test('Lassi Formulation (Target Fat: 1.5%, Target SNF: 7.0%, Sugar: 15%) on 1700 L Batch', () {
@@ -160,8 +166,10 @@ void main() {
       // Sugar = 1700 * 15 / 100 = 255 kg
       expect(res.sugarRequired, closeTo(255.0, 0.01));
 
-      // Water = 1700 - (1400 + 2.38) = 297.62 L
-      expect(res.waterRequired, closeTo(297.62, 0.01));
+      // Water = 1700 - (1400 + 2.261) = 297.739 L (~297.74 L)
+      expect(res.waterRequired, closeTo(297.739, 0.01));
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
     });
 
     test('Plain Pouch Curd Formulation (Target Fat: 3.0%, Target SNF: 11.0%, Sugar: 0%)', () {
@@ -183,7 +191,10 @@ void main() {
       expect(res.snfDeficitKg, closeTo(70.38, 0.01));
       expect(res.smpRequired, closeTo(66.861, 0.01));
       expect(res.sugarRequired, 0.0);
-      expect(res.waterRequired, closeTo(229.62, 0.01));
+      // Water = 1700 - (1400 + 66.861) = 233.139 L
+      expect(res.waterRequired, closeTo(233.139, 0.01));
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
     });
 
     test('Plain Curd Cup Formulation (Target Fat: 3.0%, Target SNF: 14.0%, Sugar: 0%)', () {
@@ -203,7 +214,10 @@ void main() {
       expect(res.snfDeficitKg, closeTo(121.38, 0.01));
       expect(res.smpRequired, closeTo(115.311, 0.01));
       expect(res.sugarRequired, 0.0);
-      expect(res.waterRequired, closeTo(178.62, 0.01));
+      // Water = 1700 - (1400 + 115.311) = 184.689 L
+      expect(res.waterRequired, closeTo(184.689, 0.01));
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
     });
 
     test('Auto-calculate Milk Taken when Milk Taken is NOT given', () {
@@ -226,6 +240,10 @@ void main() {
       expect(res.milkTaken, closeTo(1383.72, 0.05));
       expect(res.finalFat, closeTo(3.50, 0.01));
       expect(res.waterRequired, greaterThan(0.0));
+      // Formulation Mass-Volume Balance Verification:
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.milkTaken + res.smpRequired + res.waterRequired, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
     });
 
     test('Reverse Calculation for desired Target Fat % and Target SNF %', () {
@@ -242,8 +260,31 @@ void main() {
 
       expect(res.finalFat, closeTo(3.54, 0.01));
       expect(res.smpRequired, closeTo(26.49, 0.05));
-      expect(res.waterRequired, closeTo(272.12, 0.05));
+      expect(res.waterRequired, closeTo(273.514, 0.05));
       expect(res.sugarRequired, closeTo(204.0, 0.01));
+      expect(res.totalFormulatedQuantity, closeTo(1700.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
+    });
+
+    test('Auto-calc Reverse with only Total Batch Quantity verifies Milk + SMP + Water == Total Batch', () {
+      final res = MilkStandardizationCalculator.reverseCalculate(
+        totalBatch: 2500.0,
+        milkTaken: null, // Only Total Batch Quantity given
+        presentFat: 4.5,
+        presentSnf: 8.4,
+        desiredFinalFat: 3.0,
+        desiredTargetSnf: 11.0,
+        sugarPercent: 0.0,
+        smpFactor: 95.0,
+      );
+
+      // Auto derived milk = 2500 * 3.0 / 4.5 = 1666.67 L
+      expect(res.isAutoCalculatedMilk, isTrue);
+      expect(res.milkTaken, closeTo(1666.67, 0.05));
+      expect(res.finalFat, closeTo(3.0, 0.01));
+      // Verification: Milk + SMP + Water must exactly equal 2500.0 L
+      expect(res.totalFormulatedQuantity, closeTo(2500.0, 0.01));
+      expect(res.isBatchQuantityVerified, isTrue);
     });
   });
 

@@ -55,10 +55,12 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
 
   void _onCalculate() {
     if (_formKey.currentState?.validate() ?? false) {
+      final state = ref.read(standardizationProvider);
       final notifier = ref.read(standardizationProvider.notifier);
       notifier.setTotalBatch(Formatters.parseDouble(_totalBatchController.text));
-      notifier.setAutoCalculateMilk(_autoCalculateMilk);
-      if (!_autoCalculateMilk && _milkTakenController.text.trim().isNotEmpty) {
+      final bool shouldAutoMilk = _autoCalculateMilk || (state.isReverseMode && _milkTakenController.text.trim().isEmpty);
+      notifier.setAutoCalculateMilk(shouldAutoMilk);
+      if (!shouldAutoMilk && _milkTakenController.text.trim().isNotEmpty) {
         notifier.setMilkTaken(Formatters.parseDouble(_milkTakenController.text));
       } else {
         notifier.setMilkTaken(null);
@@ -66,7 +68,6 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
       notifier.setMilkFat(Formatters.parseDouble(_fatController.text));
       notifier.setMilkSnf(Formatters.parseDouble(_snfController.text));
 
-      final state = ref.read(standardizationProvider);
       if (state.isReverseMode) {
         notifier.setDesiredFinalFat(Formatters.parseDouble(_desiredFatController.text));
         notifier.setDesiredTargetSnf(Formatters.parseDouble(_desiredSnfController.text));
@@ -682,13 +683,13 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             children: [
                               AppTextField(
                                 label: 'Milk Taken',
-                                hint: _autoCalculateMilk ? 'Auto-derived from Fat' : 'e.g. 1400',
+                                hint: (_autoCalculateMilk || state.isReverseMode) ? 'Auto-derived from Fat' : 'e.g. 1400',
                                 controller: _milkTakenController,
                                 suffixText: 'Litres',
                                 readOnly: _autoCalculateMilk,
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                 validator: (val) {
-                                  if (_autoCalculateMilk) return null;
+                                  if (_autoCalculateMilk || state.isReverseMode) return null;
                                   if (val == null || val.trim().isEmpty) return 'Enter quantity or enable auto-calculate';
                                   final n = Formatters.parseDouble(val);
                                   if (n <= 0) return 'Must be greater than 0';
@@ -1183,9 +1184,127 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
 
-          // Primary Formulation Highlights Banner (SMP, Sugar, Water)
+          // Formulation Mass-Volume Balance Verification Card
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: res.isBatchQuantityVerified
+                  ? AppColors.primaryContainer.withValues(alpha: 0.6)
+                  : AppColors.dangerLight,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: res.isBatchQuantityVerified
+                    ? AppColors.primary.withValues(alpha: 0.3)
+                    : AppColors.danger.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          res.isBatchQuantityVerified ? Icons.verified_rounded : Icons.warning_rounded,
+                          size: 18,
+                          color: res.isBatchQuantityVerified ? AppColors.primary : AppColors.danger,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          res.isBatchQuantityVerified
+                              ? 'FORMULATION MASS-VOLUME BALANCE: VERIFIED 100%'
+                              : 'FORMULATION QUANTITY MISMATCH',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.5,
+                            color: res.isBatchQuantityVerified ? AppColors.primaryDark : AppColors.danger,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: res.isBatchQuantityVerified ? AppColors.primary : AppColors.danger,
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                      child: Text(
+                        res.isBatchQuantityVerified ? 'EXACT MATCH' : 'ATTENTION',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // The formula verification row: Milk + SMP + Water = Total Batch
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.cardBorderSubtle),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Milk (${Formatters.formatDecimal(res.milkTaken)} L)  +  SMP (${Formatters.formatDecimal(res.smpRequired)} kg)  +  Water (${Formatters.formatDecimal(res.waterRequired)} L)',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                      ),
+                      const Text(
+                        '=',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w900, color: AppColors.primary),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${Formatters.formatDecimal(res.totalFormulatedQuantity)} L',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded, size: 14, color: AppColors.textSecondary),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        res.sugarRequired > 0
+                            ? 'Sugar Addition (+${Formatters.formatDecimal(res.sugarRequired)} kg): Added as separate ingredient (extra volume); does not displace blending water and will precisely match the batch.'
+                            : 'Milk, SMP, and Water sum precisely to the target batch quantity (${Formatters.formatSmart(res.totalBatch)} L).',
+                        style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+                if (res.isAutoCalculatedMilk) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.auto_mode_rounded, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Auto-Derived Milk: ${Formatters.formatDecimal(res.milkTaken)} L calculated from Target Fat (${Formatters.formatPercent(res.targetFat)}) to ensure precise composition balance.',
+                          style: const TextStyle(fontSize: 11.5, color: AppColors.primaryDark, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+
+          // Primary Formulation Highlights Banner (SMP, Water, Sugar, Total Formulated)
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1203,6 +1322,14 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             child: Row(
               children: [
                 _buildHighlightMetric(
+                  label: 'Milk Taken',
+                  value: '${Formatters.formatDecimal(res.milkTaken)} L',
+                  sub: res.isAutoCalculatedMilk ? 'Auto-Derived' : 'Allocated Milk',
+                  color: AppColors.primaryDark,
+                  icon: Icons.local_drink_rounded,
+                ),
+                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
+                _buildHighlightMetric(
                   label: 'SMP Required',
                   value: '${Formatters.formatDecimal(res.smpRequired)} kg',
                   sub: '${res.smpFactor.toStringAsFixed(0)}% SNF Factor',
@@ -1211,19 +1338,19 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 ),
                 Container(width: 1.2, height: 48, color: AppColors.headerBorder),
                 _buildHighlightMetric(
-                  label: 'Sugar Required',
-                  value: '${Formatters.formatDecimal(res.sugarRequired)} kg',
-                  sub: '${res.sugarPercent.toStringAsFixed(1)}% Sugar applied',
-                  color: AppColors.coolIce,
-                  icon: Icons.cookie_rounded,
-                ),
-                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
-                _buildHighlightMetric(
                   label: 'Water Required',
                   value: '${Formatters.formatDecimal(res.waterRequired)} L',
                   sub: 'Process blending water',
                   color: AppColors.primary,
                   icon: Icons.water_drop_rounded,
+                ),
+                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
+                _buildHighlightMetric(
+                  label: 'Sugar (Extra)',
+                  value: '${Formatters.formatDecimal(res.sugarRequired)} kg',
+                  sub: res.sugarRequired > 0 ? '${res.sugarPercent.toStringAsFixed(1)}% Added Extra' : 'Unsweetened',
+                  color: AppColors.coolIce,
+                  icon: Icons.cookie_rounded,
                 ),
               ],
             ),
@@ -1248,7 +1375,11 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 const Divider(height: 1),
                 _buildResultDataRow('SNF Deficit', '${Formatters.formatDecimal(res.snfDeficitKg)} kg', 'SMP Required', '${Formatters.formatDecimal(res.smpRequired)} kg', highlightSecond: true),
                 const Divider(height: 1),
-                _buildResultDataRow('Sugar Required', '${Formatters.formatDecimal(res.sugarRequired)} kg', 'Water Required', '${Formatters.formatDecimal(res.waterRequired)} L', highlightSecond: true),
+                _buildResultDataRow('Water Required', '${Formatters.formatDecimal(res.waterRequired)} L', 'Base Batch (Milk+SMP+Water)', '${Formatters.formatDecimal(res.totalFormulatedQuantity)} L (Verified)', highlightSecond: true),
+                if (res.sugarRequired > 0) ...[
+                  const Divider(height: 1),
+                  _buildResultDataRow('Sugar Addition (Extra)', '${Formatters.formatDecimal(res.sugarRequired)} kg', 'Final Recipe Batch (with Sugar)', '${Formatters.formatDecimal(res.quantityWithSugar)} L/kg'),
+                ],
               ],
             ),
           ),

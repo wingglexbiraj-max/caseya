@@ -6,7 +6,6 @@ import '../models/lab_record.dart';
 import '../models/batch_record_model.dart';
 import '../services/milk_standardization_calculator.dart';
 import '../services/local_storage_service.dart';
-import '../repositories/product_repository.dart';
 import '../repositories/standardization_repository.dart';
 import '../repositories/lab_repository.dart';
 import '../repositories/batch_repository.dart';
@@ -136,13 +135,11 @@ class StandardizationState {
 
 class StandardizationNotifier extends StateNotifier<StandardizationState> {
   final StandardizationRepository _stdRepo;
-  final ProductRepository _productRepo;
   final LabRepository _labRepo;
   final BatchRepository _batchRepo;
 
   StandardizationNotifier(
     this._stdRepo,
-    this._productRepo,
     this._labRepo,
     this._batchRepo,
   ) : super(StandardizationState(selectedDate: DateTime.now())) {
@@ -158,30 +155,19 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     final String configuredWaterMethod = config['water_method']?.toString() ?? 'standard';
     final Map<String, dynamic>? productSpecs = config['product_specs'] as Map<String, dynamic>?;
 
-    // 2. Load products catalog
-    final catalogProducts = await _productRepo.getProducts();
-    final customTargets = catalogProducts.where(
-      (p) =>
-          p.targetFat != null &&
-          p.targetSnf != null &&
-          !MilkStandardizationCalculator.standardizationProducts.any((std) => std.productId == p.productId),
-    );
-
-    // Merge standard products with custom overrides from settings
-    final targets = [
-      ...MilkStandardizationCalculator.standardizationProducts.map((p) {
-        if (productSpecs != null && productSpecs.containsKey(p.productId)) {
-          final spec = productSpecs[p.productId] as Map<String, dynamic>;
-          return p.copyWith(
-            targetSnf: (spec['target_snf'] as num?)?.toDouble() ?? p.targetSnf,
-            targetSugar: (spec['sugar_percent'] as num?)?.toDouble() ?? p.targetSugar,
-            targetFat: (spec['target_fat'] as num?)?.toDouble() ?? p.targetFat,
-          );
-        }
-        return p;
-      }),
-      ...customTargets,
-    ];
+    // 2. Load standard products with custom overrides from settings if configured
+    // Strictly keep only the 6 official standardization products
+    final targets = MilkStandardizationCalculator.standardizationProducts.map((p) {
+      if (productSpecs != null && productSpecs.containsKey(p.productId)) {
+        final spec = productSpecs[p.productId] as Map<String, dynamic>;
+        return p.copyWith(
+          targetSnf: (spec['target_snf'] as num?)?.toDouble() ?? p.targetSnf,
+          targetSugar: (spec['sugar_percent'] as num?)?.toDouble() ?? p.targetSugar,
+          targetFat: (spec['target_fat'] as num?)?.toDouble() ?? p.targetFat,
+        );
+      }
+      return p;
+    }).toList();
 
     final history = await _stdRepo.getRecords();
 
@@ -557,8 +543,7 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
 final standardizationProvider =
     StateNotifierProvider<StandardizationNotifier, StandardizationState>((ref) {
   final stdRepo = ref.watch(stdRepositoryProvider);
-  final productRepo = ref.watch(productRepositoryProvider);
   final labRepo = ref.watch(labRepositoryProvider);
   final batchRepo = ref.watch(batchRepositoryProvider);
-  return StandardizationNotifier(stdRepo, productRepo, labRepo, batchRepo);
+  return StandardizationNotifier(stdRepo, labRepo, batchRepo);
 });
