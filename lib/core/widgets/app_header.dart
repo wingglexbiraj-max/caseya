@@ -1,7 +1,8 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
-import '../constants/app_constants.dart';
 import '../utils/responsive_layout.dart';
 import '../utils/formatters.dart';
 import '../../providers/auth_provider.dart';
@@ -67,89 +68,21 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
             ),
           ),
 
-          // Operational Status Indicators (Golden Ratio layout)
+          // Operational Status Indicators with Real-Time Clock & Date
           LayoutBuilder(
             builder: (context, constraints) {
               final screenWidth = MediaQuery.of(context).size.width;
-              if (screenWidth < 980) return const SizedBox.shrink();
+              if (screenWidth < 850) return const SizedBox.shrink();
 
-              return Row(
+              return const Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: AppColors.accentCyan,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Plant Facility Active • $todayStr',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 14),
+                  _LivePlantFacilityStatus(),
+                  SizedBox(width: 16),
                 ],
               );
             },
           ),
-
-          // Fast Role Switcher Pill
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-            ),
-            child: DropdownButtonHideUnderline(
-              child: DropdownButton<String>(
-                value: user.role,
-                dropdownColor: AppColors.headerBackground,
-                isDense: true,
-                icon: const Icon(Icons.expand_more_rounded, size: 18, color: Color(0xFF94A3B8)),
-                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: Colors.white),
-                items: const [
-                  DropdownMenuItem(
-                    value: AppConstants.roleAdmin,
-                    child: Text('Admin', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
-                  ),
-                  DropdownMenuItem(
-                    value: AppConstants.roleSupervisor,
-                    child: Text('Supervisor', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
-                  ),
-                  DropdownMenuItem(
-                    value: AppConstants.roleOperator,
-                    child: Text('Operator', style: TextStyle(color: Colors.white, fontSize: 12.5, fontWeight: FontWeight.w700)),
-                  ),
-                ],
-                onChanged: (newRole) {
-                  if (newRole != null) {
-                    ref.read(authProvider.notifier).switchRole(newRole);
-                  }
-                },
-              ),
-            ),
-          ),
-          const SizedBox(width: 13),
 
           // User Profile Tag with Emerald Gradient Avatar
           Row(
@@ -206,6 +139,75 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                 ),
               ],
             ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LivePlantFacilityStatus extends StatefulWidget {
+  const _LivePlantFacilityStatus();
+
+  @override
+  State<_LivePlantFacilityStatus> createState() => _LivePlantFacilityStatusState();
+}
+
+class _LivePlantFacilityStatusState extends State<_LivePlantFacilityStatus> {
+  late DateTime _currentTime;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {
+          _currentTime = DateTime.now();
+        });
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final timeStr = Formatters.formatTimeWithSeconds(_currentTime);
+    final dateStr = Formatters.formatDate(_currentTime);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 8,
+            height: 8,
+            decoration: const BoxDecoration(
+              color: AppColors.accentCyan,
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Plant Facility Active • $timeStr • $dateStr',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFE2E8F0),
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
           ),
         ],
       ),

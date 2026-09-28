@@ -90,7 +90,7 @@ void main() {
         batchQuantity: 500.0,
         batchUnit: 'L',
         shift: 'Shift A',
-        operatorName: 'R. K. Baruah',
+        operatorName: 'Biraj Goswami',
         notes: 'Test batch notes',
         ingredients: const [
           BatchIngredientModel(id: 'ING-1', batchId: 'BT-TEST-01', ingredientName: 'Milk', quantity: 300.0, unit: 'L'),

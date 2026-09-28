@@ -34,7 +34,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       'crates': 175,
       'fat': 4.52,
       'snf': 8.54,
-      'employee': 'R. K. Baruah',
+      'employee': 'Biraj Goswami',
     },
     {
       'date': '2026-09-27',
@@ -45,7 +45,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       'crates': 125,
       'fat': 3.02,
       'snf': 8.51,
-      'employee': 'R. K. Baruah',
+      'employee': 'Biraj Goswami',
     },
     {
       'date': '2026-09-26',

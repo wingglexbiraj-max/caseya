@@ -511,7 +511,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                           Expanded(
                             child: AppTextField(
                               label: 'Operator / Technologist',
-                              hint: 'e.g. R. K. Baruah',
+                              hint: 'e.g. Biraj Goswami',
                               controller: _operatorController,
                             ),
                           ),

@@ -9,11 +9,11 @@ final authProvider = StateNotifierProvider<AuthNotifier, UserModel>((ref) {
 class AuthNotifier extends StateNotifier<UserModel> {
   AuthNotifier()
       : super(const UserModel(
-          userId: 'EMP-0104',
-          employeeCode: 'OPR-104',
-          name: 'R. K. Baruah',
-          email: 'rbaruah@caseya-plant.com',
-          role: 'Supervisor',
+          userId: 'EMP-0101',
+          employeeCode: 'ADMIN-01',
+          name: 'Biraj Goswami',
+          email: 'biraj.goswami@caseya-plant.com',
+          role: 'Admin',
           department: 'Processing & Operations',
         )) {
     loadUser();
@@ -21,7 +21,21 @@ class AuthNotifier extends StateNotifier<UserModel> {
 
   Future<void> loadUser() async {
     final user = await LocalStorageService.getCurrentUser();
-    state = user;
+    if (user.name == 'R. K. Baruah' || user.name.isEmpty) {
+      final updated = UserModel(
+        userId: user.userId.isEmpty ? 'EMP-0101' : user.userId,
+        employeeCode: user.employeeCode.isEmpty ? 'ADMIN-01' : user.employeeCode,
+        name: 'Biraj Goswami',
+        email: 'biraj.goswami@caseya-plant.com',
+        role: user.role,
+        department: user.department,
+        active: true,
+      );
+      state = updated;
+      await LocalStorageService.saveCurrentUser(updated);
+    } else {
+      state = user;
+    }
   }
 
   Future<void> switchRole(String role) async {

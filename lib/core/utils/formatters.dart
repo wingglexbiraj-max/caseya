@@ -6,7 +6,13 @@ class Formatters {
   static final NumberFormat _oneDecimalFormat = NumberFormat('#,##0.0');
   static final DateFormat _dateFormat = DateFormat('dd MMM yyyy');
   static final DateFormat _timeFormat = DateFormat('hh:mm a');
+  static final DateFormat _timeWithSecondsFormat = DateFormat('HH:mm:ss');
   static final DateFormat _isoDateFormat = DateFormat('yyyy-MM-dd');
+
+  /// Format Time with seconds, e.g. 13:08:25
+  static String formatTimeWithSeconds(DateTime dateTime) {
+    return _timeWithSecondsFormat.format(dateTime);
+  }
 
   /// Format an integer quantity with commas, e.g. 3,000
   static String formatInt(num value) {

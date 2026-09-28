@@ -241,7 +241,7 @@ class _ReportsPageState extends State<ReportsPage> {
             Padding(padding: EdgeInsets.all(10), child: Text('2026-09-27')),
             Padding(padding: EdgeInsets.all(10), child: Text('Shift A (06:00 - 14:00)')),
             Padding(padding: EdgeInsets.all(10), child: Text('900.00 L (Diff: 70 CM)')),
-            Padding(padding: EdgeInsets.all(10), child: Text('R. K. Baruah')),
+            Padding(padding: EdgeInsets.all(10), child: Text('Biraj Goswami')),
           ],
         ),
         TableRow(
@@ -257,7 +257,7 @@ class _ReportsPageState extends State<ReportsPage> {
             Padding(padding: EdgeInsets.all(10), child: Text('2026-09-25')),
             Padding(padding: EdgeInsets.all(10), child: Text('Shift A (06:00 - 14:00)')),
             Padding(padding: EdgeInsets.all(10), child: Text('1064.29 L (Top-up: 100 L)')),
-            Padding(padding: EdgeInsets.all(10), child: Text('R. K. Baruah')),
+            Padding(padding: EdgeInsets.all(10), child: Text('Biraj Goswami')),
           ],
         ),
       ],

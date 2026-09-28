@@ -524,15 +524,29 @@ class LocalStorageService {
     final jsonStr = prefs.getString(AppConstants.storageKeyUser);
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
-        return UserModel.fromJson(jsonDecode(jsonStr));
+        final user = UserModel.fromJson(jsonDecode(jsonStr));
+        if (user.name == 'R. K. Baruah' || user.name.isEmpty) {
+          final updated = UserModel(
+            userId: user.userId.isEmpty ? 'EMP-0101' : user.userId,
+            employeeCode: user.employeeCode.isEmpty ? 'ADMIN-01' : user.employeeCode,
+            name: 'Biraj Goswami',
+            email: 'biraj.goswami@caseya-plant.com',
+            role: user.role,
+            department: user.department,
+            active: true,
+          );
+          await saveCurrentUser(updated);
+          return updated;
+        }
+        return user;
       } catch (_) {}
     }
     return const UserModel(
-      userId: 'EMP-0104',
-      employeeCode: 'OPR-104',
-      name: 'R. K. Baruah',
-      email: 'rbaruah@caseya-plant.com',
-      role: 'Supervisor',
+      userId: 'EMP-0101',
+      employeeCode: 'ADMIN-01',
+      name: 'Biraj Goswami',
+      email: 'biraj.goswami@caseya-plant.com',
+      role: 'Admin',
       department: 'Processing & Operations',
     );
   }
@@ -814,8 +828,8 @@ class LocalStorageService {
         date: '2026-09-27',
         time: '02:00 PM',
         shift: 'Shift A (06:00 - 14:00)',
-        employeeId: 'EMP-0104',
-        employeeName: 'R. K. Baruah',
+        employeeId: 'EMP-0101',
+        employeeName: 'Biraj Goswami',
         openingCm: 500.0,
         closingCm: 430.0,
         levelDifferenceCm: 70.0,
@@ -852,8 +866,8 @@ class LocalStorageService {
         date: '2026-09-25',
         shift: 'Shift A (06:00 - 14:00)',
         time: '02:15 PM',
-        employeeId: 'EMP-0104',
-        employeeName: 'R. K. Baruah',
+        employeeId: 'EMP-0101',
+        employeeName: 'Biraj Goswami',
         openingCm: 515.0,
         closingCm: 440.0,
         levelDifferenceCm: 75.0,
@@ -880,8 +894,8 @@ class LocalStorageService {
         recordId: 'STD-20260927-01',
         date: '2026-09-27',
         time: '09:20 AM',
-        employeeId: 'EMP-0104',
-        employeeName: 'R. K. Baruah',
+        employeeId: 'EMP-0101',
+        employeeName: 'Biraj Goswami',
         inputMilkQuantity: 5000.0,
         inputFat: 3.8,
         inputSnf: 8.4,
@@ -1027,7 +1041,7 @@ class LocalStorageService {
         batchQuantity: 500.0,
         batchUnit: 'L',
         shift: 'Shift A (06:00 - 14:00)',
-        operatorName: 'R. K. Baruah',
+        operatorName: 'Biraj Goswami',
         notes: 'Standard sweet lassi formulation batch 1',
         ingredients: const [
           BatchIngredientModel(id: 'ING-01', batchId: 'BATCH-20260928-01', ingredientName: 'Milk', quantity: 300.0, unit: 'L'),
@@ -1047,7 +1061,7 @@ class LocalStorageService {
         batchQuantity: 1000.0,
         batchUnit: 'L',
         shift: 'Shift A (06:00 - 14:00)',
-        operatorName: 'R. K. Baruah',
+        operatorName: 'Biraj Goswami',
         notes: 'Plain curd bulk vat incubation',
         ingredients: const [
           BatchIngredientModel(id: 'ING-05', batchId: 'BATCH-20260928-02', ingredientName: 'Milk', quantity: 1000.0, unit: 'L'),
@@ -1101,7 +1115,7 @@ class LocalStorageService {
         batchQuantity: 500.0,
         batchUnit: 'L',
         shift: 'Shift A (06:00 - 14:00)',
-        operatorName: 'R. K. Baruah',
+        operatorName: 'Biraj Goswami',
         notes: 'Morning sweet lassi production',
         ingredients: const [
           BatchIngredientModel(id: 'ING-11', batchId: 'BATCH-20260929-02', ingredientName: 'Milk', quantity: 300.0, unit: 'L'),
