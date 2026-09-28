@@ -184,11 +184,11 @@ class AppSidebar extends StatelessWidget {
           ),
           trailing: isSelected
               ? Container(
-                  width: 5,
+                  width: 4,
                   height: 18,
                   decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(3),
+                    color: AppColors.goldAccent,
+                    borderRadius: BorderRadius.circular(2),
                   ),
                 )
               : null,
@@ -247,9 +247,16 @@ class _LivePlantSidebarChipState extends State<_LivePlantSidebarChip> {
           Container(
             width: 9,
             height: 9,
-            decoration: const BoxDecoration(
-              color: Color(0xFF10B981), // Emerald active indicator
+            decoration: BoxDecoration(
+              color: AppColors.goldAccent,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.goldAccent.withValues(alpha: 0.4),
+                  blurRadius: 4,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
           ),
           const SizedBox(width: 10),

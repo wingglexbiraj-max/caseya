@@ -206,7 +206,7 @@ class DashboardPage extends ConsumerWidget {
                         unit: 'Litres',
                         subtitle: '8 Routes On Route',
                         icon: Icons.local_shipping_rounded,
-                        iconColor: const Color(0xFF7C3AED),
+                        iconColor: AppColors.goldAccent,
                         iconBgColor: AppColors.metricBgDispatch,
                         onTap: () => onNavigate(6),
                       ),
