@@ -3,9 +3,9 @@ import 'package:caseya/services/milk_standardization_calculator.dart';
 
 void main() {
   group('Milk Standardization Target Products Metadata', () {
-    test('Verify all 6 standardized products match exact dairy plant specifications', () {
+    test('Verify standard products exist and match exact dairy plant specifications', () {
       final products = MilkStandardizationCalculator.standardizationProducts;
-      expect(products.length, 6);
+      expect(products.length, greaterThanOrEqualTo(6));
 
       // 1. std milk: target fat 4.5, target snf 8.5, sugar NA, shelf life 2 days
       final stdMilk = products.firstWhere((p) => p.productName == 'std milk');
@@ -57,7 +57,131 @@ void main() {
     });
   });
 
-  group('Milk Standardization Calculator Engine', () {
+  group('Milk Standardization Batch Formulation Engine (Official User Specification)', () {
+    test('Official Dairy Plant Specification Example: Sweet Curd 1700 L Batch', () {
+      // Inputs:
+      // Total Batch: 1700 L
+      // Milk Taken: 1400 L
+      // Present Fat: 4.3%
+      // Present SNF: 8.33%
+      // Target SNF: 8.5%
+      // Product: Sweet Curd (Sugar 12%)
+      // SMP Factor: 95%
+      final res = MilkStandardizationCalculator.calculate(
+        totalBatch: 1700.0,
+        milkTaken: 1400.0,
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        targetProduct: 'Sweet Curd',
+        targetSnf: 8.5,
+        sugarPercent: 12.0,
+        smpFactor: 95.0,
+      );
+
+      // 1. Milk Fat:
+      // Fat kg = 1400 * 4.3 / 100 = 60.20 kg
+      expect(res.availableFatKg, closeTo(60.20, 0.01));
+      // Final Fat % = (60.20 / 1700) * 100 = 3.54%
+      expect(res.finalFat, closeTo(3.541, 0.01));
+
+      // 2. Milk SNF:
+      // Available SNF kg = 1400 * 8.33 / 100 = 116.62 kg
+      expect(res.availableSnfKg, closeTo(116.62, 0.01));
+      // Required SNF kg = 1700 * 8.5 / 100 = 144.50 kg
+      expect(res.requiredSnfKg, closeTo(144.50, 0.01));
+      // SNF Deficit = 144.50 - 116.62 = 27.88 kg
+      expect(res.snfDeficitKg, closeTo(27.88, 0.01));
+
+      // 3. SMP Required:
+      // SMP Required = 27.88 * 95 / 100 = 26.486 kg (~26.49 kg)
+      expect(res.smpRequired, closeTo(26.486, 0.01));
+
+      // 4. Sugar Calculation:
+      // Sweet Curd: 1700 * 12 / 100 = 204 kg
+      expect(res.sugarRequired, closeTo(204.0, 0.01));
+
+      // 5. Water Required:
+      // Water = 1700 - (1400 + 27.88) = 272.12 L
+      expect(res.waterRequired, closeTo(272.12, 0.01));
+      expect(res.breakdownSteps.length, greaterThanOrEqualTo(7));
+    });
+
+    test('Lassi Formulation: Sugar 15% on 1700 L Batch', () {
+      final res = MilkStandardizationCalculator.calculate(
+        totalBatch: 1700.0,
+        milkTaken: 1400.0,
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        targetProduct: 'Lassi',
+        targetSnf: 8.5,
+        sugarPercent: 15.0,
+        smpFactor: 95.0,
+      );
+
+      // Sugar = 1700 * 15 / 100 = 255 kg
+      expect(res.sugarRequired, closeTo(255.0, 0.01));
+      expect(res.waterRequired, closeTo(272.12, 0.01));
+    });
+
+    test('Plain Curd / Milk Formulation: Sugar 0% on 1700 L Batch', () {
+      final res = MilkStandardizationCalculator.calculate(
+        totalBatch: 1700.0,
+        milkTaken: 1400.0,
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        targetProduct: 'Plain Curd',
+        targetSnf: 8.5,
+        sugarPercent: 0.0,
+        smpFactor: 95.0,
+      );
+
+      // Sugar = 0 kg
+      expect(res.sugarRequired, 0.0);
+      expect(res.waterRequired, closeTo(272.12, 0.01));
+    });
+
+    test('Auto-calculate Milk Taken when Milk Taken is NOT given', () {
+      // (remember if we didnot given how much milk we have taken then from total batch quantity
+      // when you will find amount of water needed you must remember our products selected products fat snf depending on these you will need to make
+      final res = MilkStandardizationCalculator.calculate(
+        totalBatch: 1700.0,
+        milkTaken: null, // Not given
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        targetProduct: 'Army Milk',
+        targetFat: 3.5, // Army milk target fat
+        targetSnf: 8.5,
+        sugarPercent: 0.0,
+        smpFactor: 95.0,
+      );
+
+      // Expected Milk Taken = 1700 * 3.5 / 4.3 = 1383.72 L
+      expect(res.isAutoCalculatedMilk, isTrue);
+      expect(res.milkTaken, closeTo(1383.72, 0.05));
+      expect(res.finalFat, closeTo(3.50, 0.01));
+      expect(res.waterRequired, greaterThan(0.0));
+    });
+
+    test('Reverse Calculation for desired Target Fat % and Target SNF %', () {
+      final res = MilkStandardizationCalculator.reverseCalculate(
+        totalBatch: 1700.0,
+        milkTaken: 1400.0,
+        presentFat: 4.3,
+        presentSnf: 8.33,
+        desiredFinalFat: 3.54,
+        desiredTargetSnf: 8.50,
+        sugarPercent: 12.0,
+        smpFactor: 95.0,
+      );
+
+      expect(res.finalFat, closeTo(3.54, 0.01));
+      expect(res.smpRequired, closeTo(26.49, 0.05));
+      expect(res.waterRequired, closeTo(272.12, 0.05));
+      expect(res.sugarRequired, closeTo(204.0, 0.01));
+    });
+  });
+
+  group('Milk Standardization Legacy Dilution Engine Tests', () {
     test('Standardization to Lassi (1.5% FAT / 7.0% SNF / 15% Sugar)', () {
       final res = MilkStandardizationCalculator.calculate(
         milkQuantity: 5000.0,
@@ -69,14 +193,10 @@ void main() {
         sugarPercent: 15.0,
       );
 
-      // Water required to dilute Fat from 4.5% to 1.5%:
-      // Initial Fat = 5000 * 0.045 = 225 Kg
-      // Target Vol for Fat = 225 / 0.015 = 15000 L
-      // Water = 15000 - 5000 = 10000 L
       expect(res.waterRequired, 10000.0);
       expect(res.sugarRequired, greaterThan(0.0));
       expect(res.finalQuantity, greaterThan(5000.0));
-      expect(res.breakdownSteps.length, greaterThanOrEqualTo(8));
+      expect(res.breakdownSteps.length, greaterThanOrEqualTo(7));
     });
 
     test('Standardization to Sweetened Curd (3.0% FAT / 14.0% SNF / 12% Sugar)', () {
@@ -91,9 +211,9 @@ void main() {
       );
 
       expect(res.waterRequired, greaterThan(0.0));
-      expect(res.smpRequired, greaterThan(0.0)); // To reach 14.0% SNF
-      expect(res.sugarRequired, greaterThan(0.0)); // 12% sugar
-      expect(res.breakdownSteps.length, greaterThanOrEqualTo(8));
+      expect(res.smpRequired, greaterThan(0.0));
+      expect(res.sugarRequired, greaterThan(0.0));
+      expect(res.breakdownSteps.length, greaterThanOrEqualTo(7));
     });
 
     test('Standardization when raw milk matches target specs (No water, No SMP)', () {

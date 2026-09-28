@@ -451,6 +451,35 @@ class LocalStorageService {
     await prefs.setString(AppConstants.storageKeyStdRecords, jsonEncode(records.map((e) => e.toJson()).toList()));
   }
 
+  static const String storageKeyStdConfig = 'caseya_std_formula_config_v2';
+
+  static Future<Map<String, dynamic>> getStandardizationConfig() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(storageKeyStdConfig);
+    if (jsonStr == null || jsonStr.isEmpty) {
+      return {
+        'smp_factor': 95.0,
+        'water_method': 'standard',
+        'product_specs': {
+          'MILK_SM_PLUS': {'target_snf': 8.5, 'sugar_percent': 0.0, 'target_fat': 3.5},
+          'PLAIN_CURD': {'target_snf': 8.5, 'sugar_percent': 0.0, 'target_fat': 3.0},
+          'SWEET_CURD': {'target_snf': 8.5, 'sugar_percent': 12.0, 'target_fat': 3.0},
+          'LASSI_BATCH': {'target_snf': 8.5, 'sugar_percent': 15.0, 'target_fat': 1.5},
+        }
+      };
+    }
+    try {
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (_) {
+      return {'smp_factor': 95.0, 'water_method': 'standard'};
+    }
+  }
+
+  static Future<void> saveStandardizationConfig(Map<String, dynamic> config) async {
+    final prefs = await _instance;
+    await prefs.setString(storageKeyStdConfig, jsonEncode(config));
+  }
+
   // ===========================================================================
   // PRODUCT CALCULATION RECORDS
   // ===========================================================================

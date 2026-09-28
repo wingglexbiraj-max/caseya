@@ -3,25 +3,37 @@ import 'package:uuid/uuid.dart';
 import '../models/product_model.dart';
 import '../models/standardization_record.dart';
 import '../models/lab_record.dart';
+import '../models/batch_record_model.dart';
 import '../services/milk_standardization_calculator.dart';
+import '../services/local_storage_service.dart';
 import '../repositories/product_repository.dart';
 import '../repositories/standardization_repository.dart';
 import '../repositories/lab_repository.dart';
+import '../repositories/batch_repository.dart';
 import '../core/utils/formatters.dart';
 import 'product_calculator_provider.dart';
+import 'batch_records_provider.dart';
 
 final labRepositoryProvider = Provider((ref) => LabRepository());
 
 class StandardizationState {
   final DateTime selectedDate;
-  final double milkQuantity;
+  final double totalBatchRequired; // Total Batch Required (L)
+  final double? milkTaken; // Milk Taken (L) - null if auto-calculate
+  final bool autoCalculateMilk; // If true, derives milk taken from target fat
   final String inputUnit; // Litres
-  final double milkFat;
-  final double milkSnf;
+  final double milkFat; // Present Milk Fat (%)
+  final double milkSnf; // Present Milk SNF (%)
   final List<ProductModel> targetProducts;
   final ProductModel? selectedTargetProduct;
-  final double targetFat;
-  final double targetSnf;
+  final double targetFat; // Target Fat %
+  final double targetSnf; // Target SNF %
+  final double sugarPercent; // Sugar %
+  final double smpFactor; // Configurable SMP Factor (default 95.0%)
+  final String waterCalculationMethod; // 'standard' | 'withSugarDisplacement'
+  final bool isReverseMode; // Standard formulation vs Reverse calculation
+  final double desiredFinalFat; // Reverse calculation target fat
+  final double desiredTargetSnf; // Reverse calculation target SNF
   final LabRecord? fetchedLabRecord;
   final bool hasFetchedLabData;
   final String? labDataFetchStatus;
@@ -31,16 +43,27 @@ class StandardizationState {
   final String? errorMessage;
   final String? successMessage;
 
+  // Backwards compatibility getter
+  double get milkQuantity => milkTaken ?? totalBatchRequired;
+
   const StandardizationState({
     required this.selectedDate,
-    this.milkQuantity = 5000.0,
+    this.totalBatchRequired = 1700.0,
+    this.milkTaken = 1400.0,
+    this.autoCalculateMilk = false,
     this.inputUnit = 'Litres',
-    this.milkFat = 3.8,
-    this.milkSnf = 8.4,
+    this.milkFat = 4.30,
+    this.milkSnf = 8.33,
     this.targetProducts = const [],
     this.selectedTargetProduct,
-    this.targetFat = 2.5,
-    this.targetSnf = 9.0,
+    this.targetFat = 3.5,
+    this.targetSnf = 8.5,
+    this.sugarPercent = 0.0,
+    this.smpFactor = 95.0,
+    this.waterCalculationMethod = 'standard',
+    this.isReverseMode = false,
+    this.desiredFinalFat = 3.5,
+    this.desiredTargetSnf = 8.5,
     this.fetchedLabRecord,
     this.hasFetchedLabData = false,
     this.labDataFetchStatus,
@@ -53,7 +76,10 @@ class StandardizationState {
 
   StandardizationState copyWith({
     DateTime? selectedDate,
-    double? milkQuantity,
+    double? totalBatchRequired,
+    double? milkTaken,
+    bool clearMilkTaken = false,
+    bool? autoCalculateMilk,
     String? inputUnit,
     double? milkFat,
     double? milkSnf,
@@ -61,6 +87,12 @@ class StandardizationState {
     ProductModel? selectedTargetProduct,
     double? targetFat,
     double? targetSnf,
+    double? sugarPercent,
+    double? smpFactor,
+    String? waterCalculationMethod,
+    bool? isReverseMode,
+    double? desiredFinalFat,
+    double? desiredTargetSnf,
     LabRecord? fetchedLabRecord,
     bool? hasFetchedLabData,
     String? labDataFetchStatus,
@@ -74,7 +106,9 @@ class StandardizationState {
   }) {
     return StandardizationState(
       selectedDate: selectedDate ?? this.selectedDate,
-      milkQuantity: milkQuantity ?? this.milkQuantity,
+      totalBatchRequired: totalBatchRequired ?? this.totalBatchRequired,
+      milkTaken: clearMilkTaken ? null : (milkTaken ?? this.milkTaken),
+      autoCalculateMilk: autoCalculateMilk ?? this.autoCalculateMilk,
       inputUnit: inputUnit ?? this.inputUnit,
       milkFat: milkFat ?? this.milkFat,
       milkSnf: milkSnf ?? this.milkSnf,
@@ -82,6 +116,12 @@ class StandardizationState {
       selectedTargetProduct: selectedTargetProduct ?? this.selectedTargetProduct,
       targetFat: targetFat ?? this.targetFat,
       targetSnf: targetSnf ?? this.targetSnf,
+      sugarPercent: sugarPercent ?? this.sugarPercent,
+      smpFactor: smpFactor ?? this.smpFactor,
+      waterCalculationMethod: waterCalculationMethod ?? this.waterCalculationMethod,
+      isReverseMode: isReverseMode ?? this.isReverseMode,
+      desiredFinalFat: desiredFinalFat ?? this.desiredFinalFat,
+      desiredTargetSnf: desiredTargetSnf ?? this.desiredTargetSnf,
       fetchedLabRecord: fetchedLabRecord ?? this.fetchedLabRecord,
       hasFetchedLabData: hasFetchedLabData ?? this.hasFetchedLabData,
       labDataFetchStatus: labDataFetchStatus ?? this.labDataFetchStatus,
@@ -98,29 +138,57 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
   final StandardizationRepository _stdRepo;
   final ProductRepository _productRepo;
   final LabRepository _labRepo;
+  final BatchRepository _batchRepo;
 
-  StandardizationNotifier(this._stdRepo, this._productRepo, this._labRepo)
-      : super(StandardizationState(selectedDate: DateTime.now())) {
+  StandardizationNotifier(
+    this._stdRepo,
+    this._productRepo,
+    this._labRepo,
+    this._batchRepo,
+  ) : super(StandardizationState(selectedDate: DateTime.now())) {
     init();
   }
 
   Future<void> init() async {
     state = state.copyWith(isLoading: true);
-    // Use official dairy plant standardization target products and any custom catalog targets
+
+    // 1. Load custom plant formula configs if saved
+    final config = await LocalStorageService.getStandardizationConfig();
+    final double configuredSmpFactor = (config['smp_factor'] as num?)?.toDouble() ?? 95.0;
+    final String configuredWaterMethod = config['water_method']?.toString() ?? 'standard';
+    final Map<String, dynamic>? productSpecs = config['product_specs'] as Map<String, dynamic>?;
+
+    // 2. Load products catalog
     final catalogProducts = await _productRepo.getProducts();
     final customTargets = catalogProducts.where(
-      (p) => p.targetFat != null && p.targetSnf != null && !MilkStandardizationCalculator.standardizationProducts.any((std) => std.productId == p.productId),
+      (p) =>
+          p.targetFat != null &&
+          p.targetSnf != null &&
+          !MilkStandardizationCalculator.standardizationProducts.any((std) => std.productId == p.productId),
     );
+
+    // Merge standard products with custom overrides from settings
     final targets = [
-      ...MilkStandardizationCalculator.standardizationProducts,
+      ...MilkStandardizationCalculator.standardizationProducts.map((p) {
+        if (productSpecs != null && productSpecs.containsKey(p.productId)) {
+          final spec = productSpecs[p.productId] as Map<String, dynamic>;
+          return p.copyWith(
+            targetSnf: (spec['target_snf'] as num?)?.toDouble() ?? p.targetSnf,
+            targetSugar: (spec['sugar_percent'] as num?)?.toDouble() ?? p.targetSugar,
+            targetFat: (spec['target_fat'] as num?)?.toDouble() ?? p.targetFat,
+          );
+        }
+        return p;
+      }),
       ...customTargets,
     ];
+
     final history = await _stdRepo.getRecords();
 
     ProductModel? defaultTarget;
     if (targets.isNotEmpty) {
       defaultTarget = targets.firstWhere(
-        (p) => p.productName.toLowerCase().contains('std milk'),
+        (p) => p.productId == 'SWEET_CURD' || p.productName.toLowerCase().contains('sweet curd'),
         orElse: () => targets.first,
       );
     }
@@ -128,8 +196,13 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     state = state.copyWith(
       targetProducts: targets,
       selectedTargetProduct: defaultTarget,
-      targetFat: defaultTarget?.targetFat ?? 4.5,
+      targetFat: defaultTarget?.targetFat ?? 3.5,
       targetSnf: defaultTarget?.targetSnf ?? 8.5,
+      sugarPercent: defaultTarget?.targetSugar ?? 12.0,
+      smpFactor: configuredSmpFactor,
+      waterCalculationMethod: configuredWaterMethod,
+      desiredFinalFat: defaultTarget?.targetFat ?? 3.5,
+      desiredTargetSnf: defaultTarget?.targetSnf ?? 8.5,
       history: history,
       isLoading: false,
     );
@@ -139,8 +212,20 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     state = state.copyWith(selectedDate: date, clearResult: true);
   }
 
-  void setMilkQuantity(double qty) {
-    state = state.copyWith(milkQuantity: qty, clearResult: true);
+  void setTotalBatch(double qty) {
+    state = state.copyWith(totalBatchRequired: qty, clearResult: true);
+  }
+
+  void setMilkTaken(double? qty) {
+    if (qty == null || qty <= 0) {
+      state = state.copyWith(clearMilkTaken: true, clearResult: true);
+    } else {
+      state = state.copyWith(milkTaken: qty, clearResult: true);
+    }
+  }
+
+  void setAutoCalculateMilk(bool value) {
+    state = state.copyWith(autoCalculateMilk: value, clearResult: true);
   }
 
   void setMilkFat(double fat) {
@@ -151,21 +236,111 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     state = state.copyWith(milkSnf: snf, clearResult: true);
   }
 
+  void setTargetFat(double fat) {
+    state = state.copyWith(targetFat: fat, clearResult: true);
+  }
+
+  void setTargetSnf(double snf) {
+    state = state.copyWith(targetSnf: snf, clearResult: true);
+  }
+
+  void setSugarPercent(double sugar) {
+    state = state.copyWith(sugarPercent: sugar, clearResult: true);
+  }
+
+  void setSmpFactor(double factor) {
+    state = state.copyWith(smpFactor: factor, clearResult: true);
+    _saveCurrentConfig();
+  }
+
+  void setWaterMethod(String method) {
+    state = state.copyWith(waterCalculationMethod: method, clearResult: true);
+    _saveCurrentConfig();
+  }
+
+  void setReverseMode(bool reverse) {
+    state = state.copyWith(isReverseMode: reverse, clearResult: true);
+  }
+
+  void setDesiredFinalFat(double fat) {
+    state = state.copyWith(desiredFinalFat: fat, clearResult: true);
+  }
+
+  void setDesiredTargetSnf(double snf) {
+    state = state.copyWith(desiredTargetSnf: snf, clearResult: true);
+  }
+
   void selectTargetProduct(ProductModel product) {
+    final double sugar = product.targetSugar ??
+        (product.productName.toLowerCase().contains('lassi')
+            ? 15.0
+            : (product.productName.toLowerCase().contains('sweet') ? 12.0 : 0.0));
+
     state = state.copyWith(
       selectedTargetProduct: product,
-      targetFat: product.targetFat ?? 2.5,
-      targetSnf: product.targetSnf ?? 9.0,
+      targetFat: product.targetFat ?? 3.5,
+      targetSnf: product.targetSnf ?? 8.5,
+      sugarPercent: sugar,
+      desiredFinalFat: product.targetFat ?? 3.5,
+      desiredTargetSnf: product.targetSnf ?? 8.5,
       clearResult: true,
+      clearMessages: true,
     );
   }
 
-  void setCustomTargetSpecs({required double fat, required double snf}) {
+  Future<void> updateProductFormula(
+    String productId, {
+    required double targetSnf,
+    required double sugarPercent,
+    double? targetFat,
+  }) async {
+    final updatedList = state.targetProducts.map((p) {
+      if (p.productId == productId) {
+        return p.copyWith(
+          targetSnf: targetSnf,
+          targetSugar: sugarPercent,
+          targetFat: targetFat ?? p.targetFat,
+        );
+      }
+      return p;
+    }).toList();
+
+    ProductModel? updatedSelected = state.selectedTargetProduct;
+    if (updatedSelected?.productId == productId) {
+      updatedSelected = updatedSelected!.copyWith(
+        targetSnf: targetSnf,
+        targetSugar: sugarPercent,
+        targetFat: targetFat ?? updatedSelected.targetFat,
+      );
+    }
+
     state = state.copyWith(
-      targetFat: fat,
-      targetSnf: snf,
+      targetProducts: updatedList,
+      selectedTargetProduct: updatedSelected,
+      targetSnf: updatedSelected?.targetSnf ?? state.targetSnf,
+      targetFat: updatedSelected?.targetFat ?? state.targetFat,
+      sugarPercent: updatedSelected?.targetSugar ?? state.sugarPercent,
       clearResult: true,
     );
+
+    await _saveCurrentConfig();
+  }
+
+  Future<void> _saveCurrentConfig() async {
+    final Map<String, dynamic> specs = {};
+    for (final p in state.targetProducts) {
+      specs[p.productId] = {
+        'target_snf': p.targetSnf,
+        'sugar_percent': p.targetSugar ?? 0.0,
+        'target_fat': p.targetFat,
+      };
+    }
+
+    await LocalStorageService.saveStandardizationConfig({
+      'smp_factor': state.smpFactor,
+      'water_method': state.waterCalculationMethod,
+      'product_specs': specs,
+    });
   }
 
   Future<void> fetchTodayLabData() async {
@@ -175,13 +350,12 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
 
     if (labData != null) {
       state = state.copyWith(
-        milkQuantity: labData.milkQuantity,
         milkFat: labData.fatPercent,
         milkSnf: labData.snfPercent,
         fetchedLabRecord: labData,
         hasFetchedLabData: true,
         labDataFetchStatus:
-            '✓ Today\'s lab data fetched (${labData.batchOrSiloNo} • Tested at ${labData.sampleTime} by ${labData.analystName})',
+            '✓ Today\'s QC Lab Data fetched (${labData.batchOrSiloNo} • Tested at ${labData.sampleTime} by ${labData.analystName})',
         isLoading: false,
         clearResult: true,
       );
@@ -194,29 +368,69 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     }
   }
 
+  void clear() {
+    state = state.copyWith(
+      milkTaken: 1400.0,
+      totalBatchRequired: 1700.0,
+      milkFat: 4.30,
+      milkSnf: 8.33,
+      autoCalculateMilk: false,
+      clearResult: true,
+      clearMessages: true,
+    );
+  }
+
   void calculate() {
-    if (state.milkQuantity <= 0) {
-      state = state.copyWith(errorMessage: 'Milk quantity must be greater than zero.');
+    // Validation
+    if (state.totalBatchRequired <= 0) {
+      state = state.copyWith(errorMessage: 'Total Batch Required must be greater than zero.');
       return;
     }
-    if (state.milkFat <= 0 || state.milkFat > 15.0) {
-      state = state.copyWith(errorMessage: 'Milk FAT must be between 0.1% and 15.0%.');
+    if (state.milkFat < 0 || state.milkFat > 15.0) {
+      state = state.copyWith(errorMessage: 'Milk FAT% cannot be negative and must be within 0% - 15%.');
       return;
     }
-    if (state.milkSnf <= 0 || state.milkSnf > 16.0) {
-      state = state.copyWith(errorMessage: 'Milk SNF must be between 5.0% and 16.0%.');
+    if (state.milkSnf < 0 || state.milkSnf > 16.0) {
+      state = state.copyWith(errorMessage: 'Milk SNF% cannot be negative and must be within 0% - 16%.');
+      return;
+    }
+    if (!state.autoCalculateMilk && state.milkTaken != null && state.milkTaken! > state.totalBatchRequired) {
+      state = state.copyWith(
+        errorMessage: 'Milk Taken (${Formatters.formatDecimal(state.milkTaken!)} L) cannot be greater than Total Batch (${Formatters.formatDecimal(state.totalBatchRequired)} L).',
+      );
       return;
     }
 
-    final result = MilkStandardizationCalculator.calculate(
-      milkQuantity: state.milkQuantity,
-      milkFat: state.milkFat,
-      milkSnf: state.milkSnf,
-      targetProduct: state.selectedTargetProduct?.productName ?? 'Standardized Milk',
-      targetFat: state.targetFat,
-      targetSnf: state.targetSnf,
-      sugarPercent: state.selectedTargetProduct?.targetSugar ?? 0.0,
-    );
+    final double? effectiveMilkTaken = state.autoCalculateMilk ? null : state.milkTaken;
+
+    StandardizationResult result;
+    if (state.isReverseMode) {
+      result = MilkStandardizationCalculator.reverseCalculate(
+        totalBatch: state.totalBatchRequired,
+        milkTaken: effectiveMilkTaken,
+        presentFat: state.milkFat,
+        presentSnf: state.milkSnf,
+        desiredFinalFat: state.desiredFinalFat,
+        desiredTargetSnf: state.desiredTargetSnf,
+        sugarPercent: state.sugarPercent,
+        smpFactor: state.smpFactor,
+        targetProduct: state.selectedTargetProduct?.productName ?? 'Custom Specification',
+        waterCalculationMethod: state.waterCalculationMethod,
+      );
+    } else {
+      result = MilkStandardizationCalculator.calculate(
+        totalBatch: state.totalBatchRequired,
+        milkTaken: effectiveMilkTaken,
+        presentFat: state.milkFat,
+        presentSnf: state.milkSnf,
+        targetProduct: state.selectedTargetProduct?.productName ?? 'Standardized Batch',
+        targetFat: state.targetFat,
+        targetSnf: state.targetSnf,
+        sugarPercent: state.sugarPercent,
+        smpFactor: state.smpFactor,
+        waterCalculationMethod: state.waterCalculationMethod,
+      );
+    }
 
     state = state.copyWith(
       result: result,
@@ -229,40 +443,106 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     required String employeeName,
     String notes = '',
   }) async {
-    if (state.result == null || state.selectedTargetProduct == null) return false;
+    final res = state.result;
+    if (res == null || state.selectedTargetProduct == null) return false;
 
     final now = DateTime.now();
+    final recordId = 'STD-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+
+    // 1. Save to Standardization Records (Historical audit log)
     final record = StandardizationRecord(
-      recordId: 'STD-${const Uuid().v4().substring(0, 8).toUpperCase()}',
+      recordId: recordId,
       date: Formatters.formatIsoDate(state.selectedDate),
       time: Formatters.formatTime(now),
       employeeId: employeeId,
       employeeName: employeeName,
-      inputMilkQuantity: state.milkQuantity,
+      totalBatchRequired: res.totalBatch,
+      inputMilkQuantity: res.milkTaken,
       inputUnit: state.inputUnit,
-      inputFat: state.milkFat,
-      inputSnf: state.milkSnf,
+      inputFat: res.presentFat,
+      inputSnf: res.presentSnf,
       targetProductId: state.selectedTargetProduct!.productId,
       targetProductName: state.selectedTargetProduct!.productName,
-      targetFat: state.targetFat,
-      targetSnf: state.targetSnf,
-      waterRequired: state.result!.waterRequired,
-      smpRequired: state.result!.smpRequired,
-      sugarRequired: state.result!.sugarRequired,
-      finalQuantity: state.result!.finalQuantity,
-      finalFat: state.result!.finalFat,
-      finalSnf: state.result!.finalSnf,
-      calculationFormulaVersion: state.result!.formulaVersion,
+      targetFat: res.targetFat,
+      targetSnf: res.targetSnf,
+      availableFatKg: res.availableFatKg,
+      availableSnfKg: res.availableSnfKg,
+      requiredSnfKg: res.requiredSnfKg,
+      snfDeficitKg: res.snfDeficitKg,
+      waterRequired: res.waterRequired,
+      smpRequired: res.smpRequired,
+      sugarRequired: res.sugarRequired,
+      finalQuantity: res.finalQuantity,
+      finalFat: res.finalFat,
+      finalSnf: res.finalSnf,
+      smpFactor: res.smpFactor,
+      calculationFormulaVersion: res.formulaVersion,
       notes: notes,
       createdAt: now,
     );
 
     await _stdRepo.saveRecord(record);
-    final history = await _stdRepo.getRecords();
 
+    // 2. Save directly to Batch Records section with all ingredient components!
+    final batchId = 'BATCH-${const Uuid().v4().substring(0, 8).toUpperCase()}';
+    final batchIngredients = <BatchIngredientModel>[
+      BatchIngredientModel(
+        id: const Uuid().v4(),
+        batchId: batchId,
+        ingredientName: 'Raw Milk (${Formatters.formatPercent(res.presentFat)} F, ${Formatters.formatPercent(res.presentSnf)} SNF)',
+        quantity: res.milkTaken,
+        unit: 'L',
+      ),
+      if (res.smpRequired > 0.0)
+        BatchIngredientModel(
+          id: const Uuid().v4(),
+          batchId: batchId,
+          ingredientName: 'Skimmed Milk Powder (SMP ${Formatters.formatDecimal(res.smpFactor)}% SNF)',
+          quantity: double.parse(res.smpRequired.toStringAsFixed(2)),
+          unit: 'kg',
+        ),
+      if (res.sugarRequired > 0.0)
+        BatchIngredientModel(
+          id: const Uuid().v4(),
+          batchId: batchId,
+          ingredientName: 'Granulated Sugar (${Formatters.formatPercent(res.sugarPercent)})',
+          quantity: double.parse(res.sugarRequired.toStringAsFixed(2)),
+          unit: 'kg',
+        ),
+      if (res.waterRequired > 0.0)
+        BatchIngredientModel(
+          id: const Uuid().v4(),
+          batchId: batchId,
+          ingredientName: 'Potable Process Water',
+          quantity: double.parse(res.waterRequired.toStringAsFixed(2)),
+          unit: 'L',
+        ),
+    ];
+
+    final batchRecord = BatchRecordModel(
+      id: batchId,
+      productionDate: Formatters.formatIsoDate(state.selectedDate),
+      productId: state.selectedTargetProduct!.productId,
+      productName: state.selectedTargetProduct!.productName,
+      batchNumber: 'STD-${now.millisecondsSinceEpoch.toString().substring(7)}',
+      batchQuantity: res.totalBatch,
+      batchUnit: 'L',
+      shift: 'General',
+      operatorName: employeeName,
+      notes: notes.isNotEmpty
+          ? notes
+          : 'Standardized Batch: Raw Milk ${Formatters.formatPercent(res.presentFat)} F, ${Formatters.formatPercent(res.presentSnf)} SNF → Target Batch: ${Formatters.formatSmart(res.totalBatch)} L (Final Fat ${Formatters.formatPercent(res.finalFat)}, Final SNF ${Formatters.formatPercent(res.finalSnf)}). SMP: ${Formatters.formatDecimal(res.smpRequired)} kg, Water: ${Formatters.formatDecimal(res.waterRequired)} L.',
+      ingredients: batchIngredients,
+      createdAt: now,
+      updatedAt: now,
+    );
+
+    await _batchRepo.addBatch(batchRecord);
+
+    final history = await _stdRepo.getRecords();
     state = state.copyWith(
       history: history,
-      successMessage: '✓ Standardization calculation saved to plant historical records.',
+      successMessage: '✓ Standardization calculation saved and added to Batch Records archive.',
     );
     return true;
   }
@@ -279,5 +559,6 @@ final standardizationProvider =
   final stdRepo = ref.watch(stdRepositoryProvider);
   final productRepo = ref.watch(productRepositoryProvider);
   final labRepo = ref.watch(labRepositoryProvider);
-  return StandardizationNotifier(stdRepo, productRepo, labRepo);
+  final batchRepo = ref.watch(batchRepositoryProvider);
+  return StandardizationNotifier(stdRepo, productRepo, labRepo, batchRepo);
 });

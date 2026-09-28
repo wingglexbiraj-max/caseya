@@ -5,7 +5,6 @@ import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
-import '../../core/widgets/result_card.dart';
 import '../../core/widgets/calculation_breakdown.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/confirmation_dialog.dart';
@@ -21,45 +20,84 @@ class MilkStandardizationPage extends ConsumerStatefulWidget {
 }
 
 class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPage> {
-  final TextEditingController _milkQtyController = TextEditingController(text: '5000');
-  final TextEditingController _fatController = TextEditingController(text: '3.8');
-  final TextEditingController _snfController = TextEditingController(text: '8.4');
+  final TextEditingController _totalBatchController = TextEditingController(text: '1700');
+  final TextEditingController _milkTakenController = TextEditingController(text: '1400');
+  final TextEditingController _fatController = TextEditingController(text: '4.3');
+  final TextEditingController _snfController = TextEditingController(text: '8.33');
+  final TextEditingController _desiredFatController = TextEditingController(text: '3.5');
+  final TextEditingController _desiredSnfController = TextEditingController(text: '8.5');
   final TextEditingController _notesController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _metadataExpanded = false;
 
-  void _selectProduct(ProductModel product) {
-    setState(() {
-      _metadataExpanded = false;
-    });
-    ref.read(standardizationProvider.notifier).selectTargetProduct(product);
-  }
+  bool _metadataExpanded = false;
+  bool _showAllProducts = false;
+  bool _autoCalculateMilk = false;
 
   @override
   void dispose() {
-    _milkQtyController.dispose();
+    _totalBatchController.dispose();
+    _milkTakenController.dispose();
     _fatController.dispose();
     _snfController.dispose();
+    _desiredFatController.dispose();
+    _desiredSnfController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
+  void _selectProduct(ProductModel product) {
+    setState(() {
+      _metadataExpanded = false;
+      _desiredFatController.text = (product.targetFat ?? 3.5).toStringAsFixed(2);
+      _desiredSnfController.text = (product.targetSnf ?? 8.5).toStringAsFixed(2);
+    });
+    ref.read(standardizationProvider.notifier).selectTargetProduct(product);
+  }
+
   void _onCalculate() {
     if (_formKey.currentState?.validate() ?? false) {
-      ref.read(standardizationProvider.notifier).setMilkQuantity(Formatters.parseDouble(_milkQtyController.text));
-      ref.read(standardizationProvider.notifier).setMilkFat(Formatters.parseDouble(_fatController.text));
-      ref.read(standardizationProvider.notifier).setMilkSnf(Formatters.parseDouble(_snfController.text));
-      ref.read(standardizationProvider.notifier).calculate();
+      final notifier = ref.read(standardizationProvider.notifier);
+      notifier.setTotalBatch(Formatters.parseDouble(_totalBatchController.text));
+      notifier.setAutoCalculateMilk(_autoCalculateMilk);
+      if (!_autoCalculateMilk && _milkTakenController.text.trim().isNotEmpty) {
+        notifier.setMilkTaken(Formatters.parseDouble(_milkTakenController.text));
+      } else {
+        notifier.setMilkTaken(null);
+      }
+      notifier.setMilkFat(Formatters.parseDouble(_fatController.text));
+      notifier.setMilkSnf(Formatters.parseDouble(_snfController.text));
+
+      final state = ref.read(standardizationProvider);
+      if (state.isReverseMode) {
+        notifier.setDesiredFinalFat(Formatters.parseDouble(_desiredFatController.text));
+        notifier.setDesiredTargetSnf(Formatters.parseDouble(_desiredSnfController.text));
+      }
+
+      notifier.calculate();
     }
   }
 
+  void _onClear() {
+    setState(() {
+      _totalBatchController.text = '1700';
+      _milkTakenController.text = '1400';
+      _fatController.text = '4.3';
+      _snfController.text = '8.33';
+      _desiredFatController.text = '3.5';
+      _desiredSnfController.text = '8.5';
+      _notesController.clear();
+      _autoCalculateMilk = false;
+    });
+    ref.read(standardizationProvider.notifier).clear();
+  }
+
   Future<void> _onFetchLabData() async {
-    final hasUserInputs = _milkQtyController.text != '5000' || _fatController.text != '3.8';
+    final hasUserInputs = _fatController.text != '4.3' || _snfController.text != '8.33';
     if (hasUserInputs) {
       final confirm = await ConfirmationDialog.show(
         context: context,
         title: 'Overwrite With Lab Data?',
-        message: 'This will replace your current manual milk quantity, FAT%, and SNF% with verified morning QC lab test results.',
+        message: 'This will replace your current manual FAT% and SNF% with verified morning QC lab test results.',
         confirmLabel: 'Fetch & Overwrite',
       );
       if (!confirm) return;
@@ -69,7 +107,6 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     final updated = ref.read(standardizationProvider);
     if (updated.hasFetchedLabData && updated.fetchedLabRecord != null) {
       setState(() {
-        _milkQtyController.text = Formatters.formatSmart(updated.fetchedLabRecord!.milkQuantity);
         _fatController.text = updated.fetchedLabRecord!.fatPercent.toStringAsFixed(2);
         _snfController.text = updated.fetchedLabRecord!.snfPercent.toStringAsFixed(2);
       });
@@ -87,9 +124,9 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     if (success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('✓ Standardization record saved to plant historical archive.'),
+          content: Text('✓ Standardization record saved and linked to Batch Records section.'),
           backgroundColor: AppColors.primary,
-          duration: Duration(seconds: 2),
+          duration: Duration(seconds: 3),
         ),
       );
     }
@@ -106,6 +143,211 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     if (picked != null) {
       ref.read(standardizationProvider.notifier).setDate(picked);
     }
+  }
+
+  void _openFormulaSettingsDialog() {
+    final state = ref.read(standardizationProvider);
+    final smpController = TextEditingController(text: state.smpFactor.toStringAsFixed(1));
+    String waterMethod = state.waterCalculationMethod;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.tune_rounded, color: AppColors.primary, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Standardization Formula Settings',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                ),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: 520,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Configure plant standard SMP factor, water calculation model, and default product solid targets.',
+                    style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Configurable SMP Factor
+                  const Text(
+                    'SMP SNF Contribution Factor (%)',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: smpController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 95.0',
+                      suffixText: '%',
+                      filled: true,
+                      fillColor: AppColors.background,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      helperText: 'Standard plant default: 95.0% SNF contribution',
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Water calculation method
+                  const Text(
+                    'Water Requirement Formula Model',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: AppColors.cardBorder),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Column(
+                      children: [
+                        InkWell(
+                          onTap: () => setDialogState(() => waterMethod = 'standard'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  waterMethod == 'standard' ? Icons.radio_button_checked : Icons.radio_button_off,
+                                  color: waterMethod == 'standard' ? AppColors.primary : AppColors.textMuted,
+                                  size: 19,
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Standard Plant Model (Recommended)', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                      Text('Water = Total Batch - (Milk Taken + SNF Deficit)', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const Divider(height: 1),
+                        InkWell(
+                          onTap: () => setDialogState(() => waterMethod = 'withSugarDisplacement'),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  waterMethod == 'withSugarDisplacement' ? Icons.radio_button_checked : Icons.radio_button_off,
+                                  color: waterMethod == 'withSugarDisplacement' ? AppColors.primary : AppColors.textMuted,
+                                  size: 19,
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text('With Sugar Displacement Volume', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                      Text('Water = Total Batch - (Milk Taken + SNF Deficit + (Sugar × 0.63))', style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Product Solid Standards Table
+                  const Text(
+                    'Active Product Target Formulation Standards',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.cardBorder),
+                    ),
+                    child: Column(
+                      children: state.targetProducts.take(4).map((p) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: Text(p.productName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text('SNF: ${p.targetSnf ?? 8.5}%', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text('Sugar: ${p.targetSugarDisplay}', style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                              ),
+                            ],
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 11),
+              ),
+              onPressed: () {
+                final smpVal = Formatters.parseDouble(smpController.text);
+                if (smpVal > 50 && smpVal <= 100) {
+                  ref.read(standardizationProvider.notifier).setSmpFactor(smpVal);
+                }
+                ref.read(standardizationProvider.notifier).setWaterMethod(waterMethod);
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✓ Formulation parameters updated and applied.'),
+                    backgroundColor: AppColors.primary,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+              child: const Text('Save & Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -125,53 +367,172 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
+              // Header Section with Title & Settings Actions
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Milk Standardization Calculator',
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                                color: AppColors.textPrimary,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Batch formulation engine: Calculate required SMP, Sugar, and Water from available milk FAT and SNF.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 8,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Milk Standardization',
-                            style: TextStyle(
-                              fontSize: 23, // Golden ratio headline
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          side: const BorderSide(color: AppColors.cardBorder),
+                        ),
+                        icon: const Icon(Icons.settings_outlined, size: 16, color: AppColors.primary),
+                        label: const Text('Formula Master', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                        onPressed: _openFormulaSettingsDialog,
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Calculate exact SMP, Water, and Sugar required to standardize raw milk to target specifications.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
+                      InkWell(
+                        onTap: _selectDate,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.cardBorder),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(
+                                Formatters.formatDate(state.selectedDate),
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
+
+              // Mode Toggle (Standard Batch Formulation vs Reverse Calculation)
+              Container(
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.cardBorderSubtle,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          ref.read(standardizationProvider.notifier).setReverseMode(false);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: !state.isReverseMode ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: !state.isReverseMode
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))]
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Text(
+                            'Standard Batch Formulation',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: !state.isReverseMode ? FontWeight.w800 : FontWeight.w600,
+                              color: !state.isReverseMode ? AppColors.primary : AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: InkWell(
+                        onTap: () {
+                          ref.read(standardizationProvider.notifier).setReverseMode(true);
+                        },
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          decoration: BoxDecoration(
+                            color: state.isReverseMode ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: state.isReverseMode
+                                ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))]
+                                : null,
+                          ),
+                          alignment: Alignment.center,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.sync_alt_rounded,
+                                size: 15,
+                                color: state.isReverseMode ? AppColors.primary : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Reverse / Target Spec Calculator',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: state.isReverseMode ? FontWeight.w800 : FontWeight.w600,
+                                  color: state.isReverseMode ? AppColors.primary : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
 
               // Lab Data Status Banner
               if (state.labDataFetchStatus != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                   decoration: BoxDecoration(
                     color: state.hasFetchedLabData ? AppColors.successLight : AppColors.warningLight,
                     borderRadius: BorderRadius.circular(10),
@@ -186,7 +547,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                       Icon(
                         state.hasFetchedLabData ? Icons.check_circle_rounded : Icons.info_outline_rounded,
                         color: state.hasFetchedLabData ? AppColors.primary : AppColors.warning,
-                        size: 20,
+                        size: 19,
                       ),
                       const SizedBox(width: 10),
                       Expanded(
@@ -194,7 +555,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           state.labDataFetchStatus!,
                           style: TextStyle(
                             color: state.hasFetchedLabData ? AppColors.primaryDark : const Color(0xFF92400E),
-                            fontSize: 13,
+                            fontSize: 12.5,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -205,11 +566,37 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 const SizedBox(height: 16),
               ],
 
-              // Unified Raw Milk Intake & Target Standardization Card
+              // Error Banner
+              if (state.errorMessage != null) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerLight,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: AppColors.danger.withValues(alpha: 0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          state.errorMessage!,
+                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+
+              // Main Formulation Input Card
               AppCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Section Title
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -233,7 +620,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                               ),
                               const SizedBox(width: 7),
                               const Text(
-                                'RAW MILK INTAKE & TARGET SETUP',
+                                'INPUTS & FORMULATION PARAMETERS',
                                 style: TextStyle(
                                   fontSize: 11.5,
                                   fontWeight: FontWeight.w800,
@@ -244,75 +631,132 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             ],
                           ),
                         ),
-                        InkWell(
-                          onTap: _selectDate,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: AppColors.background,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: AppColors.cardBorderSubtle),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.primary),
-                                const SizedBox(width: 6),
-                                Text(
-                                  Formatters.formatDate(state.selectedDate),
-                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                ),
-                              ],
-                            ),
+                        OutlinedButton.icon(
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            side: const BorderSide(color: AppColors.primary, width: 1.2),
+                          ),
+                          icon: const Icon(Icons.biotech_rounded, size: 17, color: AppColors.primary),
+                          label: const Text('Fetch Lab Fat/SNF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          onPressed: _onFetchLabData,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+
+                    // 1. Product Selection
+                    _buildTargetProductChips(state),
+
+                    // Product Formulation Metadata Card (Collapsible)
+                    if (state.selectedTargetProduct != null)
+                      _buildMetadataCard(state.selectedTargetProduct!, state),
+
+                    const SizedBox(height: 20),
+
+                    // 2. Batch Volumes: Total Batch Required & Milk Taken
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: AppTextField(
+                            label: 'Total Batch Required',
+                            hint: 'e.g. 1700',
+                            controller: _totalBatchController,
+                            suffixText: 'Litres',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Batch quantity required';
+                              final n = Formatters.parseDouble(val);
+                              if (n <= 0) return 'Must be greater than 0';
+                              return null;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              AppTextField(
+                                label: 'Milk Taken',
+                                hint: _autoCalculateMilk ? 'Auto-derived from Fat' : 'e.g. 1400',
+                                controller: _milkTakenController,
+                                suffixText: 'Litres',
+                                readOnly: _autoCalculateMilk,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                validator: (val) {
+                                  if (_autoCalculateMilk) return null;
+                                  if (val == null || val.trim().isEmpty) return 'Enter quantity or enable auto-calculate';
+                                  final n = Formatters.parseDouble(val);
+                                  if (n <= 0) return 'Must be greater than 0';
+                                  final total = Formatters.parseDouble(_totalBatchController.text);
+                                  if (total > 0 && n > total) return 'Cannot exceed Total Batch';
+                                  return null;
+                                },
+                              ),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    height: 24,
+                                    width: 24,
+                                    child: Checkbox(
+                                      value: _autoCalculateMilk,
+                                      activeColor: AppColors.primary,
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _autoCalculateMilk = val ?? false;
+                                          if (_autoCalculateMilk) {
+                                            _milkTakenController.clear();
+                                          } else if (_milkTakenController.text.isEmpty) {
+                                            _milkTakenController.text = '1400';
+                                          }
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _autoCalculateMilk = !_autoCalculateMilk;
+                                          if (_autoCalculateMilk) {
+                                            _milkTakenController.clear();
+                                          } else if (_milkTakenController.text.isEmpty) {
+                                            _milkTakenController.text = '1400';
+                                          }
+                                        });
+                                      },
+                                      child: const Text(
+                                        'Auto-calculate milk required from target fat',
+                                        style: TextStyle(fontSize: 11.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
 
-                    // Fetch Lab Data Action
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        side: const BorderSide(color: AppColors.primary, width: 1.3),
-                      ),
-                      icon: const Icon(Icons.biotech_rounded, size: 19, color: AppColors.primary),
-                      label: const Text('Fetch Today\'s Lab Data'),
-                      onPressed: _onFetchLabData,
-                    ),
-                    const SizedBox(height: 18),
-
-                    // Milk Quantity
-                    AppTextField(
-                      label: 'Milk Quantity',
-                      hint: 'e.g. 5000',
-                      controller: _milkQtyController,
-                      suffixText: 'Litres',
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      validator: (val) {
-                        if (val == null || val.trim().isEmpty) return 'Milk quantity cannot be empty';
-                        final n = Formatters.parseDouble(val);
-                        if (n <= 0) return 'Must be greater than zero';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    // Milk Fat & SNF Row
+                    // 3. Present Milk Fat & SNF
                     Row(
                       children: [
                         Expanded(
                           child: AppTextField(
-                            label: 'Milk FAT %',
-                            hint: 'e.g. 3.8',
+                            label: 'Present Milk FAT %',
+                            hint: 'e.g. 4.30',
                             controller: _fatController,
                             suffixText: '%',
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Required';
                               final n = Formatters.parseDouble(val);
-                              if (n <= 0 || n > 15.0) return '0.1 - 15.0%';
+                              if (n < 0 || n > 15.0) return '0.0 - 15.0%';
                               return null;
                             },
                           ),
@@ -320,112 +764,168 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                         const SizedBox(width: 14),
                         Expanded(
                           child: AppTextField(
-                            label: 'Milk SNF %',
-                            hint: 'e.g. 8.4',
+                            label: 'Present Milk SNF %',
+                            hint: 'e.g. 8.33',
                             controller: _snfController,
                             suffixText: '%',
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Required';
                               final n = Formatters.parseDouble(val);
-                              if (n <= 0 || n > 16.0) return '5.0 - 16.0%';
+                              if (n < 0 || n > 16.0) return '0.0 - 16.0%';
                               return null;
                             },
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
 
-                    // Target Product Selection Chips (Below Milk FAT & SNF)
-                    _buildTargetProductChips(state),
+                    // Reverse Mode Editable Target Specifications
+                    if (state.isReverseMode) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryContainer.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.tune_rounded, size: 16, color: AppColors.primary),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Custom Target Specification for Reverse Formulation',
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: AppTextField(
+                                    label: 'Desired Target FAT %',
+                                    hint: 'e.g. 3.50',
+                                    controller: _desiredFatController,
+                                    suffixText: '%',
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: AppTextField(
+                                    label: 'Desired Target SNF %',
+                                    hint: 'e.g. 8.50',
+                                    controller: _desiredSnfController,
+                                    suffixText: '%',
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
 
-                    // Product Metadata Card (Collapsed by default, opens on click)
-                    if (state.selectedTargetProduct != null)
-                      _buildMetadataCard(state.selectedTargetProduct!),
+                    const SizedBox(height: 16),
 
-                    const SizedBox(height: 20),
-
-                    // Optional Batch Notes
+                    // Batch Notes (Optional)
                     AppTextField(
-                      label: 'Batch Notes / Tanker Ref (Optional)',
-                      hint: 'e.g. Silo 02 batch for evening run',
+                      label: 'Batch Notes / Tanker Reference (Optional)',
+                      hint: 'e.g. Evening incubation batch silo 03',
                       controller: _notesController,
                     ),
                     const SizedBox(height: 22),
 
-                    // Calculate Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                    // Action Buttons Row: Calculate, Clear, Save
+                    Row(
+                      children: [
+                        // Calculate Button
+                        Expanded(
+                          flex: 3,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              elevation: 2,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.calculate_rounded, size: 21),
+                            label: const Text(
+                              'Calculate',
+                              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                            ),
+                            onPressed: _onCalculate,
+                          ),
                         ),
-                        icon: const Icon(Icons.calculate_rounded, size: 20),
-                        label: const Text(
-                          'Calculate Standardization Result',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                        const SizedBox(width: 12),
+
+                        // Clear Button
+                        Expanded(
+                          flex: 1,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              side: const BorderSide(color: AppColors.cardBorder, width: 1.2),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.refresh_rounded, size: 19, color: AppColors.textSecondary),
+                            label: const Text(
+                              'Clear',
+                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                            ),
+                            onPressed: _onClear,
+                          ),
                         ),
-                        onPressed: _onCalculate,
-                      ),
+
+                        // Save Calculation Button
+                        if (state.result != null) ...[
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 2,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF0284C7),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                elevation: 2,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                              icon: const Icon(Icons.save_rounded, size: 19),
+                              label: const Text(
+                                'Save Calculation',
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800),
+                              ),
+                              onPressed: _onSaveRecord,
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                   ],
                 ),
               ),
 
-              // Standardization Result Section
+              // Standardization Result Card Section
               if (state.result != null) ...[
                 const SizedBox(height: 24),
-                ResultCard(
-                  title: 'Standardization Result',
-                  subtitle: 'Target: ${state.selectedTargetProduct?.productName} • Raw Milk: ${Formatters.formatSmart(state.milkQuantity)} L',
-                  trailingAction: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    ),
-                    icon: const Icon(Icons.save_outlined, size: 16),
-                    label: const Text('Save Record', style: TextStyle(fontSize: 12.5)),
-                    onPressed: _onSaveRecord,
-                  ),
-                  items: [
-                    ResultItem(
-                      label: 'Water Required',
-                      value: Formatters.formatSmart(state.result!.waterRequired),
-                      unit: 'Litres',
-                      highlightColor: state.result!.waterRequired > 0 ? AppColors.coolIce : AppColors.textPrimary,
-                    ),
-                    ResultItem(
-                      label: 'SMP Required',
-                      value: Formatters.formatSmart(state.result!.smpRequired),
-                      unit: 'Kg',
-                      highlightColor: state.result!.smpRequired > 0 ? AppColors.goldAccent : AppColors.textPrimary,
-                    ),
-                    ResultItem(
-                      label: 'Sugar Required',
-                      value: Formatters.formatSmart(state.result!.sugarRequired),
-                      unit: 'Kg',
-                      highlightColor: state.result!.sugarRequired > 0 ? AppColors.accentTeal : AppColors.textPrimary,
-                    ),
-                    ResultItem(
-                      label: 'Final Milk Quantity',
-                      value: Formatters.formatSmart(state.result!.finalQuantity),
-                      unit: 'Litres',
-                      highlightColor: AppColors.primary,
-                      subtitle: 'FAT: ${Formatters.formatDecimal(state.result!.finalFat)}% • SNF: ${Formatters.formatDecimal(state.result!.finalSnf)}%',
-                    ),
-                  ],
-                ),
+                _buildStandardizationResultCard(state),
                 const SizedBox(height: 16),
 
-                // Step-by-Step Mathematical Calculation Breakdown
+                // Step-by-Step Calculation Breakdown
                 CalculationBreakdownCard(
-                  title: 'View Step-by-Step Calculation',
+                  title: 'Step-by-Step Mathematical Calculation Breakdown',
                   steps: state.result!.breakdownSteps,
                 ),
               ],
 
-              // Historical Standardization Records
+              // Historical Standardization Records Section
               const SizedBox(height: 32),
               _buildHistorySection(state.history),
             ],
@@ -435,207 +935,162 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     );
   }
 
-  Widget _buildTargetProductChips(dynamic state) {
-    final targets = state.targetProducts as List<ProductModel>;
-    final selected = state.selectedTargetProduct as ProductModel?;
+  Widget _buildTargetProductChips(StandardizationState state) {
+    final allProducts = state.targetProducts;
+    final primaryProducts = allProducts.take(4).toList();
+    final otherProducts = allProducts.skip(4).toList();
+    final selected = state.selectedTargetProduct;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Select Target Product',
-          style: TextStyle(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: targets.map((p) {
-            final isSelected = selected?.productId == p.productId;
-            return InkWell(
-              onTap: () => _selectProduct(p),
-              borderRadius: BorderRadius.circular(8),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.primary : Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                    width: isSelected ? 1.5 : 1.0,
-                  ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: AppColors.primary.withValues(alpha: 0.18),
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Select Product / Batch Type',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            if (otherProducts.isNotEmpty)
+              InkWell(
+                onTap: () => setState(() => _showAllProducts = !_showAllProducts),
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (isSelected) ...[
-                      const Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 6),
-                    ],
                     Text(
-                      p.productName,
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                        color: isSelected ? Colors.white : AppColors.textPrimary,
-                      ),
+                      _showAllProducts ? 'Show Primary' : 'More Products (${otherProducts.length})',
+                      style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                    ),
+                    Icon(
+                      _showAllProducts ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                      size: 17,
+                      color: AppColors.primary,
                     ),
                   ],
                 ),
               ),
-            );
-          }).toList(),
+          ],
         ),
-
-        // Target specs displayed BELOW the product chips (not in the right side)
-        if (selected != null) ...[
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF0FDF4),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.primary.withValues(alpha: 0.25)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.tune_rounded, size: 15, color: AppColors.primary),
-                const SizedBox(width: 8),
-                Text(
-                  'Specs:  FAT ${selected.targetFat ?? 0.0}%   •   SNF ${selected.targetSnf ?? 0.0}%   •   Sugar ${selected.targetSugarDisplay}   •   Shelf Life ${selected.shelfLife}',
-                  style: const TextStyle(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryDark,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: [
+            ...primaryProducts.map((p) => _buildProductChip(p, selected)),
+            if (_showAllProducts)
+              ...otherProducts.map((p) => _buildProductChip(p, selected)),
+          ],
+        ),
       ],
     );
   }
 
-  Widget _buildMetadataCard(ProductModel product) {
+  Widget _buildProductChip(ProductModel p, ProductModel? selected) {
+    final isSelected = selected?.productId == p.productId;
+    return InkWell(
+      onTap: () => _selectProduct(p),
+      borderRadius: BorderRadius.circular(9),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.cardBorder,
+            width: isSelected ? 1.6 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.22),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (isSelected) ...[
+              const Icon(
+                Icons.check_rounded,
+                size: 16,
+                color: Colors.white,
+              ),
+              const SizedBox(width: 7),
+            ],
+            Text(
+              p.productName,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetadataCard(ProductModel p, StandardizationState state) {
     return Container(
       margin: const EdgeInsets.only(top: 14),
       decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.05),
+        color: AppColors.background,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.18), width: 1.1),
+        border: Border.all(color: AppColors.cardBorder),
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
             onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
             borderRadius: BorderRadius.circular(10),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: AppColors.goldAccent,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'PRODUCT SPECIFICATIONS & METADATA',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                    ],
+                  const Icon(Icons.info_outline_rounded, size: 16, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${p.productName.toUpperCase()} Formulation Standard',
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
                   ),
-                  Row(
-                    children: [
-                      StatusBadge.neutral(product.category),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _metadataExpanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ],
+                  const Spacer(),
+                  Text(
+                    'SNF: ${p.targetSnf ?? 8.5}% • Sugar: ${p.targetSugarDisplay}',
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    _metadataExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    size: 18,
+                    color: AppColors.textMuted,
                   ),
                 ],
               ),
             ),
           ),
           if (_metadataExpanded) ...[
-            Container(
-              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.cardBorder, width: 1.1),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
                 children: [
-                  _buildTabulatedRow('Item Code', product.itemCode, isEven: false),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Product Code', product.productCode, isEven: true, valueColor: AppColors.primary),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Pieces per Crate', '${product.piecesPerCrate} pcs / crate', isEven: false),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Per Crate Quantity', product.calculatedPerCrateDisplay, isEven: true),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Price per Piece', product.priceDisplay, isEven: false, valueColor: AppColors.goldAccent),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Pack Size', product.packSizeDisplay, isEven: true),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Shelf Life', product.shelfLife, isEven: false),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Base Unit', product.baseUnitLabel, isEven: true),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow(
-                    'Target FAT / SNF',
-                    'FAT: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'}   •   SNF: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
-                    isEven: false,
-                    valueColor: AppColors.primaryDark,
-                  ),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow(
-                    'Target Sugar',
-                    product.targetSugarDisplay,
-                    isEven: true,
-                    valueColor: AppColors.accentTeal,
-                  ),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: false),
+                  _buildMetaItem('Target FAT', '${p.targetFat ?? 3.5}%'),
+                  const SizedBox(width: 16),
+                  _buildMetaItem('Target SNF', '${p.targetSnf ?? 8.5}%'),
+                  const SizedBox(width: 16),
+                  _buildMetaItem('Sugar %', p.targetSugarDisplay),
+                  const SizedBox(width: 16),
+                  _buildMetaItem('SMP Factor', '${state.smpFactor.toStringAsFixed(0)}%'),
+                  const SizedBox(width: 16),
+                  _buildMetaItem('Shelf Life', p.shelfLife),
                 ],
               ),
             ),
@@ -645,58 +1100,283 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     );
   }
 
-  Widget _buildTabulatedRow(
-    String label,
-    String value, {
-    required bool isEven,
-    Color? valueColor,
-  }) {
-    return Container(
-      color: isEven ? const Color(0xFFFBFDFD) : Colors.white,
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Left Cell: Spec / Parameter Label with subtle distinct background
-            Container(
-              width: 145,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
-              color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
-              alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF475569),
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ),
-            // Vertical Divider
-            Container(
-              width: 1,
-              color: AppColors.cardBorder,
-            ),
-            // Right Cell: Technical Value
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.w700,
-                      color: valueColor ?? AppColors.textPrimary,
-                    ),
+  Widget _buildMetaItem(String label, String value) {
+    return Expanded(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 2),
+          Text(value, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStandardizationResultCard(StandardizationState state) {
+    final res = state.result!;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header with Title & Action Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 3.5,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            const Text(
+                              'STANDARDIZATION RESULT',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 1.1,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      StatusBadge.info(
+                        state.selectedTargetProduct?.productName ?? 'Standardized Batch',
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Target Batch: ${Formatters.formatSmart(res.totalBatch)} L • Milk Taken: ${Formatters.formatDecimal(res.milkTaken)} L',
+                    style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
+                icon: const Icon(Icons.save_rounded, size: 16, color: Colors.white),
+                label: const Text('Save Record', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
+                onPressed: _onSaveRecord,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Primary Formulation Highlights Banner (SMP, Sugar, Water)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.05),
+                  AppColors.coolIceLight.withValues(alpha: 0.5),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.headerBorder),
+            ),
+            child: Row(
+              children: [
+                _buildHighlightMetric(
+                  label: 'SMP Required',
+                  value: '${Formatters.formatDecimal(res.smpRequired)} kg',
+                  sub: '${res.smpFactor.toStringAsFixed(0)}% SNF Factor',
+                  color: AppColors.goldAccent,
+                  icon: Icons.grain_rounded,
+                ),
+                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
+                _buildHighlightMetric(
+                  label: 'Sugar Required',
+                  value: '${Formatters.formatDecimal(res.sugarRequired)} kg',
+                  sub: '${res.sugarPercent.toStringAsFixed(1)}% Sugar applied',
+                  color: AppColors.coolIce,
+                  icon: Icons.cookie_rounded,
+                ),
+                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
+                _buildHighlightMetric(
+                  label: 'Water Required',
+                  value: '${Formatters.formatDecimal(res.waterRequired)} L',
+                  sub: 'Process blending water',
+                  color: AppColors.primary,
+                  icon: Icons.water_drop_rounded,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // Detailed Specifications Grid
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: AppColors.cardBorder),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                _buildResultDataRow('Target Batch', '${Formatters.formatSmart(res.totalBatch)} L', 'Milk Taken', '${Formatters.formatDecimal(res.milkTaken)} L', isHeader: true),
+                const Divider(height: 1),
+                _buildResultDataRow('Present Fat', '${Formatters.formatDecimal(res.presentFat)}%', 'Present SNF', '${Formatters.formatDecimal(res.presentSnf)}%'),
+                const Divider(height: 1),
+                _buildResultDataRow('Available Fat', '${Formatters.formatDecimal(res.availableFatKg)} kg', 'Final Fat %', '${Formatters.formatDecimal(res.finalFat)}%'),
+                const Divider(height: 1),
+                _buildResultDataRow('Available SNF', '${Formatters.formatDecimal(res.availableSnfKg)} kg', 'Required SNF', '${Formatters.formatDecimal(res.requiredSnfKg)} kg'),
+                const Divider(height: 1),
+                _buildResultDataRow('SNF Deficit', '${Formatters.formatDecimal(res.snfDeficitKg)} kg', 'SMP Required', '${Formatters.formatDecimal(res.smpRequired)} kg', highlightSecond: true),
+                const Divider(height: 1),
+                _buildResultDataRow('Sugar Required', '${Formatters.formatDecimal(res.sugarRequired)} kg', 'Water Required', '${Formatters.formatDecimal(res.waterRequired)} L', highlightSecond: true),
+              ],
+            ),
+          ),
+
+          // Any calculation warnings
+          if (res.warnings.isNotEmpty) ...[
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.warningLight,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: res.warnings.map((w) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            w,
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightMetric({
+    required String label,
+    required String value,
+    required String sub,
+    required Color color,
+    required IconData icon,
+  }) {
+    return Expanded(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 16, color: color),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: color,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              sub,
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted, fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildResultDataRow(
+    String label1,
+    String val1,
+    String label2,
+    String val2, {
+    bool isHeader = false,
+    bool highlightSecond = false,
+  }) {
+    return Container(
+      color: isHeader ? AppColors.background : Colors.transparent,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label1, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                Text(val1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+              ],
+            ),
+          ),
+          const SizedBox(width: 32),
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(label2, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+                Text(
+                  val2,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    color: highlightSecond ? AppColors.primary : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -711,8 +1391,8 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.cardBorder),
         ),
-        child: Column(
-          children: const [
+        child: const Column(
+          children: [
             Icon(Icons.history_rounded, size: 36, color: AppColors.textMuted),
             SizedBox(height: 8),
             Text(
@@ -751,7 +1431,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     ),
                     const SizedBox(width: 7),
                     const Text(
-                      'DATE-WISE STANDARDIZATION LOGS',
+                      'STANDARDIZATION & BATCH ARCHIVE',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w800,
@@ -762,7 +1442,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                   ],
                 ),
               ),
-              StatusBadge.info('${history.length} Batches Logged'),
+              StatusBadge.info('${history.length} Batches Recorded'),
             ],
           ),
           const SizedBox(height: 16),
@@ -774,15 +1454,28 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             itemBuilder: (context, index) {
               final item = history[index];
               return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                title: Text(
-                  '${item.targetProductName} (${Formatters.formatSmart(item.finalQuantity)} L)',
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                title: Row(
+                  children: [
+                    Text(
+                      '${item.targetProductName} (${Formatters.formatSmart(item.finalQuantity)} L)',
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('Batch Record Synced', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                    ),
+                  ],
                 ),
                 subtitle: Text(
-                  '${item.date} • ${item.time} • ${item.employeeName}\n'
-                  'Raw: ${Formatters.formatSmart(item.inputMilkQuantity)} L (F: ${item.inputFat}% S: ${item.inputSnf}%) → Water: ${Formatters.formatSmart(item.waterRequired)} L, SMP: ${Formatters.formatSmart(item.smpRequired)} Kg',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                  '${item.date} • ${item.time} • Operator: ${item.employeeName}\n'
+                  'Raw: ${Formatters.formatSmart(item.inputMilkQuantity)} L (${item.inputFat}% F, ${item.inputSnf}% SNF) → SMP: ${Formatters.formatDecimal(item.smpRequired)} kg, Water: ${Formatters.formatDecimal(item.waterRequired)} L, Sugar: ${Formatters.formatDecimal(item.sugarRequired)} kg',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, height: 1.3),
                 ),
                 trailing: IconButton(
                   icon: const Icon(Icons.delete_outline_rounded, size: 19, color: AppColors.textMuted),
