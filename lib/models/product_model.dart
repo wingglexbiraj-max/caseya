@@ -58,6 +58,9 @@ class ProductModel {
     return 'Kg';
   }
 
+  /// Product code alias (e.g. S200, S80, S400, P80, P400, PL200, PP250, STD 500)
+  String get productCode => shortCode.isNotEmpty ? shortCode : productId;
+
   /// Formatted per crate display, e.g., "6.0 kg (6000.0 g)"
   String get calculatedPerCrateDisplay {
     if (perCrateDisplay != null && perCrateDisplay!.isNotEmpty) {

@@ -314,18 +314,37 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                                   ),
                                   const SizedBox(width: 8),
                                   StatusBadge.neutral(p.category, fontSize: 11),
+                                  if (p.productCode.isNotEmpty) ...[
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primarySurface,
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: AppColors.primaryLight),
+                                      ),
+                                      child: Text(
+                                        'Code: ${p.productCode}',
+                                        style: const TextStyle(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Pack: ${p.packSizeDisplay}  •  ${p.piecesPerCrate} pcs/crate  •  Allowed: ${p.allowedInputModes.join(', ')}',
-                                style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                'Item Code: ${p.itemCode}  •  Pack: ${p.packSizeDisplay}  •  ${p.piecesPerCrate} pcs/crate (${p.calculatedPerCrateDisplay})  •  ₹${Formatters.formatSmart(p.pricePerPiece)}/pc  •  Shelf Life: ${p.shelfLife}',
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                               ),
-                              if (p.targetFat != null && p.targetSnf != null)
-                                Text(
-                                  'Plant Standard: FAT ${Formatters.formatPercent(p.targetFat!)}  •  SNF ${Formatters.formatPercent(p.targetSnf!)}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
-                                ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Base Unit: ${p.baseUnitLabel}${p.targetFat != null ? '  •  Target FAT: ${Formatters.formatPercent(p.targetFat!)}' : ''}${p.targetSnf != null ? '  •  Target SNF: ${Formatters.formatPercent(p.targetSnf!)}' : ''}  •  Allowed: ${p.allowedInputModes.join(', ')}',
+                                style: const TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.w600),
+                              ),
                             ],
                           ),
                         ),

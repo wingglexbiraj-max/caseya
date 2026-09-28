@@ -136,6 +136,26 @@ class LocalStorageService {
         targetSnf: 10.0,
       );
 
+      const s200 = ProductModel(
+        productId: '9900011',
+        productName: 'Sweet Curd Cup 200g (S200)',
+        itemCode: '9900011',
+        shortCode: 'S200',
+        category: 'Curd',
+        unit: 'g',
+        packSize: 200,
+        packSizeDisplay: '200 g',
+        piecesPerCrate: 30,
+        perCrateQty: 6.0,
+        perCrateQtyGrams: 6000.0,
+        perCrateDisplay: '6.0 kg (6000.0 g)',
+        pricePerPiece: 30.0,
+        shelfLife: '12 Days',
+        allowedInputModes: ['Pieces', 'Crates', 'Kg'],
+        targetFat: 3.5,
+        targetSnf: 10.0,
+      );
+
       const s400 = ProductModel(
         productId: '9900010',
         productName: 'Sweet Curd Cup 400g (S400)',
@@ -311,6 +331,7 @@ class LocalStorageService {
       syncCanonical(std500, ['STD500', 'STD 500', 'PP500', '9900001']);
       syncCanonical(sm500, ['SM500', 'SM+ 500', '9900003']);
       syncCanonical(s80, ['9900025', 'S80']);
+      syncCanonical(s200, ['9900011', 'S200']);
       syncCanonical(s400, ['9900010', 'S400']);
       syncCanonical(p80, ['9900026', 'P80']);
       syncCanonical(p400, ['9900013', 'P400']);
