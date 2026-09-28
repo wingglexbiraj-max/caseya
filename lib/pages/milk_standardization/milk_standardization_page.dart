@@ -1216,7 +1216,9 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                         const SizedBox(width: 8),
                         Text(
                           res.isBatchQuantityVerified
-                              ? 'FORMULATION MASS-VOLUME BALANCE: VERIFIED 100%'
+                              ? (res.reserveVolume > 0
+                                  ? 'FORMULATION BALANCE: 70 L RESERVE VERIFIED'
+                                  : 'FORMULATION MASS-VOLUME BALANCE: VERIFIED 100%')
                               : 'FORMULATION QUANTITY MISMATCH',
                           style: TextStyle(
                             fontSize: 12.5,
@@ -1241,7 +1243,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                   ],
                 ),
                 const SizedBox(height: 10),
-                // The formula verification row: Milk + SMP + Water = Total Batch
+                // The formula verification row: Milk + SMP + Water = Total Batch (- 70 L reserve if applicable)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
                   decoration: BoxDecoration(
@@ -1276,9 +1278,11 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
-                        res.sugarRequired > 0
-                            ? 'Sugar Addition (+${Formatters.formatDecimal(res.sugarRequired)} kg): Added as separate ingredient (extra volume); does not displace blending water and will precisely match the batch.'
-                            : 'Milk, SMP, and Water sum precisely to the target batch quantity (${Formatters.formatSmart(res.totalBatch)} L).',
+                        res.reserveVolume > 0
+                            ? 'Auto-Reverse Balance: Milk, SMP, and Water = ${Formatters.formatDecimal(res.totalFormulatedQuantity)} L (exactly 70 L less than ${Formatters.formatSmart(res.totalBatch)} L Total Batch for process reserve/culture).'
+                            : (res.sugarRequired > 0
+                                ? 'Sugar Addition (+${Formatters.formatDecimal(res.sugarRequired)} kg): Added as separate ingredient (extra volume); does not displace blending water and will precisely match the batch.'
+                                : 'Milk, SMP, and Water sum precisely to the target batch quantity (${Formatters.formatSmart(res.totalBatch)} L).'),
                         style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                       ),
                     ),
@@ -1340,7 +1344,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 _buildHighlightMetric(
                   label: 'Water Required',
                   value: '${Formatters.formatDecimal(res.waterRequired)} L',
-                  sub: 'Process blending water',
+                  sub: res.reserveVolume > 0 ? 'Blending (-70L Reserve)' : 'Process blending water',
                   color: AppColors.primary,
                   icon: Icons.water_drop_rounded,
                 ),
@@ -1366,6 +1370,16 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
             child: Column(
               children: [
                 _buildResultDataRow('Target Batch', '${Formatters.formatSmart(res.totalBatch)} L', 'Milk Taken', '${Formatters.formatDecimal(res.milkTaken)} L', isHeader: true),
+                if (res.reserveVolume > 0) ...[
+                  const Divider(height: 1),
+                  _buildResultDataRow(
+                    'Formulated Base (Milk+SMP+Water)',
+                    '${Formatters.formatDecimal(res.totalFormulatedQuantity)} L',
+                    'Process Inoculum / Buffer Reserve',
+                    '-${Formatters.formatDecimal(res.reserveVolume)} L (Headroom)',
+                    highlightFirst: true,
+                  ),
+                ],
                 const Divider(height: 1),
                 _buildResultDataRow('Present Fat', '${Formatters.formatDecimal(res.presentFat)}%', 'Present SNF', '${Formatters.formatDecimal(res.presentSnf)}%'),
                 const Divider(height: 1),
@@ -1472,6 +1486,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     String label2,
     String val2, {
     bool isHeader = false,
+    bool highlightFirst = false,
     bool highlightSecond = false,
   }) {
     return Container(
@@ -1484,7 +1499,14 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(label1, style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-                Text(val1, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                Text(
+                  val1,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: highlightFirst ? AppColors.primary : AppColors.textPrimary,
+                  ),
+                ),
               ],
             ),
           ),
