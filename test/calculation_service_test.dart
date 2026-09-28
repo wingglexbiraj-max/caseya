@@ -130,11 +130,11 @@ void main() {
       allowedInputModes: ['Pieces', 'Crates', 'Litres'],
     );
 
-    const std500 = ProductModel(
-      productId: 'STD500',
-      productName: 'Purabi Plus 500 ml (STD 500)',
-      itemCode: '9900001',
-      shortCode: 'STD 500',
+    const pp500 = ProductModel(
+      productId: '9900027',
+      productName: 'Purabi Plus 500 ml (PP500)',
+      itemCode: '9900027',
+      shortCode: 'PP500',
       category: 'Milk',
       unit: 'ml',
       packSize: 500,
@@ -143,7 +143,26 @@ void main() {
       perCrateQty: 12.0,
       perCrateQtyGrams: 12000.0,
       perCrateDisplay: '12.0 L (12000.0 ml)',
-      pricePerPiece: 28.0,
+      pricePerPiece: 35.0,
+      shelfLife: '2 Days',
+      allowedInputModes: ['Pieces', 'Crates', 'Litres'],
+    );
+
+    const smart500 = ProductModel(
+      productId: 'SMART500',
+      productName: 'Purabi Smart + 500 ml (smart+500)',
+      itemCode: 'NA',
+      shortCode: 'smart+500',
+      category: 'Milk',
+      unit: 'ml',
+      packSize: 500,
+      packSizeDisplay: '500 ml',
+      piecesPerCrate: 24,
+      perCrateQty: 12.0,
+      perCrateQtyGrams: 12000.0,
+      perCrateDisplay: '12.0 L (12000.0 ml)',
+      pricePerPiece: 0.0,
+      priceCustomLabel: 'Defence Supply',
       shelfLife: '2 Days',
       allowedInputModes: ['Pieces', 'Crates', 'Litres'],
     );
@@ -248,9 +267,9 @@ void main() {
       expect(res.totalPriceDisplay, '₹8,640');
     });
 
-    test('8. Purabi Plus 500 ml (STD 500) - Pieces Mode (120 Pieces)', () {
+    test('8. Purabi Plus 500 ml (PP500) - Pieces Mode (120 Pieces)', () {
       final res = CalculationService.calculateProduct(
-        product: std500,
+        product: pp500,
         inputMode: 'Pieces',
         inputQuantity: 120.0,
       );
@@ -258,8 +277,22 @@ void main() {
       expect(res.pieces, 120);
       expect(res.crates, 5.0); // 120 / 24 pcs per crate = 5.0 crates
       expect(res.totalQuantity, 60.0); // 120 * 0.5 L = 60 L
-      expect(res.totalPrice, 3360.0); // 120 * 28.0
-      expect(res.totalPriceDisplay, '₹3,360');
+      expect(res.totalPrice, 4200.0); // 120 * 35.0
+      expect(res.totalPriceDisplay, '₹4,200');
+    });
+
+    test('9. Purabi Smart + 500 ml (smart+500) - Crates Mode (10 Crates Defence Supply)', () {
+      final res = CalculationService.calculateProduct(
+        product: smart500,
+        inputMode: 'Crates',
+        inputQuantity: 10.0,
+      );
+
+      expect(res.pieces, 240); // 10 * 24
+      expect(res.crates, 10.0);
+      expect(res.totalQuantity, 120.0); // 240 * 0.5 L = 120 L
+      expect(res.totalPrice, 0.0);
+      expect(res.totalPriceDisplay, 'Defence Supply');
     });
   });
 }

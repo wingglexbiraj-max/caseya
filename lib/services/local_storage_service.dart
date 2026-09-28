@@ -76,11 +76,11 @@ class LocalStorageService {
         targetSnf: 8.5,
       );
 
-      const std500 = ProductModel(
-        productId: 'STD500',
-        productName: 'Purabi Plus 500 ml (STD 500)',
-        itemCode: '9900001',
-        shortCode: 'STD 500',
+      const pp500 = ProductModel(
+        productId: '9900027',
+        productName: 'Purabi Plus 500 ml (PP500)',
+        itemCode: '9900027',
+        shortCode: 'PP500',
         category: 'Milk',
         unit: 'ml',
         packSize: 500,
@@ -89,18 +89,18 @@ class LocalStorageService {
         perCrateQty: 12.0,
         perCrateQtyGrams: 12000.0,
         perCrateDisplay: '12.0 L (12000.0 ml)',
-        pricePerPiece: 28.0,
+        pricePerPiece: 35.0,
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
         targetFat: 4.5,
         targetSnf: 8.5,
       );
 
-      const sm500 = ProductModel(
-        productId: 'SM500',
-        productName: 'Purabi Smart Plus 500 ml (SM+ 500)',
-        itemCode: '9900003',
-        shortCode: 'SM+ 500',
+      const smart500 = ProductModel(
+        productId: 'SMART500',
+        productName: 'Purabi Smart + 500 ml (smart+500)',
+        itemCode: 'NA',
+        shortCode: 'smart+500',
         category: 'Milk',
         unit: 'ml',
         packSize: 500,
@@ -109,7 +109,8 @@ class LocalStorageService {
         perCrateQty: 12.0,
         perCrateQtyGrams: 12000.0,
         perCrateDisplay: '12.0 L (12000.0 ml)',
-        pricePerPiece: 26.0,
+        pricePerPiece: 0.0,
+        priceCustomLabel: 'Defence Supply',
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
         targetFat: 3.0,
@@ -313,6 +314,7 @@ class LocalStorageService {
           final curr = products[idx];
           if (curr.piecesPerCrate != canonical.piecesPerCrate ||
               curr.pricePerPiece != canonical.pricePerPiece ||
+              curr.priceCustomLabel != canonical.priceCustomLabel ||
               curr.perCrateQty != canonical.perCrateQty ||
               curr.itemCode != canonical.itemCode ||
               curr.shortCode != canonical.shortCode ||
@@ -328,8 +330,8 @@ class LocalStorageService {
       }
 
       syncCanonical(pp250, ['9900095', 'PP250', 'STD250', 'STD 250', '9900002']);
-      syncCanonical(std500, ['STD500', 'STD 500', 'PP500', '9900001']);
-      syncCanonical(sm500, ['SM500', 'SM+ 500', '9900003']);
+      syncCanonical(pp500, ['9900027', 'PP500', 'STD500', 'STD 500', '9900001']);
+      syncCanonical(smart500, ['SMART500', 'smart+500', 'SM500', 'SM+ 500', '9900003']);
       syncCanonical(s80, ['9900025', 'S80']);
       syncCanonical(s200, ['9900011', 'S200']);
       syncCanonical(s400, ['9900010', 'S400']);
@@ -556,12 +558,12 @@ class LocalStorageService {
 
   static Future<void> _seedInitialProducts(SharedPreferences prefs) async {
     final initialProducts = [
-      // 1. Purabi Plus 500 ml (STD 500)
+      // 1. Purabi Plus 500 ml (PP500)
       const ProductModel(
-        productId: 'STD500',
-        productName: 'Purabi Plus 500 ml (STD 500)',
-        itemCode: '9900001',
-        shortCode: 'STD 500',
+        productId: '9900027',
+        productName: 'Purabi Plus 500 ml (PP500)',
+        itemCode: '9900027',
+        shortCode: 'PP500',
         category: 'Milk',
         unit: 'ml',
         packSize: 500,
@@ -570,7 +572,7 @@ class LocalStorageService {
         perCrateQty: 12.0,
         perCrateQtyGrams: 12000.0,
         perCrateDisplay: '12.0 L (12000.0 ml)',
-        pricePerPiece: 28.0,
+        pricePerPiece: 35.0,
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
         targetFat: 4.5,
@@ -596,12 +598,12 @@ class LocalStorageService {
         targetFat: 4.5,
         targetSnf: 8.5,
       ),
-      // 3. Purabi Smart Plus 500 ml (SM+ 500)
+      // 3. Purabi Smart + 500 ml (smart+500)
       const ProductModel(
-        productId: 'SM500',
-        productName: 'Purabi Smart Plus 500 ml (SM+ 500)',
-        itemCode: '9900003',
-        shortCode: 'SM+ 500',
+        productId: 'SMART500',
+        productName: 'Purabi Smart + 500 ml (smart+500)',
+        itemCode: 'NA',
+        shortCode: 'smart+500',
         category: 'Milk',
         unit: 'ml',
         packSize: 500,
@@ -610,7 +612,8 @@ class LocalStorageService {
         perCrateQty: 12.0,
         perCrateQtyGrams: 12000.0,
         perCrateDisplay: '12.0 L (12000.0 ml)',
-        pricePerPiece: 26.0,
+        pricePerPiece: 0.0,
+        priceCustomLabel: 'Defence Supply',
         shelfLife: '2 Days',
         allowedInputModes: ['Pieces', 'Crates', 'Litres'],
         targetFat: 3.0,

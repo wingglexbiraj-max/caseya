@@ -12,6 +12,7 @@ class ProductModel {
   final double? perCrateQtyGrams; // e.g. 6000.0 g
   final String? perCrateDisplay; // e.g. "6.0 kg (6000.0 g)", "6.0 L (6000.0 ml)"
   final double pricePerPiece; // e.g. 55.0, 15.0, 20.0, 35.0, 75.0
+  final String? priceCustomLabel; // e.g. "Defence Supply"
   final String shelfLife; // e.g. "12 Days", "7 Days"
   final List<String> allowedInputModes; // ['Pieces', 'Crates', 'Litres', 'Kg']
   final double? targetFat; // e.g. 4.5 for toned, 6.0 for full cream
@@ -32,6 +33,7 @@ class ProductModel {
     this.perCrateQtyGrams,
     this.perCrateDisplay,
     this.pricePerPiece = 0.0,
+    this.priceCustomLabel,
     this.shelfLife = '12 Days',
     required this.allowedInputModes,
     this.targetFat,
@@ -58,8 +60,19 @@ class ProductModel {
     return 'Kg';
   }
 
-  /// Product code alias (e.g. S200, S80, S400, P80, P400, PL200, PP250, STD 500)
+  /// Product code alias (e.g. S200, S80, S400, P80, P400, PL200, PP250, PP500, smart+500)
   String get productCode => shortCode.isNotEmpty ? shortCode : productId;
+
+  /// Price display string (handles custom labels like "Defence Supply")
+  String get priceDisplay {
+    if (priceCustomLabel != null && priceCustomLabel!.isNotEmpty) {
+      return priceCustomLabel!;
+    }
+    final formatted = pricePerPiece == pricePerPiece.roundToDouble()
+        ? pricePerPiece.toInt().toString()
+        : pricePerPiece.toStringAsFixed(1);
+    return '₹$formatted';
+  }
 
   /// Formatted per crate display, e.g., "6.0 kg (6000.0 g)"
   String get calculatedPerCrateDisplay {
@@ -88,6 +101,7 @@ class ProductModel {
       'per_crate_qty_grams': perCrateQtyGrams,
       'per_crate_display': perCrateDisplay,
       'price_per_piece': pricePerPiece,
+      'price_custom_label': priceCustomLabel,
       'shelf_life': shelfLife,
       'allowed_input_modes': allowedInputModes,
       'target_fat': targetFat,
@@ -115,6 +129,7 @@ class ProductModel {
       perCrateQtyGrams: (json['per_crate_qty_grams'] as num?)?.toDouble(),
       perCrateDisplay: json['per_crate_display']?.toString(),
       pricePerPiece: (json['price_per_piece'] as num?)?.toDouble() ?? 0.0,
+      priceCustomLabel: json['price_custom_label']?.toString(),
       shelfLife: json['shelf_life']?.toString() ?? '12 Days',
       allowedInputModes: (json['allowed_input_modes'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -140,6 +155,7 @@ class ProductModel {
     double? perCrateQtyGrams,
     String? perCrateDisplay,
     double? pricePerPiece,
+    String? priceCustomLabel,
     String? shelfLife,
     List<String>? allowedInputModes,
     double? targetFat,
@@ -160,6 +176,7 @@ class ProductModel {
       perCrateQtyGrams: perCrateQtyGrams ?? this.perCrateQtyGrams,
       perCrateDisplay: perCrateDisplay ?? this.perCrateDisplay,
       pricePerPiece: pricePerPiece ?? this.pricePerPiece,
+      priceCustomLabel: priceCustomLabel ?? this.priceCustomLabel,
       shelfLife: shelfLife ?? this.shelfLife,
       allowedInputModes: allowedInputModes ?? this.allowedInputModes,
       targetFat: targetFat ?? this.targetFat,

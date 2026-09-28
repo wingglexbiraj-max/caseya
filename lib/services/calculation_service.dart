@@ -75,7 +75,7 @@ class CalculationService {
         steps.add(BreakdownStep(
           stepTitle: 'Step 1: Product & Input Specification',
           formula: 'Entered ${Formatters.formatInt(pieces)} pieces of ${product.productName}',
-          calculation: 'Rate: ₹${Formatters.formatSmart(product.pricePerPiece)}/pc | Pack: ${product.packSizeDisplay} | Crate: $piecesPerCrate pcs',
+          calculation: 'Rate: ${product.priceDisplay}/pc | Pack: ${product.packSizeDisplay} | Crate: $piecesPerCrate pcs',
         ));
         steps.add(BreakdownStep(
           stepTitle: 'Step 2: Total Pieces Required',
@@ -114,7 +114,7 @@ class CalculationService {
         steps.add(BreakdownStep(
           stepTitle: 'Step 1: Product & Input Specification',
           formula: 'Entered ${Formatters.formatSmart(crates)} crates of ${product.productName}',
-          calculation: 'Rate: ₹${Formatters.formatSmart(product.pricePerPiece)}/pc | Pack: ${product.packSizeDisplay} | Crate: $piecesPerCrate pcs',
+          calculation: 'Rate: ${product.priceDisplay}/pc | Pack: ${product.packSizeDisplay} | Crate: $piecesPerCrate pcs',
         ));
         steps.add(BreakdownStep(
           stepTitle: 'Step 2: Total Pieces Required',
@@ -158,7 +158,7 @@ class CalculationService {
         steps.add(BreakdownStep(
           stepTitle: 'Step 1: Product & Quantity Entered',
           formula: 'Entered ${Formatters.formatSmart(totalQuantity)} $largeUnit of ${product.productName}',
-          calculation: 'Rate: ₹${Formatters.formatSmart(product.pricePerPiece)}/pc | Pack: ${product.packSizeDisplay} | Crate: $piecesPerCrate pcs',
+          calculation: 'Rate: ${product.priceDisplay}/pc | Pack: ${product.packSizeDisplay} | Crate: $piecesPerCrate pcs',
         ));
         steps.add(BreakdownStep(
           stepTitle: 'Step 2: Total Pieces Required',
@@ -192,15 +192,21 @@ class CalculationService {
     }
 
     // Commercial calculation: Total Price = Pieces * pricePerPiece
+    final isCustomPrice = product.priceCustomLabel != null && product.priceCustomLabel!.isNotEmpty;
     final pricePerPiece = product.pricePerPiece;
     final totalPrice = pieces * pricePerPiece;
-    final totalPriceDisplay = '₹${Formatters.formatSmart(totalPrice)}';
+    final totalPriceDisplay = isCustomPrice
+        ? product.priceCustomLabel!
+        : '₹${Formatters.formatSmart(totalPrice)}';
 
     steps.add(BreakdownStep(
       stepTitle: 'Step 5: Total Price (Commercial Value)',
-      formula: 'Total Price = Total Pieces × Price per Piece (₹${Formatters.formatSmart(pricePerPiece)})',
-      calculation:
-          '${Formatters.formatInt(pieces)} pieces × ₹${Formatters.formatSmart(pricePerPiece)} = $totalPriceDisplay',
+      formula: isCustomPrice
+          ? 'Allocation Category: ${product.priceCustomLabel}'
+          : 'Total Price = Total Pieces × Price per Piece (₹${Formatters.formatSmart(pricePerPiece)})',
+      calculation: isCustomPrice
+          ? '${Formatters.formatInt(pieces)} pieces allocated under ${product.priceCustomLabel}'
+          : '${Formatters.formatInt(pieces)} pieces × ₹${Formatters.formatSmart(pricePerPiece)} = $totalPriceDisplay',
     ));
 
     final isWholeCrates = crates == crates.roundToDouble();
