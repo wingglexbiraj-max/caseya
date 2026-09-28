@@ -27,6 +27,14 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
   final TextEditingController _snfController = TextEditingController(text: '8.4');
   final TextEditingController _notesController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _metadataExpanded = false;
+
+  void _selectProduct(ProductModel product) {
+    setState(() {
+      _metadataExpanded = false;
+    });
+    ref.read(standardizationProvider.notifier).selectTargetProduct(product);
+  }
 
   @override
   void dispose() {
@@ -198,255 +206,163 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 const SizedBox(height: 16),
               ],
 
-              // Golden Ratio Split: 61.8% Raw Milk Input vs 38.2% Target Specifications
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 900;
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Raw Milk Input Card (Flex 62 ~ Golden Ratio)
-                      Expanded(
-                        flex: isWide ? 62 : 100,
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        width: 4,
-                                        height: 14,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          borderRadius: BorderRadius.circular(2),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      const Text(
-                                        '1. RAW MILK INTAKE',
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 1.1,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  InkWell(
-                                    onTap: _selectDate,
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.background,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: AppColors.cardBorderSubtle),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.primary),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            Formatters.formatDate(state.selectedDate),
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+              // Unified Raw Milk Intake & Target Standardization Card
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 4,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
                               ),
-                              const SizedBox(height: 16),
-
-                              // Fetch Lab Data Action
-                              OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  side: const BorderSide(color: AppColors.primary, width: 1.3),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'RAW MILK INTAKE & TARGET SETUP',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.1,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        InkWell(
+                          onTap: _selectDate,
+                          borderRadius: BorderRadius.circular(8),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppColors.cardBorderSubtle),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.primary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  Formatters.formatDate(state.selectedDate),
+                                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                                 ),
-                                icon: const Icon(Icons.biotech_rounded, size: 19, color: AppColors.primary),
-                                label: const Text('Fetch Today\'s Lab Data'),
-                                onPressed: _onFetchLabData,
-                              ),
-                              const SizedBox(height: 18),
-
-                              // Milk Quantity
-                              AppTextField(
-                                label: 'Milk Quantity',
-                                hint: 'e.g. 5000',
-                                controller: _milkQtyController,
-                                suffixText: 'Litres',
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                validator: (val) {
-                                  if (val == null || val.trim().isEmpty) return 'Milk quantity cannot be empty';
-                                  final n = Formatters.parseDouble(val);
-                                  if (n <= 0) return 'Must be greater than zero';
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Milk Fat & SNF Row
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: AppTextField(
-                                      label: 'Milk FAT %',
-                                      hint: 'e.g. 3.8',
-                                      controller: _fatController,
-                                      suffixText: '%',
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      validator: (val) {
-                                        if (val == null || val.trim().isEmpty) return 'Required';
-                                        final n = Formatters.parseDouble(val);
-                                        if (n <= 0 || n > 15.0) return '0.1 - 15.0%';
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: AppTextField(
-                                      label: 'Milk SNF %',
-                                      hint: 'e.g. 8.4',
-                                      controller: _snfController,
-                                      suffixText: '%',
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      validator: (val) {
-                                        if (val == null || val.trim().isEmpty) return 'Required';
-                                        final n = Formatters.parseDouble(val);
-                                        if (n <= 0 || n > 16.0) return '5.0 - 16.0%';
-                                        return null;
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Fetch Lab Data Action
+                    OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        side: const BorderSide(color: AppColors.primary, width: 1.3),
                       ),
+                      icon: const Icon(Icons.biotech_rounded, size: 19, color: AppColors.primary),
+                      label: const Text('Fetch Today\'s Lab Data'),
+                      onPressed: _onFetchLabData,
+                    ),
+                    const SizedBox(height: 18),
 
-                      if (isWide) const SizedBox(width: 20),
+                    // Milk Quantity
+                    AppTextField(
+                      label: 'Milk Quantity',
+                      hint: 'e.g. 5000',
+                      controller: _milkQtyController,
+                      suffixText: 'Litres',
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      validator: (val) {
+                        if (val == null || val.trim().isEmpty) return 'Milk quantity cannot be empty';
+                        final n = Formatters.parseDouble(val);
+                        if (n <= 0) return 'Must be greater than zero';
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 16),
 
-                      // Target Product & Specifications Card (Flex 38 ~ Golden Ratio)
-                      Expanded(
-                        flex: isWide ? 38 : 100,
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 4,
-                                    height: 14,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.goldAccent,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    '2. TARGET PRODUCT',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.1,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Target Product Dropdown
-                              SearchableDropdown<ProductModel>(
-                                label: 'Target Product',
-                                hint: 'Select target dairy standard...',
-                                items: state.targetProducts,
-                                selectedItem: state.selectedTargetProduct,
-                                itemLabel: (p) => p.productName,
-                                itemSubtitle: (p) =>
-                                    'Standard: FAT ${p.targetFat ?? 0.0}% • SNF ${p.targetSnf ?? 0.0}%',
-                                onChanged: (product) {
-                                  if (product != null) {
-                                    ref.read(standardizationProvider.notifier).selectTargetProduct(product);
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Target Standards Display Card
-                              Container(
-                                padding: const EdgeInsets.all(16),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: AppColors.cardBorderSubtle),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Target FAT:', style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-                                        Text(
-                                          Formatters.formatPercent(state.targetFat),
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 10),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        const Text('Target SNF:', style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-                                        Text(
-                                          Formatters.formatPercent(state.targetSnf),
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.primaryDark),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Optional Batch Notes
-                              AppTextField(
-                                label: 'Batch Notes / Tanker Ref',
-                                hint: 'e.g. Silo 02 batch for evening run',
-                                controller: _notesController,
-                              ),
-                              const SizedBox(height: 22),
-
-                              // Calculate Button
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                  ),
-                                  icon: const Icon(Icons.calculate_rounded, size: 20),
-                                  label: const Text('Calculate Result'),
-                                  onPressed: _onCalculate,
-                                ),
-                              ),
-                            ],
+                    // Milk Fat & SNF Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: AppTextField(
+                            label: 'Milk FAT %',
+                            hint: 'e.g. 3.8',
+                            controller: _fatController,
+                            suffixText: '%',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Required';
+                              final n = Formatters.parseDouble(val);
+                              if (n <= 0 || n > 15.0) return '0.1 - 15.0%';
+                              return null;
+                            },
                           ),
                         ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: AppTextField(
+                            label: 'Milk SNF %',
+                            hint: 'e.g. 8.4',
+                            controller: _snfController,
+                            suffixText: '%',
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            validator: (val) {
+                              if (val == null || val.trim().isEmpty) return 'Required';
+                              final n = Formatters.parseDouble(val);
+                              if (n <= 0 || n > 16.0) return '5.0 - 16.0%';
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Target Product Selection Chips (Below Milk FAT & SNF)
+                    _buildTargetProductChips(state),
+
+                    // Product Metadata Card (Collapsed by default, opens on click)
+                    if (state.selectedTargetProduct != null)
+                      _buildMetadataCard(state.selectedTargetProduct!),
+
+                    const SizedBox(height: 20),
+
+                    // Optional Batch Notes
+                    AppTextField(
+                      label: 'Batch Notes / Tanker Ref (Optional)',
+                      hint: 'e.g. Silo 02 batch for evening run',
+                      controller: _notesController,
+                    ),
+                    const SizedBox(height: 22),
+
+                    // Calculate Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        icon: const Icon(Icons.calculate_rounded, size: 20),
+                        label: const Text(
+                          'Calculate Standardization Result',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                        ),
+                        onPressed: _onCalculate,
                       ),
-                    ],
-                  );
-                },
+                    ),
+                  ],
+                ),
               ),
 
               // Standardization Result Section
@@ -506,6 +422,226 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
               _buildHistorySection(state.history),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTargetProductChips(dynamic state) {
+    final targets = state.targetProducts as List<ProductModel>;
+    final selected = state.selectedTargetProduct as ProductModel?;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Select Target Product',
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            if (selected != null)
+              Text(
+                'Specs: FAT ${selected.targetFat ?? 0.0}% • SNF ${selected.targetSnf ?? 0.0}%',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: targets.map((p) {
+            final isSelected = selected?.productId == p.productId;
+            return ChoiceChip(
+              selected: isSelected,
+              label: Text(p.productName),
+              avatar: isSelected
+                  ? const Icon(Icons.check_circle_rounded, size: 16, color: Colors.white)
+                  : const Icon(Icons.radio_button_unchecked_rounded, size: 15, color: AppColors.textSecondary),
+              selectedColor: AppColors.primary,
+              backgroundColor: Colors.white,
+              side: BorderSide(
+                color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                width: isSelected ? 1.5 : 1.0,
+              ),
+              labelStyle: TextStyle(
+                fontSize: 12.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                color: isSelected ? Colors.white : AppColors.textPrimary,
+              ),
+              elevation: isSelected ? 2 : 0,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              onSelected: (_) => _selectProduct(p),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetadataCard(ProductModel product) {
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FBFA),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.cardBorder, width: 1.1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 4,
+                        height: 14,
+                        decoration: BoxDecoration(
+                          color: AppColors.goldAccent,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'PRODUCT SPECIFICATIONS & METADATA',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.1,
+                          color: AppColors.primaryDark,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      StatusBadge.neutral(product.category),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _metadataExpanded
+                            ? Icons.keyboard_arrow_up_rounded
+                            : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_metadataExpanded) ...[
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.cardBorder, width: 1.1),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  _buildTabulatedRow('Item Code', product.itemCode, isEven: false),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Product Code', product.productCode, isEven: true, valueColor: AppColors.primary),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Pieces per Crate', '${product.piecesPerCrate} pcs / crate', isEven: false),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Per Crate Quantity', product.calculatedPerCrateDisplay, isEven: true),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Price per Piece', product.priceDisplay, isEven: false, valueColor: AppColors.goldAccent),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Pack Size', product.packSizeDisplay, isEven: true),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Shelf Life', product.shelfLife, isEven: false),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Base Unit', product.baseUnitLabel, isEven: true),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow(
+                    'Target FAT / SNF',
+                    'FAT: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'}   •   SNF: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
+                    isEven: false,
+                    valueColor: AppColors.primaryDark,
+                  ),
+                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                  _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: true),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabulatedRow(
+    String label,
+    String value, {
+    required bool isEven,
+    Color? valueColor,
+  }) {
+    return Container(
+      color: isEven ? const Color(0xFFFBFDFD) : Colors.white,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left Cell: Spec / Parameter Label with subtle distinct background
+            Container(
+              width: 145,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
+              color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF475569),
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ),
+            // Vertical Divider
+            Container(
+              width: 1,
+              color: AppColors.cardBorder,
+            ),
+            // Right Cell: Technical Value
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: valueColor ?? AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
