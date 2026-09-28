@@ -81,12 +81,12 @@ class AppSidebar extends StatelessWidget {
                     gradient: AppColors.cyanGradient,
                     borderRadius: BorderRadius.circular(9),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
+                      color: AppColors.primary.withValues(alpha: 0.25),
                       width: 1.2,
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
+                        color: AppColors.primary.withValues(alpha: 0.2),
                         blurRadius: 6,
                         offset: const Offset(0, 2),
                       ),
@@ -111,7 +111,7 @@ class AppSidebar extends StatelessWidget {
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
-                    color: Colors.white,
+                    color: AppColors.primaryDark,
                   ),
                 ),
               ],

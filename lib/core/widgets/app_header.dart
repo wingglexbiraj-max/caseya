@@ -35,8 +35,8 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.18),
-            blurRadius: 10,
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
@@ -45,54 +45,24 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
         children: [
           if (isMobile) ...[
             IconButton(
-              icon: const Icon(Icons.menu_rounded, color: Colors.white),
+              icon: const Icon(Icons.menu_rounded, color: AppColors.primaryDark),
               onPressed: onMenuPressed,
               tooltip: 'Open Menu',
             ),
             const SizedBox(width: 8),
           ],
 
-          // Title / Breadcrumb with Low Opacity Blue Container Background
+          // Clean Page Title (Full header is low-opacity blue, no chip card)
           Expanded(
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF38BDF8).withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: const Color(0xFF38BDF8).withValues(alpha: 0.28),
-                    width: 1.1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 3.5,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF38BDF8),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 9),
-                    Flexible(
-                      child: Text(
-                        activeTitle,
-                        style: TextStyle(
-                          fontSize: isMobile ? 15 : 18,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.3,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+            child: Text(
+              activeTitle,
+              style: TextStyle(
+                fontSize: isMobile ? 18 : 21,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primaryDark,
+                letterSpacing: -0.4,
               ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
 
@@ -121,11 +91,14 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                 decoration: BoxDecoration(
                   gradient: AppColors.cyanGradient,
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.accentCyan.withValues(alpha: 0.3),
-                      blurRadius: 8,
+                      color: AppColors.accentCyan.withValues(alpha: 0.25),
+                      blurRadius: 6,
                       offset: const Offset(0, 2),
                     ),
                   ],
@@ -152,14 +125,14 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: AppColors.primaryDark,
                       ),
                     ),
                     Text(
                       user.employeeCode,
                       style: const TextStyle(
                         fontSize: 11,
-                        color: Color(0xFF94A3B8),
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -210,11 +183,18 @@ class _LivePlantFacilityStatusState extends State<_LivePlantFacilityStatus> {
     final dateStr = Formatters.formatDate(_currentTime);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.08),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        border: Border.all(color: AppColors.headerBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -233,7 +213,7 @@ class _LivePlantFacilityStatusState extends State<_LivePlantFacilityStatus> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFE2E8F0),
+              color: AppColors.textSecondary,
               fontFeatures: [FontFeature.tabularFigures()],
             ),
           ),
