@@ -186,15 +186,21 @@ class AppSidebar extends StatelessWidget {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 10, 10, 6),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(4, 12, 4, 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
+      ),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 10.5,
+        style: TextStyle(
+          fontSize: 10,
           fontWeight: FontWeight.w800,
           letterSpacing: 1.1,
-          color: AppColors.textMuted,
+          color: AppColors.primaryDark,
         ),
       ),
     );
