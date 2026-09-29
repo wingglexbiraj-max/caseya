@@ -17,6 +17,17 @@ class DashboardPage extends ConsumerWidget {
     required this.onNavigate,
   });
 
+  String _getTimeGreeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) {
+      return 'Good morning and';
+    } else if (hour < 17) {
+      return 'Good afternoon and';
+    } else {
+      return 'Good evening and';
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(dashboardProvider);
@@ -35,6 +46,7 @@ class DashboardPage extends ConsumerWidget {
           children: [
             // Plant Welcome Banner with Golden Ratio Padding
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
                 color: AppColors.headerBackground,
@@ -53,97 +65,48 @@ class DashboardPage extends ConsumerWidget {
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Text(
-                              'PLANT CONTROL CENTER',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.1,
-                                color: Color(0xFF38BDF8),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
-                              decoration: BoxDecoration(
-                                color: AppColors.goldAccent.withValues(alpha: 0.2),
-                                borderRadius: BorderRadius.circular(4),
-                                border: Border.all(color: AppColors.goldAccent.withValues(alpha: 0.4)),
-                              ),
-                              child: Text(
-                                user.role.toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFFFDE68A),
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Welcome back, ${user.name}',
-                          style: const TextStyle(
-                            fontSize: 22, // Golden ratio subheadline
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                        Text(
-                          'Operations Active • ${user.department} • Shift Schedule: Standard 24h Plant Cycle',
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFFBAE6FD),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
+                  Text(
+                    _getTimeGreeting(),
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.5,
+                      color: Color(0xFF38BDF8),
                     ),
                   ),
-                  if (!isMobile)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.09),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF38BDF8),
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Sensors Synchronized',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Welcome, ${user.name}',
+                    style: const TextStyle(
+                      fontSize: 24, // Golden ratio headline
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
                     ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.location_on_rounded,
+                        size: 15,
+                        color: Color(0xFF38BDF8),
+                      ),
+                      const SizedBox(width: 5),
+                      Text(
+                        'at Purabi Dairy (NEDFL), Silchar Branch',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.white.withValues(alpha: 0.85),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),

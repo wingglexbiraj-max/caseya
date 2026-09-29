@@ -564,84 +564,42 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Section with Title & Settings Actions
+              // Top Action Toolbar
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 20,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'Milk Standardization Calculator',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.textPrimary,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Batch formulation engine: Calculate required SMP, Sugar, and Water from available milk FAT and SNF.',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      side: const BorderSide(color: AppColors.cardBorder),
                     ),
+                    icon: const Icon(Icons.settings_outlined, size: 16, color: AppColors.primary),
+                    label: const Text('Formula Master', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    onPressed: _openFormulaSettingsDialog,
                   ),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      OutlinedButton.icon(
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          side: const BorderSide(color: AppColors.cardBorder),
-                        ),
-                        icon: const Icon(Icons.settings_outlined, size: 16, color: AppColors.primary),
-                        label: const Text('Formula Master', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                        onPressed: _openFormulaSettingsDialog,
-                      ),
-                      InkWell(
-                        onTap: _selectDate,
+                  const SizedBox(width: 8),
+                  InkWell(
+                    onTap: _selectDate,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.cardBorder),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.primary),
-                              const SizedBox(width: 6),
-                              Text(
-                                Formatters.formatDate(state.selectedDate),
-                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                              ),
-                            ],
-                          ),
-                        ),
+                        border: Border.all(color: AppColors.cardBorder),
                       ),
-                    ],
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, size: 13, color: AppColors.primary),
+                          const SizedBox(width: 6),
+                          Text(
+                            Formatters.formatDate(state.selectedDate),
+                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),

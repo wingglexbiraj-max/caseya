@@ -301,35 +301,6 @@ class _StockPageState extends State<StockPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 22,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Text(
-                  'Plant Inventory & Material Balance',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Real-time physical stock counts: Raw Materials (SMP & Sugar), Packaging (Cups, Foils, Rolls), and Cold Room Finished Goods.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-
             // Top Quick KPIs
             Row(
               children: [

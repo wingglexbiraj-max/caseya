@@ -47,6 +47,23 @@ class _MainShellPageState extends State<MainShellPage> {
     'Settings & Permissions',
   ];
 
+  static const List<String> _pageSubtitles = [
+    'Plant Operational Metrics & Production KPIs Overview',
+    'Record & analyze daily milk silo fat, SNF, and laboratory quality tests',
+    'Instant plant conversions: Total Pieces, Packing Needed, Total Quantity, and Commercial Price',
+    'Batch formulation engine: Calculate required SMP, Sugar, and Water from available milk FAT and SNF',
+    'Shift fuel level monitoring using plant formula: ((Opening CM - Closing CM) × 900) ÷ 70',
+    'Diesel Generator shift fuel consumption, power generation (kWh), and efficiency monitoring',
+    'Daily pasteurization and packaging floor output batches',
+    'Record, track, and aggregate recipe formulations and raw material consumption date-wise',
+    'Finished goods transport distribution with dynamic multi-product consolidation',
+    'Track film roll consumption, pouch packing counts, and calculate film wastage percentage',
+    'Finished inventory levels, cold room crate holdings, and balance stock',
+    'Operational reports, shift filters, and clean CSV/Excel spreadsheet exports',
+    'Plant product catalog, pack sizes, crate capacities, target fat & SNF standards',
+    'Configure plant operational formulas, user permissions, and API backend connections',
+  ];
+
   void _onNavigate(int index) {
     setState(() {
       _selectedIndex = index;
@@ -170,20 +187,20 @@ class _MainShellPageState extends State<MainShellPage> {
     final Widget bodyWidget = IndexedStack(
       index: _selectedIndex,
       children: [
-        DashboardPage(onNavigate: _onNavigate),
-        const LabPage(),
-        const ProductCalculatorPage(),
-        const MilkStandardizationPage(),
-        const BoilerPage(),
-        const DgHsdPage(),
-        const ProductionPage(),
-        const BatchRecordsPage(),
-        const DispatchPage(),
-        const PackagingPage(),
-        const StockPage(),
-        const ReportsPage(),
-        const ProductsMasterPage(),
-        const SettingsPage(),
+        SelectionArea(child: DashboardPage(onNavigate: _onNavigate)),
+        const SelectionArea(child: LabPage()),
+        const SelectionArea(child: ProductCalculatorPage()),
+        const SelectionArea(child: MilkStandardizationPage()),
+        const SelectionArea(child: BoilerPage()),
+        const SelectionArea(child: DgHsdPage()),
+        const SelectionArea(child: ProductionPage()),
+        const SelectionArea(child: BatchRecordsPage()),
+        const SelectionArea(child: DispatchPage()),
+        const SelectionArea(child: PackagingPage()),
+        const SelectionArea(child: StockPage()),
+        const SelectionArea(child: ReportsPage()),
+        const SelectionArea(child: ProductsMasterPage()),
+        const SelectionArea(child: SettingsPage()),
       ],
     );
 
@@ -220,6 +237,7 @@ class _MainShellPageState extends State<MainShellPage> {
               children: [
                 AppHeader(
                   activeTitle: _pageTitles[_selectedIndex],
+                  activeSubtitle: _pageSubtitles[_selectedIndex],
                   onMenuPressed: () {
                     _scaffoldKey.currentState?.openDrawer();
                   },

@@ -247,37 +247,19 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Products & Standards Master',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Configure plant product catalog, pack sizes, crate capacities, target fat & SNF standards.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-                if (user.isAdmin || user.isSupervisor)
+            if (user.isAdmin || user.isSupervisor) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add, size: 18),
                     label: const Text('Add Product'),
                     onPressed: () => _openProductDialog(),
                   ),
-              ],
-            ),
-            const SizedBox(height: 20),
+                ],
+              ),
+              const SizedBox(height: 18),
+            ],
 
             AppCard(
               child: ListView.separated(

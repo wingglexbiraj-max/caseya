@@ -62,47 +62,25 @@ class _ReportsPageState extends State<ReportsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'Operational Reports & Analytics',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      'Filter date ranges, shifts, and export clean CSV/Excel spreadsheets or printable plant summaries.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-                if (!isMobile)
-                  Row(
-                    children: [
-                      OutlinedButton.icon(
-                        icon: const Icon(Icons.print_outlined, size: 18),
-                        label: const Text('Print Preview'),
-                        onPressed: _printReport,
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton.icon(
-                        icon: const Icon(Icons.download, size: 18),
-                        label: const Text('Export CSV / Excel'),
-                        onPressed: _exportCsv,
-                      ),
-                    ],
+            if (!isMobile) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton.icon(
+                    icon: const Icon(Icons.print_outlined, size: 18),
+                    label: const Text('Print Preview'),
+                    onPressed: _printReport,
                   ),
-              ],
-            ),
-            const SizedBox(height: 20),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.download, size: 18),
+                    label: const Text('Export CSV / Excel'),
+                    onPressed: _exportCsv,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+            ],
 
             // Filters Card
             AppCard(

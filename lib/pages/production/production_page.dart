@@ -101,22 +101,6 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Production Register',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Daily pasteurization and packaging floor output batches.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-
             // Entry Form
             AppCard(
               child: Column(

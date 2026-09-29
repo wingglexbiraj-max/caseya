@@ -96,49 +96,6 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Page Title & Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: AppColors.primary,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'Product Calculator',
-                            style: TextStyle(
-                              fontSize: 23,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Instant plant conversions: Total Pieces, Packing Needed, Total Quantity, and Commercial Price.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 22),
-
               // Feedback alerts
               if (state.errorMessage != null) ...[
                 Container(

@@ -56,4 +56,36 @@ class AuthNotifier extends StateNotifier<UserModel> {
     state = user;
     await LocalStorageService.saveCurrentUser(user);
   }
+
+  Future<void> logout() async {
+    final updated = UserModel(
+      userId: '',
+      employeeCode: 'GUEST',
+      name: 'Logged Out',
+      email: '',
+      role: 'Guest',
+      department: 'None',
+      active: false,
+    );
+    state = updated;
+    await LocalStorageService.saveCurrentUser(updated);
+  }
+
+  Future<void> loginDefault({
+    String name = 'Biraj Goswami',
+    String role = 'Admin',
+    String employeeCode = 'ADMIN-01',
+  }) async {
+    final updated = UserModel(
+      userId: 'EMP-0101',
+      employeeCode: employeeCode,
+      name: name,
+      email: '${name.toLowerCase().replaceAll(' ', '.')}@caseya-plant.com',
+      role: role,
+      department: 'Processing & Operations',
+      active: true,
+    );
+    state = updated;
+    await LocalStorageService.saveCurrentUser(updated);
+  }
 }

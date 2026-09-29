@@ -1,8 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
-import '../utils/formatters.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/user_model.dart';
 
 class SidebarItem {
   final int index;
@@ -54,7 +55,7 @@ class AppSidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 258,
+      width: 272,
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
@@ -84,33 +85,18 @@ class AppSidebar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.cyanGradient,
-                    borderRadius: BorderRadius.circular(9),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      width: 1.2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.2),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'C',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.5,
-                      ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.asset(
+                    'assets/caseya-logo.png',
+                    width: 36,
+                    height: 36,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => Image.asset(
+                      'lib/assets/caseya-logo.png',
+                      width: 36,
+                      height: 36,
+                      fit: BoxFit.contain,
                     ),
                   ),
                 ),
@@ -131,7 +117,7 @@ class AppSidebar extends StatelessWidget {
           // Menu Navigation List (Clean without section headings)
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 14),
               children: [
                 ...primaryItems.map((item) => _buildNavItem(item)),
                 const Padding(
@@ -148,8 +134,8 @@ class AppSidebar extends StatelessWidget {
             ),
           ),
 
-          // Plant Facility Active Chip with Real-time Clock & Date
-          const _LivePlantSidebarChip(),
+          // User Profile Tile with Name, Role, & Avatar
+          const _UserSidebarProfileTile(),
         ],
       ),
     );
@@ -167,128 +153,311 @@ class AppSidebar extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(9),
-        child: ListTile(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-          dense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 1),
-          leading: Icon(
-            item.icon,
-            size: 20,
-            color: isSelected ? AppColors.primary : AppColors.textSecondary,
-          ),
-          title: Text(
-            item.title,
-            style: TextStyle(
-              fontSize: 13.5,
-              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-              color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(9),
+          onTap: () => onItemSelected(item.index),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9.5),
+            child: Row(
+              children: [
+                Icon(
+                  item.icon,
+                  size: 20,
+                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.title,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                      color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+                if (isSelected) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 3.5,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: AppColors.goldAccent,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          trailing: isSelected
-              ? Container(
-                  width: 4,
-                  height: 18,
-                  decoration: BoxDecoration(
-                    color: AppColors.goldAccent,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                )
-              : null,
-          onTap: () => onItemSelected(item.index),
         ),
       ),
     );
   }
 }
 
-class _LivePlantSidebarChip extends StatefulWidget {
-  const _LivePlantSidebarChip();
+class _UserSidebarProfileTile extends ConsumerWidget {
+  const _UserSidebarProfileTile();
 
-  @override
-  State<_LivePlantSidebarChip> createState() => _LivePlantSidebarChipState();
-}
+  void _showAuthDialog(BuildContext context, WidgetRef ref, UserModel user) {
+    final isLoggedIn = user.active && user.name != 'Logged Out';
 
-class _LivePlantSidebarChipState extends State<_LivePlantSidebarChip> {
-  late DateTime _currentTime;
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentTime = DateTime.now();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {
-          _currentTime = DateTime.now();
-        });
-      }
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final timeStr = Formatters.formatTimeWithSeconds(_currentTime);
-    final dateStr = Formatters.formatDate(_currentTime);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 11),
-      margin: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.cardBorder),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 9,
-            height: 9,
-            decoration: BoxDecoration(
-              color: AppColors.goldAccent,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.goldAccent.withValues(alpha: 0.4),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                isLoggedIn ? Icons.account_circle_rounded : Icons.login_rounded,
+                color: AppColors.primary,
+                size: 24,
+              ),
             ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Plant Facility Active',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    isLoggedIn ? 'Operator Session' : 'Operator Sign In',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '$timeStr • $dateStr',
-                  style: const TextStyle(
-                    fontSize: 10.5,
-                    color: AppColors.textSecondary,
-                    fontWeight: FontWeight.w600,
-                    fontFeatures: [FontFeature.tabularFigures()],
+                  const SizedBox(height: 2),
+                  Text(
+                    isLoggedIn
+                        ? 'Active operator plant account session'
+                        : 'Sign in to access dairy plant controls',
+                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isLoggedIn) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: AppColors.primary,
+                      child: Text(
+                        user.name.isNotEmpty ? user.name[0] : 'U',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.name,
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                          ),
+                          Text(
+                            '${user.role}  •  ${user.employeeCode}',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.cardBorder),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, color: AppColors.warning, size: 24),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Currently operating in guest mode. Sign in to record plant operations and save batch records.',
+                        style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
           ),
+          if (isLoggedIn)
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.logout_rounded, size: 16),
+              label: const Text('Log Out'),
+              onPressed: () {
+                ref.read(authProvider.notifier).logout();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✓ Logged out successfully'),
+                    backgroundColor: AppColors.textPrimary,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            )
+          else
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+              ),
+              icon: const Icon(Icons.login_rounded, size: 16),
+              label: const Text('Sign In as Biraj Goswami'),
+              onPressed: () {
+                ref.read(authProvider.notifier).loginDefault();
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('✓ Signed in as Biraj Goswami (Admin)'),
+                    backgroundColor: AppColors.primary,
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              },
+            ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider);
+    final isLoggedIn = user.active && user.name != 'Logged Out';
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showAuthDialog(context, ref, user),
+        child: Container(
+          height: 66,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: const BoxDecoration(
+            color: AppColors.brandHeaderBackground,
+            gradient: AppColors.brandHeaderGradient,
+            border: Border(
+              top: BorderSide(
+                color: Color(0xFF1E3A8A),
+                width: 1.2,
+              ),
+              right: BorderSide(
+                color: Color(0xFF1E3A8A),
+                width: 1.2,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Avatar DP (No green dot)
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: AppColors.cyanGradient,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.35),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    isLoggedIn && user.name.isNotEmpty ? user.name[0] : (isLoggedIn ? 'U' : '?'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      isLoggedIn ? user.name : 'Sign In',
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 1.5),
+                    Text(
+                      isLoggedIn ? '${user.role} • ${user.employeeCode}' : 'Tap to Log In',
+                      maxLines: 1,
+                      softWrap: false,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isLoggedIn ? Colors.white.withValues(alpha: 0.75) : AppColors.goldAccent,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                isLoggedIn ? Icons.logout_rounded : Icons.login_rounded,
+                color: isLoggedIn ? Colors.white.withValues(alpha: 0.8) : AppColors.goldAccent,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

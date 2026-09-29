@@ -24,6 +24,11 @@ class AppTheme {
         surface: AppColors.surface,
         onSurface: AppColors.textPrimary,
       ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: AppColors.primary,
+        selectionColor: AppColors.primary.withValues(alpha: 0.22),
+        selectionHandleColor: AppColors.primary,
+      ),
       fontFamily: GoogleFonts.inter().fontFamily,
       textTheme: baseTextTheme.copyWith(
         displayLarge: baseTextTheme.displayLarge?.copyWith(

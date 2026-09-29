@@ -35,19 +35,20 @@ class ResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder, width: 1.2),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A0F172A),
-            blurRadius: 16,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
+    return SelectionArea(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.cardBorder, width: 1.2),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x0A0F172A),
+              blurRadius: 16,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -199,6 +200,7 @@ class ResultCard extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

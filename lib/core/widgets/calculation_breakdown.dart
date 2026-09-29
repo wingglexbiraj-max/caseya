@@ -118,94 +118,96 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
           // Collapsible Steps Content
           if (_expanded) ...[
             const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(18),
-              child: Column(
-                children: widget.steps.map((step) {
-                  return Container(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(15),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.cardBorderSubtle),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x040F172A),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryContainer,
-                                borderRadius: BorderRadius.circular(5),
-                              ),
-                              child: Text(
-                                step.stepTitle,
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.primaryDark,
-                                  letterSpacing: 0.5,
+            SelectionArea(
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  children: widget.steps.map((step) {
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.cardBorderSubtle),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x040F172A),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primaryContainer,
+                                  borderRadius: BorderRadius.circular(5),
                                 ),
+                                child: Text(
+                                  step.stepTitle,
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.primaryDark,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Text(
+                                  step.formula,
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textSecondary,
+                                    fontFamily: 'monospace',
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF6FBF9),
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(color: AppColors.primaryContainer),
+                            ),
+                            child: Text(
+                              step.calculation,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                                fontFamily: 'monospace',
                               ),
                             ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                step.formula,
-                                style: const TextStyle(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textSecondary,
-                                  fontFamily: 'monospace',
-                                ),
+                          ),
+                          if (step.note != null) ...[
+                            const SizedBox(height: 7),
+                            Text(
+                              step.note!,
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.textMuted,
+                                fontStyle: FontStyle.italic,
                               ),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 10),
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF6FBF9),
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(color: AppColors.primaryContainer),
-                          ),
-                          child: Text(
-                            step.calculation,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.textPrimary,
-                              fontFamily: 'monospace',
-                            ),
-                          ),
-                        ),
-                        if (step.note != null) ...[
-                          const SizedBox(height: 7),
-                          Text(
-                            step.note!,
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              color: AppColors.textMuted,
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
                         ],
-                      ],
-                    ),
-                  );
-                }).toList(),
+                      ),
+                    );
+                  }).toList(),
+                ),
               ),
             ),
           ],

@@ -104,7 +104,7 @@ void main() {
       // Setup PMST readings at 08:00, 10:30, and 14:00
       final r1 = LabMilkTest(
         id: 'pmst-1',
-        testDate: '2026-09-29',
+        testDate: '2026-10-15',
         testTime: '08:00 AM',
         siloId: 'PMST',
         siloName: 'PMST',
@@ -118,7 +118,7 @@ void main() {
 
       final r2 = LabMilkTest(
         id: 'pmst-2',
-        testDate: '2026-09-29',
+        testDate: '2026-10-15',
         testTime: '10:30 AM',
         siloId: 'PMST',
         siloName: 'PMST',
@@ -132,7 +132,7 @@ void main() {
 
       final r3 = LabMilkTest(
         id: 'pmst-3',
-        testDate: '2026-09-29',
+        testDate: '2026-10-15',
         testTime: '02:00 PM',
         siloId: 'PMST',
         siloName: 'PMST',
@@ -147,7 +147,7 @@ void main() {
       // Also an RMST reading at 15:00
       final rmst1 = LabMilkTest(
         id: 'rmst-1',
-        testDate: '2026-09-29',
+        testDate: '2026-10-15',
         testTime: '03:00 PM',
         siloId: 'RMST',
         siloName: 'RMST',
@@ -169,7 +169,7 @@ void main() {
       expect(allTests.where((t) => t.id.startsWith('pmst') || t.id.startsWith('rmst')).length, 4);
 
       // Fetch latest reading for PMST specifically
-      final latestPmst = await LocalStorageService.getLatestReadingForSilo('PMST', todayDateStr: '2026-09-29');
+      final latestPmst = await LocalStorageService.getLatestReadingForSilo('PMST', todayDateStr: '2026-10-15');
       expect(latestPmst, isNotNull);
       expect(latestPmst!.id, 'pmst-3');
       expect(latestPmst.fatPercentage, 4.25);
@@ -177,7 +177,7 @@ void main() {
       expect(latestPmst.testTime, '02:00 PM');
 
       // Fetch latest reading for RMST specifically
-      final latestRmst = await LocalStorageService.getLatestReadingForSilo('RMST', todayDateStr: '2026-09-29');
+      final latestRmst = await LocalStorageService.getLatestReadingForSilo('RMST', todayDateStr: '2026-10-15');
       expect(latestRmst, isNotNull);
       expect(latestRmst!.id, 'rmst-1');
       expect(latestRmst.fatPercentage, 3.90);

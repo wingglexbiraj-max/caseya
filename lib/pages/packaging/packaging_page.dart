@@ -116,22 +116,6 @@ class _PackagingPageState extends State<PackagingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Packaging & Film Wastage Tracker',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Track film roll consumption, pouch packing counts, and calculate film wastage percentage.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

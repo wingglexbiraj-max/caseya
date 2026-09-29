@@ -42,22 +42,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Settings & System Configuration',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Configure plant operational formulas, user permissions, and API backend connections.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 20),
-
             // User & Role Management
             AppCard(
               child: Column(

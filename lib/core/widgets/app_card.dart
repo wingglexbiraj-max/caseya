@@ -68,7 +68,9 @@ class AppCard extends StatelessWidget {
       decoration: decoration,
       child: Material(
         color: Colors.transparent,
-        child: child,
+        child: SelectionArea(
+          child: child,
+        ),
       ),
     );
   }

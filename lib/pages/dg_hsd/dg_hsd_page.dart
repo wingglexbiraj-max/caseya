@@ -137,57 +137,19 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Page Title & Subtitle
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 4,
-                            height: 20,
-                            decoration: BoxDecoration(
-                              color: AppColors.goldAccent,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text(
-                            'DG HSD Fuel & Energy',
-                            style: TextStyle(
-                              fontSize: 23,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          if (state.editingRecord != null) ...[
-                            const SizedBox(width: 10),
-                            StatusBadge.warning('Editing ${state.editingRecord!.recordId}'),
-                          ],
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Diesel Generator shift fuel consumption, power generation (kWh), and efficiency monitoring',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (state.editingRecord != null)
+              if (state.editingRecord != null) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    StatusBadge.warning('Editing ${state.editingRecord!.recordId}'),
                     OutlinedButton(
                       onPressed: _cancelEditing,
                       child: const Text('Cancel Edit'),
                     ),
-                ],
-              ),
-              const SizedBox(height: 22),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Error messages
               if (state.errorMessage != null) ...[

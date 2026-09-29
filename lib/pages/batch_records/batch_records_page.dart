@@ -168,42 +168,10 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Bar: Title & Action
+            // Top Action Bar
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'Daily Batch Making Records',
-                          style: TextStyle(
-                            fontSize: 23,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Record, track, and aggregate recipe formulations and raw material consumption date-wise.',
-                      style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add_rounded, size: 20),
                   label: const Text('Add Batch Record'),
@@ -218,7 +186,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
             // Top KPI Summary Cards
             Row(
