@@ -190,8 +190,8 @@ void main() {
 
     test('Configurable silos can be added and retrieved', () async {
       final silos = await LocalStorageService.getSilos();
-      expect(silos.length, 4);
-      expect(silos.map((s) => s.id), containsAll(['RMST', 'PMST', 'SILO_1', 'SILO_2']));
+      expect(silos.length, 2);
+      expect(silos.map((s) => s.id), containsAll(['RMST', 'PMST']));
 
       // Add a custom silo
       const newSilo = SiloModel(
@@ -203,7 +203,7 @@ void main() {
       await LocalStorageService.addSilo(newSilo);
 
       final updatedSilos = await LocalStorageService.getSilos();
-      expect(updatedSilos.length, 5);
+      expect(updatedSilos.length, 3);
       expect(updatedSilos.any((s) => s.name == 'Silo 3'), isTrue);
     });
   });

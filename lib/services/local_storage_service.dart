@@ -1290,7 +1290,13 @@ class LocalStorageService {
     }
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
-      return list.map((e) => SiloModel.fromJson(e as Map<String, dynamic>)).toList();
+      final listSilos = list.map((e) => SiloModel.fromJson(e as Map<String, dynamic>)).toList();
+      // Remove Silo 1 and Silo 2 as requested (only PMST and RMST supported)
+      final filtered = listSilos.where((s) => s.id != 'SILO_1' && s.id != 'SILO_2' && !s.name.toLowerCase().contains('silo 1') && !s.name.toLowerCase().contains('silo 2')).toList();
+      if (filtered.length != listSilos.length) {
+        await saveSilos(filtered);
+      }
+      return filtered.isNotEmpty ? filtered : SiloModel.defaultSilos;
     } catch (_) {
       return SiloModel.defaultSilos;
     }

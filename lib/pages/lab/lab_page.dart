@@ -21,14 +21,26 @@ class LabPage extends ConsumerStatefulWidget {
 class _LabPageState extends ConsumerState<LabPage> {
   final TextEditingController _fatController = TextEditingController();
   final TextEditingController _snfController = TextEditingController();
+  final TextEditingController _analystController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_analystController.text.isEmpty && mounted) {
+        _analystController.text = ref.read(authProvider).name;
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _fatController.dispose();
     _snfController.dispose();
+    _analystController.dispose();
     _remarksController.dispose();
     _searchController.dispose();
     super.dispose();
@@ -37,13 +49,16 @@ class _LabPageState extends ConsumerState<LabPage> {
   void _onSave() async {
     if (_formKey.currentState?.validate() ?? false) {
       final user = ref.read(authProvider);
+      final analystName = _analystController.text.trim().isNotEmpty
+          ? _analystController.text.trim()
+          : user.name;
       ref.read(labProvider.notifier).setFat(Formatters.parseDouble(_fatController.text));
       ref.read(labProvider.notifier).setSnf(Formatters.parseDouble(_snfController.text));
       ref.read(labProvider.notifier).setRemarks(_remarksController.text.trim());
 
       final success = await ref.read(labProvider.notifier).saveReading(
             userId: user.employeeCode,
-            userName: user.name,
+            userName: analystName,
           );
 
       if (success && mounted) {
@@ -64,6 +79,7 @@ class _LabPageState extends ConsumerState<LabPage> {
     setState(() {
       _fatController.clear();
       _snfController.clear();
+      _analystController.text = ref.read(authProvider).name;
       _remarksController.clear();
     });
   }
@@ -73,6 +89,7 @@ class _LabPageState extends ConsumerState<LabPage> {
     setState(() {
       _fatController.text = test.fatPercentage.toStringAsFixed(2);
       _snfController.text = test.snfPercentage.toStringAsFixed(2);
+      _analystController.text = test.labUserName;
       _remarksController.text = test.remarks;
     });
   }
@@ -540,32 +557,17 @@ class _LabPageState extends ConsumerState<LabPage> {
                         if (isWide) {
                           return Row(
                             children: [
-                              // Lab Person (Read-only / Current User)
+                              // Lab Analyst (Manually Editable)
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Lab Analyst', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.background,
-                                        borderRadius: BorderRadius.circular(9),
-                                        border: Border.all(color: AppColors.cardBorder, width: 1.2),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(Icons.person_rounded, size: 18, color: AppColors.primary),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '${user.name} (${user.role})',
-                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                                child: AppTextField(
+                                  label: 'Lab Analyst (Person) *',
+                                  hint: 'Enter analyst name',
+                                  controller: _analystController,
+                                  prefixIcon: const Icon(Icons.person_rounded, size: 18, color: AppColors.primary),
+                                  validator: (val) {
+                                    if (val == null || val.trim().isEmpty) return 'Lab Analyst is required';
+                                    return null;
+                                  },
                                 ),
                               ),
                               const SizedBox(width: 12),
@@ -582,20 +584,15 @@ class _LabPageState extends ConsumerState<LabPage> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: AppColors.background,
-                                  borderRadius: BorderRadius.circular(9),
-                                  border: Border.all(color: AppColors.cardBorder),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.person_rounded, size: 18, color: AppColors.primary),
-                                    const SizedBox(width: 8),
-                                    Text('Analyst: ${user.name}', style: const TextStyle(fontWeight: FontWeight.w700)),
-                                  ],
-                                ),
+                              AppTextField(
+                                label: 'Lab Analyst (Person) *',
+                                hint: 'Enter analyst name',
+                                controller: _analystController,
+                                prefixIcon: const Icon(Icons.person_rounded, size: 18, color: AppColors.primary),
+                                validator: (val) {
+                                  if (val == null || val.trim().isEmpty) return 'Lab Analyst is required';
+                                  return null;
+                                },
                               ),
                               const SizedBox(height: 12),
                               AppTextField(
@@ -694,23 +691,31 @@ class _LabPageState extends ConsumerState<LabPage> {
         const SizedBox(height: 12),
         LayoutBuilder(
           builder: (context, constraints) {
-            final isWide = constraints.maxWidth >= 900;
-            final isMedium = constraints.maxWidth >= 550;
+            final visibleSilos = state.silos.where((s) {
+              final id = s.id.toUpperCase();
+              final name = s.name.toUpperCase();
+              return id == 'RMST' ||
+                  id == 'PMST' ||
+                  (id != 'SILO_1' &&
+                      id != 'SILO_2' &&
+                      !name.contains('SILO 1') &&
+                      !name.contains('SILO 2'));
+            }).toList();
 
-            final crossAxisCount = isWide ? 4 : (isMedium ? 2 : 1);
+            final crossAxisCount = constraints.maxWidth >= 600 ? 2 : 1;
 
             return GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: state.silos.length,
+              itemCount: visibleSilos.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: crossAxisCount,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
                 mainAxisExtent: 154,
               ),
               itemBuilder: (context, index) {
-                final silo = state.silos[index];
+                final silo = visibleSilos[index];
                 final reading = state.todayLatestBySilo[silo.id];
 
                 return _buildSiloReadingCard(silo, reading);

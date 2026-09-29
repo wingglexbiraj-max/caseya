@@ -62,17 +62,5 @@ class SiloModel {
       description: 'Pasteurized Milk Storage Tank',
       capacityLitres: 35000.0,
     ),
-    SiloModel(
-      id: 'SILO_1',
-      name: 'Silo 1',
-      description: 'Process Storage Silo #01',
-      capacityLitres: 60000.0,
-    ),
-    SiloModel(
-      id: 'SILO_2',
-      name: 'Silo 2',
-      description: 'Process Storage Silo #02',
-      capacityLitres: 60000.0,
-    ),
   ];
 }
