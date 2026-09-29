@@ -329,6 +329,29 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     });
   }
 
+  void applyLabReading({
+    required String siloName,
+    required String testTime,
+    required double fat,
+    required double snf,
+  }) {
+    state = state.copyWith(
+      milkFat: fat,
+      milkSnf: snf,
+      hasFetchedLabData: true,
+      labDataFetchStatus: 'Source: $siloName • Lab tested $testTime',
+      clearMessages: true,
+    );
+    calculate();
+  }
+
+  void clearLabDataStatus() {
+    state = state.copyWith(
+      hasFetchedLabData: false,
+      labDataFetchStatus: null,
+    );
+  }
+
   Future<void> fetchTodayLabData() async {
     state = state.copyWith(isLoading: true, clearMessages: true);
     final dateStr = Formatters.formatIsoDate(state.selectedDate);

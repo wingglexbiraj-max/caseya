@@ -29,9 +29,10 @@ class AppBottomNav extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _buildNavItem(0, Icons.dashboard_outlined, 'Dashboard'),
-              _buildNavItem(1, Icons.calculate_outlined, 'Product'),
-              _buildNavItem(2, Icons.water_drop_outlined, 'Std.'),
-              _buildNavItem(3, Icons.local_fire_department_outlined, 'Boiler'),
+              _buildNavItem(1, Icons.science_outlined, 'Lab Test'),
+              _buildNavItem(2, Icons.calculate_outlined, 'Product'),
+              _buildNavItem(3, Icons.water_drop_outlined, 'Std.'),
+              _buildNavItem(4, Icons.local_fire_department_outlined, 'Boiler'),
               _buildMoreButton(),
             ],
           ),

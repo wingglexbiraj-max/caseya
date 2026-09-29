@@ -11,6 +11,8 @@ import '../../core/widgets/confirmation_dialog.dart';
 import '../../providers/standardization_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/product_model.dart';
+import '../../models/lab_milk_test.dart';
+import '../../services/local_storage_service.dart';
 
 class MilkStandardizationPage extends ConsumerStatefulWidget {
   const MilkStandardizationPage({super.key});
@@ -32,6 +34,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
   bool _standardsExpanded = false;
   bool _archiveExpanded = false;
   bool _autoCalculateMilk = false;
+  String? _fetchedSiloSource;
 
   @override
   void dispose() {
@@ -95,30 +98,212 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
       _notesController.clear();
       _autoCalculateMilk = false;
       _standardsExpanded = false;
+      _fetchedSiloSource = null;
     });
     ref.read(standardizationProvider.notifier).clear();
   }
 
-  Future<void> _onFetchLabData() async {
-    final hasUserInputs = _fatController.text != '4.3' || _snfController.text != '8.33';
-    if (hasUserInputs) {
-      final confirm = await ConfirmationDialog.show(
-        context: context,
-        title: 'Overwrite With Lab Data?',
-        message: 'This will replace your current manual FAT% and SNF% with verified morning QC lab test results.',
-        confirmLabel: 'Fetch & Overwrite',
-      );
-      if (!confirm) return;
+  Future<void> _openFetchLabSiloDialog() async {
+    final silos = await LocalStorageService.getSilos();
+    final todayStr = Formatters.formatDate(DateTime.now());
+
+    // Fetch latest reading for each silo for today
+    final Map<String, LabMilkTest?> readings = {};
+    for (final silo in silos) {
+      readings[silo.id] = await LocalStorageService.getLatestReadingForSilo(silo.id, todayDateStr: todayStr);
     }
 
-    await ref.read(standardizationProvider.notifier).fetchTodayLabData();
-    final updated = ref.read(standardizationProvider);
-    if (updated.hasFetchedLabData && updated.fetchedLabRecord != null) {
-      setState(() {
-        _fatController.text = updated.fetchedLabRecord!.fatPercent.toStringAsFixed(2);
-        _snfController.text = updated.fetchedLabRecord!.snfPercent.toStringAsFixed(2);
-      });
-    }
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.biotech_rounded, color: AppColors.primary, size: 22),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Fetch Lab Fat & SNF',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Select a milk silo / storage tank to populate lab tested values',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 480,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: silos.map((silo) {
+                final reading = readings[silo.id];
+                final hasReading = reading != null;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: InkWell(
+                    onTap: () {
+                      if (!hasReading) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('No laboratory reading recorded today for ${silo.name}. Please enter reading in Lab module.'),
+                            backgroundColor: AppColors.danger,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                        return;
+                      }
+
+                      setState(() {
+                        _fatController.text = reading.fatPercentage.toStringAsFixed(2);
+                        _snfController.text = reading.snfPercentage.toStringAsFixed(2);
+                        _fetchedSiloSource = 'Source: ${reading.siloName} • Lab tested ${reading.testTime}';
+                      });
+
+                      ref.read(standardizationProvider.notifier).applyLabReading(
+                            siloName: reading.siloName,
+                            testTime: reading.testTime,
+                            fat: reading.fatPercentage,
+                            snf: reading.snfPercentage,
+                          );
+
+                      _onCalculate();
+
+                      Navigator.pop(ctx);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('✓ Loaded ${reading.siloName} (Fat: ${reading.fatPercentage.toStringAsFixed(2)}%, SNF: ${reading.snfPercentage.toStringAsFixed(2)}%)'),
+                          backgroundColor: AppColors.primary,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: hasReading ? Colors.white : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: hasReading ? AppColors.primary.withValues(alpha: 0.3) : AppColors.cardBorder,
+                          width: hasReading ? 1.5 : 1.1,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.02),
+                            blurRadius: 4,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: hasReading ? AppColors.primary.withValues(alpha: 0.1) : AppColors.background,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Icon(
+                              Icons.storage_rounded,
+                              color: hasReading ? AppColors.primary : AppColors.textSecondary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      silo.name,
+                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    if (hasReading)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFDCFCE7),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Text(
+                                          'Today',
+                                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                                        ),
+                                      )
+                                    else
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.danger.withValues(alpha: 0.08),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: AppColors.danger.withValues(alpha: 0.2)),
+                                        ),
+                                        child: const Text(
+                                          'No reading today',
+                                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w800, color: AppColors.danger),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                if (hasReading)
+                                  Text(
+                                    'Fat ${reading.fatPercentage.toStringAsFixed(2)}%  •  SNF ${reading.snfPercentage.toStringAsFixed(2)}%  •  Tested ${reading.testTime}',
+                                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
+                                  )
+                                else
+                                  Text(
+                                    silo.description,
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (hasReading)
+                            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.primary)
+                          else
+                            const Icon(Icons.block_rounded, size: 16, color: AppColors.textMuted),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _onSaveRecord() async {
@@ -570,8 +755,8 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             side: const BorderSide(color: AppColors.primary, width: 1.2),
                           ),
                           icon: const Icon(Icons.biotech_rounded, size: 17, color: AppColors.primary),
-                          label: const Text('Fetch Lab Fat/SNF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
-                          onPressed: _onFetchLabData,
+                          label: const Text('Fetch Lab Fat & SNF', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                          onPressed: _openFetchLabSiloDialog,
                         ),
                       ],
                     ),
@@ -676,7 +861,71 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     ),
                     const SizedBox(height: 16),
 
-                    // 3. Present Milk Fat & SNF
+                    // 3. Present Milk Fat & SNF Header with Source indicator
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'PRESENT MILK FAT & SNF',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          icon: const Icon(Icons.biotech_rounded, size: 16, color: AppColors.primary),
+                          label: const Text(
+                            'Fetch Lab Fat & SNF',
+                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.primary),
+                          ),
+                          onPressed: _openFetchLabSiloDialog,
+                        ),
+                      ],
+                    ),
+                    if (_fetchedSiloSource != null) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFDCFCE7),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFF16A34A).withValues(alpha: 0.3)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.verified_rounded, size: 16, color: Color(0xFF16A34A)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _fetchedSiloSource!,
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF166534),
+                                ),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _fetchedSiloSource = null;
+                                });
+                                ref.read(standardizationProvider.notifier).clearLabDataStatus();
+                              },
+                              child: const Icon(Icons.close_rounded, size: 16, color: Color(0xFF166534)),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ] else
+                      const SizedBox(height: 6),
                     Row(
                       children: [
                         Expanded(

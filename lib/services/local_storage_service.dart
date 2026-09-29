@@ -10,6 +10,8 @@ import '../models/user_model.dart';
 import '../models/operations_models.dart';
 import '../models/batch_record_model.dart';
 import '../models/dg_hsd_record.dart';
+import '../models/silo_model.dart';
+import '../models/lab_milk_test.dart';
 
 class LocalStorageService {
   static SharedPreferences? _prefs;
@@ -39,6 +41,12 @@ class LocalStorageService {
     }
     if (!prefs.containsKey(AppConstants.storageKeyDgHsdRecords)) {
       await _seedInitialDgHsdRecords(prefs);
+    }
+    if (!prefs.containsKey(AppConstants.storageKeySilos)) {
+      await _seedInitialSilos(prefs);
+    }
+    if (!prefs.containsKey(AppConstants.storageKeyLabMilkTests)) {
+      await _seedInitialLabMilkTests(prefs);
     }
   }
 
@@ -1262,6 +1270,158 @@ class LocalStorageService {
     await prefs.setString(
       AppConstants.storageKeyDgHsdRecords,
       jsonEncode(initialRecords.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  // ===========================================================================
+  // SILOS MASTER
+  // ===========================================================================
+
+  static Future<List<SiloModel>> getSilos() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeySilos);
+    if (jsonStr == null || jsonStr.isEmpty) {
+      await _seedInitialSilos(prefs);
+      return SiloModel.defaultSilos;
+    }
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => SiloModel.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (_) {
+      return SiloModel.defaultSilos;
+    }
+  }
+
+  static Future<void> saveSilos(List<SiloModel> silos) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(silos.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeySilos, jsonStr);
+  }
+
+  static Future<void> addSilo(SiloModel silo) async {
+    final list = await getSilos();
+    list.add(silo);
+    await saveSilos(list);
+  }
+
+  static Future<void> _seedInitialSilos(SharedPreferences prefs) async {
+    final jsonStr = jsonEncode(SiloModel.defaultSilos.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeySilos, jsonStr);
+  }
+
+  // ===========================================================================
+  // LAB MILK TESTS (FAT & SNF)
+  // ===========================================================================
+
+  static Future<List<LabMilkTest>> getLabMilkTests() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeyLabMilkTests);
+    if (jsonStr == null || jsonStr.isEmpty) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      final records = list.map((e) => LabMilkTest.fromJson(e as Map<String, dynamic>)).toList();
+      records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return records;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveLabMilkTests(List<LabMilkTest> records) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeyLabMilkTests, jsonStr);
+  }
+
+  static Future<void> addLabMilkTest(LabMilkTest record) async {
+    final records = await getLabMilkTests();
+    records.insert(0, record);
+    await saveLabMilkTests(records);
+  }
+
+  static Future<void> updateLabMilkTest(LabMilkTest record) async {
+    final records = await getLabMilkTests();
+    final index = records.indexWhere((r) => r.id == record.id);
+    if (index >= 0) {
+      records[index] = record;
+      await saveLabMilkTests(records);
+    }
+  }
+
+  static Future<void> deleteLabMilkTest(String recordId) async {
+    final records = await getLabMilkTests();
+    records.removeWhere((r) => r.id == recordId);
+    await saveLabMilkTests(records);
+  }
+
+  /// Get the latest valid lab reading for a specific silo.
+  /// If [todayDateStr] is provided (YYYY-MM-DD), only returns today's latest reading.
+  /// If null, returns the most recent recorded reading overall for that silo.
+  static Future<LabMilkTest?> getLatestReadingForSilo(String siloId, {String? todayDateStr}) async {
+    final records = await getLabMilkTests();
+    final matching = records.where((r) {
+      if (r.siloId != siloId) return false;
+      if (todayDateStr != null && r.testDate != todayDateStr) return false;
+      return true;
+    }).toList();
+
+    if (matching.isEmpty) return null;
+    matching.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return matching.first;
+  }
+
+  /// Get a map of latest readings for all silos for a given date (defaults to today).
+  static Future<Map<String, LabMilkTest>> getLatestReadingsBySilo({String? todayDateStr}) async {
+    final records = await getLabMilkTests();
+    final Map<String, LabMilkTest> map = {};
+
+    for (final r in records) {
+      if (todayDateStr != null && r.testDate != todayDateStr) continue;
+      if (!map.containsKey(r.siloId)) {
+        map[r.siloId] = r;
+      }
+    }
+    return map;
+  }
+
+  static Future<void> _seedInitialLabMilkTests(SharedPreferences prefs) async {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final initialTests = [
+      LabMilkTest(
+        id: 'LAB-${now.millisecondsSinceEpoch}-01',
+        testDate: todayStr,
+        testTime: '08:35 AM',
+        siloId: 'PMST',
+        siloName: 'PMST',
+        fatPercentage: 4.30,
+        snfPercentage: 8.33,
+        labUserId: 'LAB-01',
+        labUserName: 'Lab User',
+        remarks: 'Morning pasteurized milk tank sample approved',
+        createdAt: now.subtract(const Duration(minutes: 45)),
+        updatedAt: now.subtract(const Duration(minutes: 45)),
+      ),
+      LabMilkTest(
+        id: 'LAB-${now.millisecondsSinceEpoch}-02',
+        testDate: todayStr,
+        testTime: '08:20 AM',
+        siloId: 'RMST',
+        siloName: 'RMST',
+        fatPercentage: 4.20,
+        snfPercentage: 8.31,
+        labUserId: 'LAB-01',
+        labUserName: 'Lab User',
+        remarks: 'Reception raw milk reception composite sample',
+        createdAt: now.subtract(const Duration(hours: 1)),
+        updatedAt: now.subtract(const Duration(hours: 1)),
+      ),
+    ];
+
+    await prefs.setString(
+      AppConstants.storageKeyLabMilkTests,
+      jsonEncode(initialTests.map((e) => e.toJson()).toList()),
     );
   }
 }

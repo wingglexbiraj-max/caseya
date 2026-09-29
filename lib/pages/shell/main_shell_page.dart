@@ -5,6 +5,7 @@ import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_sidebar.dart';
 import '../../core/widgets/app_bottom_nav.dart';
 import '../dashboard/dashboard_page.dart';
+import '../lab/lab_page.dart';
 import '../product_calculator/product_calculator_page.dart';
 import '../milk_standardization/milk_standardization_page.dart';
 import '../boiler/boiler_page.dart';
@@ -31,9 +32,11 @@ class _MainShellPageState extends State<MainShellPage> {
 
   static const List<String> _pageTitles = [
     'Dashboard',
+    'Lab Fat & SNF',
     'Product Calculator',
     'Milk Standardization',
     'Boiler Fuel Consumption',
+    'DG HSD Fuel & Energy',
     'Production Register',
     'Daily Batch Making Records',
     'Dispatch & Fleet Logistics',
@@ -86,7 +89,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('DG HSD Fuel'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(4);
+                  _onNavigate(5);
                 },
               ),
               ListTile(
@@ -94,7 +97,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Production Register'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(5);
+                  _onNavigate(6);
                 },
               ),
               ListTile(
@@ -102,7 +105,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Daily Batch Making'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(6);
+                  _onNavigate(7);
                 },
               ),
               ListTile(
@@ -110,7 +113,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Dispatch Logistics'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(7);
+                  _onNavigate(8);
                 },
               ),
               ListTile(
@@ -118,7 +121,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Packaging Tracker'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(8);
+                  _onNavigate(9);
                 },
               ),
               ListTile(
@@ -126,7 +129,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Stock & Inventory'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(9);
+                  _onNavigate(10);
                 },
               ),
               ListTile(
@@ -134,7 +137,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Reports & Export'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(10);
+                  _onNavigate(11);
                 },
               ),
               ListTile(
@@ -142,7 +145,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Products Master'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(11);
+                  _onNavigate(12);
                 },
               ),
               ListTile(
@@ -150,7 +153,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Settings & Roles'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(12);
+                  _onNavigate(13);
                 },
               ),
             ],
@@ -168,6 +171,7 @@ class _MainShellPageState extends State<MainShellPage> {
       index: _selectedIndex,
       children: [
         DashboardPage(onNavigate: _onNavigate),
+        const LabPage(),
         const ProductCalculatorPage(),
         const MilkStandardizationPage(),
         const BoilerPage(),
