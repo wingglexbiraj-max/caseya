@@ -30,6 +30,8 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
+  bool _entriesExpanded = false;
+
   @override
   void dispose() {
     _openingController.dispose();
@@ -208,46 +210,24 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 14,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text(
-                              'SHIFT FUEL LOGGING',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.1,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
+                        Container(
+                          width: 4,
+                          height: 14,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
-                        // Top-up toggle
-                        Row(
-                          children: [
-                            const Text(
-                              'Include Top-up in Net:',
-                              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                            ),
-                            const SizedBox(width: 8),
-                            Switch(
-                              value: state.includeTopUpInNet,
-                              activeThumbColor: AppColors.primary,
-                              onChanged: (val) {
-                                ref.read(boilerProvider.notifier).toggleTopUpInclusion(val);
-                              },
-                            ),
-                          ],
+                        const SizedBox(width: 8),
+                        const Text(
+                          'SHIFT FUEL LOGGING',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.1,
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
@@ -635,418 +615,361 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
   Widget _buildLiveFuelChips(BoilerState state) {
     final result = state.liveResult;
     final double levelConsumption = result?.calculatedLevelConsumption ?? 0.0;
-    final double diffCm = result?.levelDifferenceCm ?? 0.0;
-    final double topUp = result?.fuelTopUp ?? 0.0;
-    final double netConsumption = result?.netReportedConsumption ?? 0.0;
 
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 600;
-
-          final fuelConsumptionChip = Container(
-            padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.15),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
+                const Text(
+                  'FUEL CONSUMPTION',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.9,
+                    color: AppColors.goldAccent,
                   ),
-                  child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'FUEL CONSUMPTION',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.9,
-                          color: AppColors.goldAccent,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            '${Formatters.formatSmart(levelConsumption)} L',
-                            style: const TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              '((Diff ${Formatters.formatSmart(diffCm)} cm × 900) ÷ 70)',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                color: Colors.white.withValues(alpha: 0.8),
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                const SizedBox(height: 2),
+                Text(
+                  '${Formatters.formatSmart(levelConsumption)} L',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
             ),
-          );
-
-          final fuelTopUpChip = Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: topUp > 0 ? const Color(0xFFFFFBEB) : Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: topUp > 0 ? AppColors.goldAccent : AppColors.cardBorder,
-                width: topUp > 0 ? 1.5 : 1.2,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 4,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: topUp > 0 ? AppColors.goldAccent.withValues(alpha: 0.15) : AppColors.background,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.local_gas_station_rounded,
-                    color: topUp > 0 ? const Color(0xFFB45309) : AppColors.textSecondary,
-                    size: 22,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'FUEL TOP-UP',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.9,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.baseline,
-                        textBaseline: TextBaseline.alphabetic,
-                        children: [
-                          Text(
-                            topUp > 0 ? '+${Formatters.formatSmart(topUp)} L' : '0 L',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: topUp > 0 ? const Color(0xFFB45309) : AppColors.textPrimary,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Flexible(
-                            child: Text(
-                              topUp > 0
-                                  ? (state.includeTopUpInNet ? 'Net: ${Formatters.formatSmart(netConsumption)} L' : 'Excluded from Net')
-                                  : 'No top-up added',
-                              style: const TextStyle(
-                                fontSize: 11.5,
-                                color: AppColors.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          );
-
-          if (isWide) {
-            return Row(
-              children: [
-                Expanded(flex: 3, child: fuelConsumptionChip),
-                const SizedBox(width: 12),
-                Expanded(flex: 2, child: fuelTopUpChip),
-              ],
-            );
-          } else {
-            return Column(
-              children: [
-                fuelConsumptionChip,
-                const SizedBox(height: 10),
-                fuelTopUpChip,
-              ],
-            );
-          }
-        },
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildHistorySection(BoilerState state, bool canManage) {
-    return AppCard(
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
+          InkWell(
+            onTap: () => setState(() => _entriesExpanded = !_entriesExpanded),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    width: 4,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 3.5,
+                              height: 13,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 7),
+                            const Text(
+                              'RECENT BOILER ENTRIES (DATE-WISE)',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.1,
+                                color: AppColors.primaryDark,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        state.allRecords.isEmpty
+                            ? '0 Entries'
+                            : '${state.allRecords.length} Entries Recorded',
+                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'RECENT BOILER ENTRIES (DATE-WISE)',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.1,
-                      color: AppColors.textSecondary,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: state.allRecords.isNotEmpty ? AppColors.primaryContainer : AppColors.cardBorderSubtle,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _entriesExpanded ? 'Hide Entries' : 'View Entries',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w700,
+                            color: state.allRecords.isNotEmpty ? AppColors.primary : AppColors.textMuted,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        _entriesExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.textSecondary,
+                        size: 20,
+                      ),
+                    ],
                   ),
                 ],
               ),
-              StatusBadge.info('${state.filteredRecords.length} Entries'),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
-
-          // Filters Row
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 700;
-
-              return Row(
+          if (_entriesExpanded) ...[
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    flex: isWide ? 6 : 12,
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Search date, shift, employee, note...',
-                        prefixIcon: Icon(Icons.search_rounded, size: 19),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                      ),
-                      onChanged: (val) {
-                        ref.read(boilerProvider.notifier).setSearchQuery(val);
-                      },
-                    ),
+                  // Filters Row
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth >= 700;
+
+                      return Row(
+                        children: [
+                          Expanded(
+                            flex: isWide ? 6 : 12,
+                            child: TextField(
+                              controller: _searchController,
+                              decoration: const InputDecoration(
+                                hintText: 'Search date, shift, employee, note...',
+                                prefixIcon: Icon(Icons.search_rounded, size: 19),
+                                isDense: true,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              ),
+                              onChanged: (val) {
+                                ref.read(boilerProvider.notifier).setSearchQuery(val);
+                              },
+                            ),
+                          ),
+                          if (isWide) ...[
+                            const SizedBox(width: 12),
+                            DropdownButton<String>(
+                              value: state.filterShift,
+                              hint: const Text('Filter Shift', style: TextStyle(fontSize: 13)),
+                              items: [
+                                const DropdownMenuItem(value: '', child: Text('All Shifts')),
+                                ...AppConstants.shifts.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                              ],
+                              onChanged: (val) {
+                                ref.read(boilerProvider.notifier).setFilterShift(val?.isEmpty ?? true ? null : val);
+                              },
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
-                  if (isWide) ...[
-                    const SizedBox(width: 12),
-                    DropdownButton<String>(
-                      value: state.filterShift,
-                      hint: const Text('Filter Shift', style: TextStyle(fontSize: 13)),
-                      items: [
-                        const DropdownMenuItem(value: '', child: Text('All Shifts')),
-                        ...AppConstants.shifts.map((s) => DropdownMenuItem(value: s, child: Text(s))),
-                      ],
-                      onChanged: (val) {
-                        ref.read(boilerProvider.notifier).setFilterShift(val?.isEmpty ?? true ? null : val);
+                  const SizedBox(height: 16),
+
+                  // Entries List
+                  if (state.filteredRecords.isEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: AppColors.alertLight,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.inbox_outlined, size: 20, color: AppColors.alert),
+                          SizedBox(width: 8),
+                          Text('No boiler records matching current filter.', style: TextStyle(color: AppColors.alert, fontWeight: FontWeight.w700)),
+                        ],
+                      ),
+                    ),
+                  ] else ...[
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: state.filteredRecords.length,
+                      separatorBuilder: (_, index) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final item = state.filteredRecords[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.metricBgBoiler,
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          item.date,
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        StatusBadge.neutral(item.shift, fontSize: 11),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Opening: ${Formatters.formatSmart(item.openingCm)} CM  •  Closing: ${Formatters.formatSmart(item.closingCm)} CM  •  Running: ${Formatters.formatSmart(item.runningHours)} hr',
+                                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                    ),
+                                    if (item.fuelTopUp > 0)
+                                      Text(
+                                        'Fuel Top-up: ${Formatters.formatSmart(item.fuelTopUp)} L',
+                                        style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
+                                      ),
+                                    if (item.remarks.trim().isNotEmpty) ...[
+                                      const SizedBox(height: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.danger.withValues(alpha: 0.08),
+                                          borderRadius: BorderRadius.circular(6),
+                                          border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
+                                            const SizedBox(width: 6),
+                                            Flexible(
+                                              child: Text(
+                                                'Note: ${item.remarks.trim()}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.danger,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    '${Formatters.formatSmart(item.netReportedConsumption)} L',
+                                    style: const TextStyle(
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.primaryDark,
+                                    ),
+                                  ),
+                                  Text(
+                                    '${Formatters.formatDecimal(item.consumptionPerHour)} L/hr',
+                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 8),
+                              // Actions (Edit, Delete)
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
+                                onSelected: (val) async {
+                                  if (val == 'edit') {
+                                    _loadRecordIntoForm(item);
+                                  } else if (val == 'delete') {
+                                    final confirm = await ConfirmationDialog.show(
+                                      context: context,
+                                      title: 'Delete Boiler Record',
+                                      message: 'Are you sure you want to permanently delete boiler entry ${item.recordId} from ${item.date} (${item.shift})?',
+                                      confirmLabel: 'Delete Record',
+                                      isDestructive: true,
+                                    );
+                                    if (confirm) {
+                                      ref.read(boilerProvider.notifier).deleteRecord(item.recordId);
+                                    }
+                                  }
+                                },
+                                itemBuilder: (context) => [
+                                  const PopupMenuItem(value: 'edit', child: Text('Edit Record')),
+                                  if (canManage)
+                                    const PopupMenuItem(
+                                      value: 'delete',
+                                      child: Text('Delete', style: TextStyle(color: AppColors.danger)),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
                       },
                     ),
                   ],
                 ],
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Entries List
-          if (state.filteredRecords.isEmpty) ...[
-            Container(
-              padding: const EdgeInsets.all(20),
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppColors.alertLight,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
               ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.inbox_outlined, size: 20, color: AppColors.alert),
-                  SizedBox(width: 8),
-                  Text('No boiler records matching current filter.', style: TextStyle(color: AppColors.alert, fontWeight: FontWeight.w700)),
-                ],
-              ),
-            ),
-          ] else ...[
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: state.filteredRecords.length,
-              separatorBuilder: (_, index) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final item = state.filteredRecords[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.metricBgBoiler,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  item.date,
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                                ),
-                                const SizedBox(width: 8),
-                                StatusBadge.neutral(item.shift, fontSize: 11),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Opening: ${Formatters.formatSmart(item.openingCm)} CM  •  Closing: ${Formatters.formatSmart(item.closingCm)} CM  •  Running: ${Formatters.formatSmart(item.runningHours)} hr',
-                              style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                            ),
-                            if (item.fuelTopUp > 0)
-                              Text(
-                                'Fuel Top-up: ${Formatters.formatSmart(item.fuelTopUp)} L',
-                                style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
-                              ),
-                            if (item.remarks.trim().isNotEmpty) ...[
-                              const SizedBox(height: 5),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.danger.withValues(alpha: 0.08),
-                                  borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
-                                    const SizedBox(width: 6),
-                                    Flexible(
-                                      child: Text(
-                                        'Note: ${item.remarks.trim()}',
-                                        style: const TextStyle(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.danger,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            '${Formatters.formatSmart(item.netReportedConsumption)} L',
-                            style: const TextStyle(
-                              fontSize: 15.5,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.primaryDark,
-                            ),
-                          ),
-                          Text(
-                            '${Formatters.formatDecimal(item.consumptionPerHour)} L/hr',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(width: 8),
-                      // Actions (Edit, Delete)
-                      PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
-                        onSelected: (val) async {
-                          if (val == 'edit') {
-                            _loadRecordIntoForm(item);
-                          } else if (val == 'delete') {
-                            final confirm = await ConfirmationDialog.show(
-                              context: context,
-                              title: 'Delete Boiler Record',
-                              message: 'Are you sure you want to permanently delete boiler entry ${item.recordId} from ${item.date} (${item.shift})?',
-                              confirmLabel: 'Delete Record',
-                              isDestructive: true,
-                            );
-                            if (confirm) {
-                              ref.read(boilerProvider.notifier).deleteRecord(item.recordId);
-                            }
-                          }
-                        },
-                        itemBuilder: (context) => [
-                          const PopupMenuItem(value: 'edit', child: Text('Edit Record')),
-                          if (canManage)
-                            const PopupMenuItem(
-                              value: 'delete',
-                              child: Text('Delete', style: TextStyle(color: AppColors.danger)),
-                            ),
-                        ],
-                      ),
-                    ],
-                  ),
-                );
-              },
             ),
           ],
         ],
