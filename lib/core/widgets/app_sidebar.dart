@@ -33,20 +33,21 @@ class AppSidebar extends StatelessWidget {
     SidebarItem(index: 1, title: 'Product Calculator', icon: Icons.calculate_rounded),
     SidebarItem(index: 2, title: 'Milk Standardization', icon: Icons.water_drop_rounded),
     SidebarItem(index: 3, title: 'Boiler Fuel', icon: Icons.local_fire_department_rounded),
+    SidebarItem(index: 4, title: 'DG HSD Fuel', icon: Icons.electric_bolt_rounded),
   ];
 
   static const List<SidebarItem> operationsItems = [
-    SidebarItem(index: 4, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
-    SidebarItem(index: 5, title: 'Daily Batch Making', icon: Icons.blender_rounded),
-    SidebarItem(index: 6, title: 'Dispatch Logistics', icon: Icons.local_shipping_rounded),
-    SidebarItem(index: 7, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
-    SidebarItem(index: 8, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
-    SidebarItem(index: 9, title: 'Reports & Export', icon: Icons.insights_rounded),
+    SidebarItem(index: 5, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
+    SidebarItem(index: 6, title: 'Daily Batch Making', icon: Icons.blender_rounded),
+    SidebarItem(index: 7, title: 'Dispatch Logistics', icon: Icons.local_shipping_rounded),
+    SidebarItem(index: 8, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
+    SidebarItem(index: 9, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
+    SidebarItem(index: 10, title: 'Reports & Export', icon: Icons.insights_rounded),
   ];
 
   static const List<SidebarItem> adminItems = [
-    SidebarItem(index: 10, title: 'Products Master', icon: Icons.tune_rounded),
-    SidebarItem(index: 11, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
+    SidebarItem(index: 11, title: 'Products Master', icon: Icons.tune_rounded),
+    SidebarItem(index: 12, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
   ];
 
   @override

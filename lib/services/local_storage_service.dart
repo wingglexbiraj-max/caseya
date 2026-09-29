@@ -9,6 +9,7 @@ import '../models/lab_record.dart';
 import '../models/user_model.dart';
 import '../models/operations_models.dart';
 import '../models/batch_record_model.dart';
+import '../models/dg_hsd_record.dart';
 
 class LocalStorageService {
   static SharedPreferences? _prefs;
@@ -35,6 +36,9 @@ class LocalStorageService {
     }
     if (!prefs.containsKey(AppConstants.storageKeyBatchRecords)) {
       await _seedInitialBatchRecords(prefs);
+    }
+    if (!prefs.containsKey(AppConstants.storageKeyDgHsdRecords)) {
+      await _seedInitialDgHsdRecords(prefs);
     }
   }
 
@@ -1162,6 +1166,102 @@ class LocalStorageService {
     await prefs.setString(
       AppConstants.storageKeyBatchRecords,
       jsonEncode(initialBatches.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  // ===========================================================================
+  // DG HSD FUEL RECORDS
+  // ===========================================================================
+
+  static Future<List<DgHsdRecord>> getDgHsdRecords() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeyDgHsdRecords);
+    if (jsonStr == null || jsonStr.isEmpty) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      final records = list.map((e) => DgHsdRecord.fromJson(e as Map<String, dynamic>)).toList();
+      records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return records;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveDgHsdRecords(List<DgHsdRecord> records) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeyDgHsdRecords, jsonStr);
+  }
+
+  static Future<void> addDgHsdRecord(DgHsdRecord record) async {
+    final records = await getDgHsdRecords();
+    records.insert(0, record);
+    await saveDgHsdRecords(records);
+  }
+
+  static Future<void> updateDgHsdRecord(DgHsdRecord record) async {
+    final records = await getDgHsdRecords();
+    final index = records.indexWhere((r) => r.recordId == record.recordId);
+    if (index >= 0) {
+      records[index] = record;
+      await saveDgHsdRecords(records);
+    }
+  }
+
+  static Future<void> deleteDgHsdRecord(String recordId) async {
+    final records = await getDgHsdRecords();
+    records.removeWhere((r) => r.recordId == recordId);
+    await saveDgHsdRecords(records);
+  }
+
+  static Future<void> _seedInitialDgHsdRecords(SharedPreferences prefs) async {
+    final now = DateTime.now();
+    final initialRecords = [
+      DgHsdRecord(
+        recordId: 'DG-20260928-A',
+        date: '2026-09-28',
+        time: '02:00 PM',
+        shift: 'Shift A (06:00 - 14:00)',
+        employeeId: 'EMP-001',
+        employeeName: 'Biraj Goswami',
+        fuelAdded: 200.0,
+        startPercentage: 85.0,
+        endPercentage: 62.0,
+        percentageDrop: 23.0,
+        fuelConsumption: 75.0,
+        kwh: 260.0,
+        runningHours: 4.5,
+        consumptionPerHour: 16.67,
+        unitsPerLitre: 3.47,
+        remarks: 'DG operated smoothly during peak pasteurizer operation',
+        createdAt: now.subtract(const Duration(hours: 18)),
+        updatedAt: now.subtract(const Duration(hours: 18)),
+      ),
+      DgHsdRecord(
+        recordId: 'DG-20260927-B',
+        date: '2026-09-27',
+        time: '10:00 PM',
+        shift: 'Shift B (14:00 - 22:00)',
+        employeeId: 'EMP-002',
+        employeeName: 'M. Hazarika',
+        fuelAdded: 0.0,
+        startPercentage: 62.0,
+        endPercentage: 48.0,
+        percentageDrop: 14.0,
+        fuelConsumption: 48.0,
+        kwh: 165.0,
+        runningHours: 3.0,
+        consumptionPerHour: 16.0,
+        unitsPerLitre: 3.44,
+        remarks: 'Power grid cut from 17:30 to 20:30; cold room backup sustained',
+        createdAt: now.subtract(const Duration(hours: 38)),
+        updatedAt: now.subtract(const Duration(hours: 38)),
+      ),
+    ];
+
+    await prefs.setString(
+      AppConstants.storageKeyDgHsdRecords,
+      jsonEncode(initialRecords.map((e) => e.toJson()).toList()),
     );
   }
 }

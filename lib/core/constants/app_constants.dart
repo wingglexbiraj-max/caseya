@@ -39,6 +39,7 @@ class AppConstants {
   static const String storageKeyPackagingRecords = 'caseya_packaging_records';
   static const String storageKeyStockRecords = 'caseya_stock_records';
   static const String storageKeyBatchRecords = 'caseya_batch_records';
+  static const String storageKeyDgHsdRecords = 'caseya_dg_hsd_records';
   static const String storageKeySettings = 'caseya_system_settings';
   static const String storageKeyApiUrl = 'caseya_api_url';
 }
