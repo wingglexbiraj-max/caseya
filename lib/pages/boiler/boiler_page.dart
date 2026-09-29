@@ -253,83 +253,189 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Date & Shift Row
-                    Row(
-                      children: [
-                        // Date picker button
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 6),
-                              InkWell(
-                                onTap: _selectDate,
-                                borderRadius: BorderRadius.circular(9),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(9),
-                                    border: Border.all(color: AppColors.cardBorder, width: 1.2),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        Formatters.formatDate(state.selectedDate),
-                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                                      ),
-                                      const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 14),
+                    // Row 1: Date, Shift, and Fuel Top-up (3 chips in one row)
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 700;
 
-                        // Shift Dropdown
-                        Expanded(
-                          child: Column(
+                        if (isWide) {
+                          return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-                              const SizedBox(height: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(9),
-                                  border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                              // 1. Date
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                    const SizedBox(height: 6),
+                                    InkWell(
+                                      onTap: _selectDate,
+                                      borderRadius: BorderRadius.circular(9),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(9),
+                                          border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Text(
+                                              Formatters.formatDate(state.selectedDate),
+                                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+                                            ),
+                                            const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                child: DropdownButtonHideUnderline(
-                                  child: DropdownButton<String>(
-                                    value: state.selectedShift,
-                                    isExpanded: true,
-                                    items: AppConstants.shifts.map((s) {
-                                      return DropdownMenuItem(
-                                        value: s,
-                                        child: Text(s, style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
-                                      );
-                                    }).toList(),
-                                    onChanged: (newShift) {
-                                      if (newShift != null) {
-                                        ref.read(boilerProvider.notifier).setShift(newShift);
-                                      }
-                                    },
-                                  ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // 2. Shift
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                    const SizedBox(height: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(9),
+                                        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                                      ),
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: state.selectedShift,
+                                          isExpanded: true,
+                                          items: AppConstants.shifts.map((s) {
+                                            return DropdownMenuItem(
+                                              value: s,
+                                              child: Text(s, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                                            );
+                                          }).toList(),
+                                          onChanged: (newShift) {
+                                            if (newShift != null) {
+                                              ref.read(boilerProvider.notifier).setShift(newShift);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+
+                              // 3. Fuel Top-up
+                              Expanded(
+                                child: AppTextField(
+                                  label: 'Fuel Top-up',
+                                  hint: '0',
+                                  controller: _topUpController,
+                                  suffixText: 'Litres',
+                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                  onChanged: (_) => _onFieldChanged(),
                                 ),
                               ),
                             ],
-                          ),
-                        ),
-                      ],
+                          );
+                        } else {
+                          return Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        const SizedBox(height: 6),
+                                        InkWell(
+                                          onTap: _selectDate,
+                                          borderRadius: BorderRadius.circular(9),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(9),
+                                              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text(
+                                                  Formatters.formatDate(state.selectedDate),
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+                                                ),
+                                                const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        const SizedBox(height: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 14),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(9),
+                                            border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                                          ),
+                                          child: DropdownButtonHideUnderline(
+                                            child: DropdownButton<String>(
+                                              value: state.selectedShift,
+                                              isExpanded: true,
+                                              items: AppConstants.shifts.map((s) {
+                                                return DropdownMenuItem(
+                                                  value: s,
+                                                  child: Text(s, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                                                );
+                                              }).toList(),
+                                              onChanged: (newShift) {
+                                                if (newShift != null) {
+                                                  ref.read(boilerProvider.notifier).setShift(newShift);
+                                                }
+                                              },
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              AppTextField(
+                                label: 'Fuel Top-up',
+                                hint: '0',
+                                controller: _topUpController,
+                                suffixText: 'Litres',
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (_) => _onFieldChanged(),
+                              ),
+                            ],
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: 16),
 
-                    // Opening CM, Closing CM, Running Hours, Fuel Top-up
+                    // Row 2: Opening CM, Closing CM, Running Hours
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 700;
@@ -387,17 +493,6 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: AppTextField(
-                                  label: 'Fuel Top-up',
-                                  hint: '0',
-                                  controller: _topUpController,
-                                  suffixText: 'Litres',
-                                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  onChanged: (_) => _onFieldChanged(),
-                                ),
-                              ),
                             ],
                           );
                         } else {
@@ -429,30 +524,13 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: AppTextField(
-                                      label: 'Running Hours',
-                                      hint: '8.5',
-                                      controller: _hoursController,
-                                      suffixText: 'Hours',
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      onChanged: (_) => _onFieldChanged(),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: AppTextField(
-                                      label: 'Fuel Top-up',
-                                      hint: '0',
-                                      controller: _topUpController,
-                                      suffixText: 'Litres',
-                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                      onChanged: (_) => _onFieldChanged(),
-                                    ),
-                                  ),
-                                ],
+                              AppTextField(
+                                label: 'Running Hours',
+                                hint: '8.5',
+                                controller: _hoursController,
+                                suffixText: 'Hours',
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                onChanged: (_) => _onFieldChanged(),
                               ),
                             ],
                           );
@@ -461,9 +539,13 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     ),
                     const SizedBox(height: 14),
 
-                    // Remarks
+                    // Live Fuel Consumption & Top-up Chips (directly below Opening & Closing CM)
+                    _buildLiveFuelChips(state),
+                    const SizedBox(height: 14),
+
+                    // Note (Renamed from Remarks / Observations)
                     AppTextField(
-                      label: 'Remarks / Observations',
+                      label: 'Note',
                       hint: 'e.g. Normal steam pressure maintained across shift',
                       controller: _remarksController,
                       onChanged: (_) => _onFieldChanged(),
@@ -550,6 +632,199 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
     );
   }
 
+  Widget _buildLiveFuelChips(BoilerState state) {
+    final result = state.liveResult;
+    final double levelConsumption = result?.calculatedLevelConsumption ?? 0.0;
+    final double diffCm = result?.levelDifferenceCm ?? 0.0;
+    final double topUp = result?.fuelTopUp ?? 0.0;
+    final double netConsumption = result?.netReportedConsumption ?? 0.0;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 600;
+
+          final fuelConsumptionChip = Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.15),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'FUEL CONSUMPTION',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.9,
+                          color: AppColors.goldAccent,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            '${Formatters.formatSmart(levelConsumption)} L',
+                            style: const TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              '((Diff ${Formatters.formatSmart(diffCm)} cm × 900) ÷ 70)',
+                              style: TextStyle(
+                                fontSize: 11.5,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          final fuelTopUpChip = Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: topUp > 0 ? const Color(0xFFFFFBEB) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: topUp > 0 ? AppColors.goldAccent : AppColors.cardBorder,
+                width: topUp > 0 ? 1.5 : 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: topUp > 0 ? AppColors.goldAccent.withValues(alpha: 0.15) : AppColors.background,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.local_gas_station_rounded,
+                    color: topUp > 0 ? const Color(0xFFB45309) : AppColors.textSecondary,
+                    size: 22,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'FUEL TOP-UP',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.9,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.baseline,
+                        textBaseline: TextBaseline.alphabetic,
+                        children: [
+                          Text(
+                            topUp > 0 ? '+${Formatters.formatSmart(topUp)} L' : '0 L',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: topUp > 0 ? const Color(0xFFB45309) : AppColors.textPrimary,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              topUp > 0
+                                  ? (state.includeTopUpInNet ? 'Net: ${Formatters.formatSmart(netConsumption)} L' : 'Excluded from Net')
+                                  : 'No top-up added',
+                              style: const TextStyle(
+                                fontSize: 11.5,
+                                color: AppColors.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+
+          if (isWide) {
+            return Row(
+              children: [
+                Expanded(flex: 3, child: fuelConsumptionChip),
+                const SizedBox(width: 12),
+                Expanded(flex: 2, child: fuelTopUpChip),
+              ],
+            );
+          } else {
+            return Column(
+              children: [
+                fuelConsumptionChip,
+                const SizedBox(height: 10),
+                fuelTopUpChip,
+              ],
+            );
+          }
+        },
+      ),
+    );
+  }
+
   Widget _buildHistorySection(BoilerState state, bool canManage) {
     return AppCard(
       child: Column(
@@ -597,7 +872,7 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     child: TextField(
                       controller: _searchController,
                       decoration: const InputDecoration(
-                        hintText: 'Search date, shift, employee, remarks...',
+                        hintText: 'Search date, shift, employee, note...',
                         prefixIcon: Icon(Icons.search_rounded, size: 19),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -691,11 +966,34 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                                 'Fuel Top-up: ${Formatters.formatSmart(item.fuelTopUp)} L',
                                 style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
                               ),
-                            if (item.remarks.isNotEmpty)
-                              Text(
-                                'Remarks: ${item.remarks}',
-                                style: const TextStyle(fontSize: 11.5, color: AppColors.textMuted, fontStyle: FontStyle.italic),
+                            if (item.remarks.trim().isNotEmpty) ...[
+                              const SizedBox(height: 5),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.danger.withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        'Note: ${item.remarks.trim()}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.danger,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
+                            ],
                           ],
                         ),
                       ),
