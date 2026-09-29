@@ -3,6 +3,7 @@ import '../core/utils/formatters.dart';
 import 'boiler_provider.dart';
 import 'standardization_provider.dart';
 import 'product_calculator_provider.dart';
+import 'dispatch_provider.dart';
 
 class PlantActivity {
   final String time;
@@ -40,6 +41,7 @@ final dashboardProvider = Provider<DashboardState>((ref) {
   final boilerState = ref.watch(boilerProvider);
   final stdState = ref.watch(standardizationProvider);
   final calcState = ref.watch(productCalculatorProvider);
+  final dispatchState = ref.watch(dispatchProvider);
 
   // Compute today's boiler consumption from records
   final todayIso = Formatters.formatIsoDate(DateTime.now());
@@ -62,8 +64,27 @@ final dashboardProvider = Provider<DashboardState>((ref) {
     stdCount = stdState.history.length;
   }
 
+  // Compute today's dispatch litres from real dispatches
+  double realDispatchLitres = 0.0;
+  final todayDispatches = dispatchState.dispatches.where((d) => d.dispatchDate == todayIso).toList();
+  for (final d in todayDispatches) {
+    realDispatchLitres += d.totalLitres;
+  }
+  if (realDispatchLitres == 0.0 && dispatchState.dispatches.isNotEmpty) {
+    realDispatchLitres = dispatchState.dispatches.fold(0.0, (acc, d) => acc + d.totalLitres);
+  }
+
   // Construct real recent activities
   final List<PlantActivity> activities = [];
+
+  for (final d in dispatchState.dispatches.take(2)) {
+    activities.add(PlantActivity(
+      time: d.dispatchTime.isNotEmpty ? d.dispatchTime : 'Gate Out',
+      title: 'Vehicle ${d.vehicleNumber} dispatched (${d.distributorName})',
+      subtitle: '${d.summaryLabel} • ${d.route.isNotEmpty ? d.route : "Plant Route"}',
+      module: 'Dispatch',
+    ));
+  }
 
   for (final b in boilerState.allRecords.take(2)) {
     activities.add(PlantActivity(
@@ -124,7 +145,7 @@ final dashboardProvider = Provider<DashboardState>((ref) {
 
   return DashboardState(
     todayProductionLitres: 18450.0,
-    todayDispatchLitres: 16200.0,
+    todayDispatchLitres: realDispatchLitres > 0 ? realDispatchLitres : 16200.0,
     currentStockLitres: 42800.0,
     todayBoilerConsumptionLitres: todayBoiler > 0 ? todayBoiler : 900.0,
     todayStandardizationBatches: stdCount > 0 ? stdCount : 1,

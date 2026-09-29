@@ -7,11 +7,12 @@ import '../models/standardization_record.dart';
 import '../models/product_calculation_record.dart';
 import '../models/lab_record.dart';
 import '../models/user_model.dart';
-import '../models/operations_models.dart';
+import '../models/operations_models.dart' hide DispatchItem, DispatchRecord;
 import '../models/batch_record_model.dart';
 import '../models/dg_hsd_record.dart';
 import '../models/silo_model.dart';
 import '../models/lab_milk_test.dart';
+import '../models/dispatch_record.dart';
 
 class LocalStorageService {
   static SharedPreferences? _prefs;
@@ -47,6 +48,9 @@ class LocalStorageService {
     }
     if (!prefs.containsKey(AppConstants.storageKeyLabMilkTests)) {
       await _seedInitialLabMilkTests(prefs);
+    }
+    if (!prefs.containsKey(AppConstants.storageKeyDispatchRecords)) {
+      await _seedInitialDispatches(prefs);
     }
   }
 
@@ -1422,6 +1426,235 @@ class LocalStorageService {
     await prefs.setString(
       AppConstants.storageKeyLabMilkTests,
       jsonEncode(initialTests.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  // ===========================================================================
+  // DISPATCH RECORDS (VEHICLE-WISE PLANT DISPATCH)
+  // ===========================================================================
+
+  static Future<List<VehicleDispatch>> getDispatches() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeyDispatchRecords);
+    if (jsonStr == null || jsonStr.isEmpty) {
+      await _seedInitialDispatches(prefs);
+      final seeded = prefs.getString(AppConstants.storageKeyDispatchRecords);
+      if (seeded == null || seeded.isEmpty) return [];
+      final List<dynamic> list = jsonDecode(seeded);
+      return list.map((e) => VehicleDispatch.fromJson(e as Map<String, dynamic>)).toList();
+    }
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      final records = list.map((e) => VehicleDispatch.fromJson(e as Map<String, dynamic>)).toList();
+      records.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return records;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveDispatches(List<VehicleDispatch> records) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeyDispatchRecords, jsonStr);
+  }
+
+  static Future<void> addDispatch(VehicleDispatch record) async {
+    final records = await getDispatches();
+    records.insert(0, record);
+    await saveDispatches(records);
+  }
+
+  static Future<void> updateDispatch(VehicleDispatch record) async {
+    final records = await getDispatches();
+    final index = records.indexWhere((r) => r.id == record.id);
+    if (index >= 0) {
+      records[index] = record;
+      await saveDispatches(records);
+    }
+  }
+
+  static Future<void> deleteDispatch(String recordId) async {
+    final records = await getDispatches();
+    records.removeWhere((r) => r.id == recordId);
+    await saveDispatches(records);
+  }
+
+  static Future<List<VehicleDispatch>> getDispatchesByDate(String dateStr) async {
+    final records = await getDispatches();
+    return records.where((r) => r.dispatchDate == dateStr).toList();
+  }
+
+  static Future<void> _seedInitialDispatches(SharedPreferences prefs) async {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final yesterday = now.subtract(const Duration(days: 1));
+    final yesterdayStr = '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+
+    final initialDispatches = [
+      // Today: Vehicle 1 - Distributor A (AS01AB1234)
+      VehicleDispatch(
+        id: 'DISP-${now.millisecondsSinceEpoch}-01',
+        dispatchDate: todayStr,
+        distributorName: 'Distributor A',
+        vehicleNumber: 'AS01AB1234',
+        driverName: 'Ramesh Sharma',
+        route: 'Route 01 - Guwahati Central',
+        dispatchTime: '08:35 AM',
+        remarks: 'Morning dispatch batch completed on schedule',
+        createdBy: 'Dispatch Officer',
+        createdAt: now.subtract(const Duration(hours: 3)),
+        updatedAt: now.subtract(const Duration(hours: 3)),
+        items: [
+          DispatchItem(
+            id: 'ITEM-${now.millisecondsSinceEpoch}-01',
+            dispatchId: 'DISP-${now.millisecondsSinceEpoch}-01',
+            productId: '9900007',
+            productName: 'Purabi Lassi 200 ml (PL200)',
+            shortCode: 'PL200',
+            itemCode: '9900007',
+            inputMode: 'Crates',
+            inputQuantity: 10.0,
+            crates: 10.0,
+            pieces: 300,
+            normalizedQuantity: 60.0,
+            normalizedUnit: 'Litres',
+            packSize: 200.0,
+            packSizeDisplay: '200 ml',
+            piecesPerCrate: 30,
+            createdAt: now.subtract(const Duration(hours: 3)),
+          ),
+          DispatchItem(
+            id: 'ITEM-${now.millisecondsSinceEpoch}-02',
+            dispatchId: 'DISP-${now.millisecondsSinceEpoch}-01',
+            productId: '9900095',
+            productName: 'Purabi Plus 250 ml (PP250)',
+            shortCode: 'PP250',
+            itemCode: '9900095',
+            inputMode: 'Crates',
+            inputQuantity: 20.0,
+            crates: 20.0,
+            pieces: 960,
+            normalizedQuantity: 240.0,
+            normalizedUnit: 'Litres',
+            packSize: 250.0,
+            packSizeDisplay: '250 ml',
+            piecesPerCrate: 48,
+            createdAt: now.subtract(const Duration(hours: 3)),
+          ),
+          DispatchItem(
+            id: 'ITEM-${now.millisecondsSinceEpoch}-03',
+            dispatchId: 'DISP-${now.millisecondsSinceEpoch}-01',
+            productId: '9900026',
+            productName: 'Sweet Curd Cup 400g (S400)',
+            shortCode: 'S400',
+            itemCode: '9900026',
+            inputMode: 'Crates',
+            inputQuantity: 5.0,
+            crates: 5.0,
+            pieces: 75,
+            normalizedQuantity: 30.0,
+            normalizedUnit: 'Kg',
+            packSize: 400.0,
+            packSizeDisplay: '400 g',
+            piecesPerCrate: 15,
+            createdAt: now.subtract(const Duration(hours: 3)),
+          ),
+        ],
+      ),
+
+      // Today: Vehicle 2 - Distributor B (AS02CD5678)
+      VehicleDispatch(
+        id: 'DISP-${now.millisecondsSinceEpoch}-02',
+        dispatchDate: todayStr,
+        distributorName: 'Distributor B',
+        vehicleNumber: 'AS02CD5678',
+        driverName: 'Bikash Kalita',
+        route: 'Route 04 - Dispur & Beltola',
+        dispatchTime: '09:15 AM',
+        remarks: 'Cold chain vehicle pre-cooled to 4°C',
+        createdBy: 'Dispatch Officer',
+        createdAt: now.subtract(const Duration(hours: 2)),
+        updatedAt: now.subtract(const Duration(hours: 2)),
+        items: [
+          DispatchItem(
+            id: 'ITEM-${now.millisecondsSinceEpoch}-04',
+            dispatchId: 'DISP-${now.millisecondsSinceEpoch}-02',
+            productId: '9900007',
+            productName: 'Purabi Lassi 200 ml (PL200)',
+            shortCode: 'PL200',
+            itemCode: '9900007',
+            inputMode: 'Crates',
+            inputQuantity: 15.0,
+            crates: 15.0,
+            pieces: 450,
+            normalizedQuantity: 90.0,
+            normalizedUnit: 'Litres',
+            packSize: 200.0,
+            packSizeDisplay: '200 ml',
+            piecesPerCrate: 30,
+            createdAt: now.subtract(const Duration(hours: 2)),
+          ),
+          DispatchItem(
+            id: 'ITEM-${now.millisecondsSinceEpoch}-05',
+            dispatchId: 'DISP-${now.millisecondsSinceEpoch}-02',
+            productId: '9900010',
+            productName: 'Plain Curd Cup 400g (P400)',
+            shortCode: 'P400',
+            itemCode: '9900010',
+            inputMode: 'Crates',
+            inputQuantity: 10.0,
+            crates: 10.0,
+            pieces: 150,
+            normalizedQuantity: 60.0,
+            normalizedUnit: 'Kg',
+            packSize: 400.0,
+            packSizeDisplay: '400 g',
+            piecesPerCrate: 15,
+            createdAt: now.subtract(const Duration(hours: 2)),
+          ),
+        ],
+      ),
+
+      // Yesterday: Sample Dispatch
+      VehicleDispatch(
+        id: 'DISP-${yesterday.millisecondsSinceEpoch}-03',
+        dispatchDate: yesterdayStr,
+        distributorName: 'Distributor A',
+        vehicleNumber: 'AS01AB1234',
+        driverName: 'Ramesh Sharma',
+        route: 'Route 01 - Guwahati Central',
+        dispatchTime: '08:10 AM',
+        remarks: 'Regular daily run',
+        createdBy: 'Dispatch Officer',
+        createdAt: yesterday.subtract(const Duration(hours: 4)),
+        updatedAt: yesterday.subtract(const Duration(hours: 4)),
+        items: [
+          DispatchItem(
+            id: 'ITEM-${yesterday.millisecondsSinceEpoch}-06',
+            dispatchId: 'DISP-${yesterday.millisecondsSinceEpoch}-03',
+            productId: '9900007',
+            productName: 'Purabi Lassi 200 ml (PL200)',
+            shortCode: 'PL200',
+            itemCode: '9900007',
+            inputMode: 'Crates',
+            inputQuantity: 12.0,
+            crates: 12.0,
+            pieces: 360,
+            normalizedQuantity: 72.0,
+            normalizedUnit: 'Litres',
+            packSize: 200.0,
+            packSizeDisplay: '200 ml',
+            piecesPerCrate: 30,
+            createdAt: yesterday.subtract(const Duration(hours: 4)),
+          ),
+        ],
+      ),
+    ];
+
+    await prefs.setString(
+      AppConstants.storageKeyDispatchRecords,
+      jsonEncode(initialDispatches.map((e) => e.toJson()).toList()),
     );
   }
 }

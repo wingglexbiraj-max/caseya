@@ -39,7 +39,7 @@ class _MainShellPageState extends State<MainShellPage> {
     'DG HSD Fuel & Energy',
     'Production Register',
     'Daily Batch Making Records',
-    'Dispatch & Fleet Logistics',
+    'Dispatch Records',
     'Packaging Tracker',
     'Cold Room Stock',
     'Reports & Export',
@@ -110,7 +110,7 @@ class _MainShellPageState extends State<MainShellPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.local_shipping_outlined, color: AppColors.primary),
-                title: const Text('Dispatch Logistics'),
+                title: const Text('Dispatch Records'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _onNavigate(8);

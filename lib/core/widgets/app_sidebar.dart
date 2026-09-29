@@ -40,7 +40,7 @@ class AppSidebar extends StatelessWidget {
   static const List<SidebarItem> operationsItems = [
     SidebarItem(index: 6, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
     SidebarItem(index: 7, title: 'Daily Batch Making', icon: Icons.blender_rounded),
-    SidebarItem(index: 8, title: 'Dispatch Logistics', icon: Icons.local_shipping_rounded),
+    SidebarItem(index: 8, title: 'Dispatch Records', icon: Icons.local_shipping_rounded),
     SidebarItem(index: 9, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
     SidebarItem(index: 10, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
     SidebarItem(index: 11, title: 'Reports & Export', icon: Icons.insights_rounded),
