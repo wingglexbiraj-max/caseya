@@ -12,7 +12,9 @@ class AppColors {
   static const Color primary = Color(0xFF0F2448); // Executive Midnight Navy
   static const Color primaryDark = Color(0xFF08152B); // Deepest Midnight
   static const Color primaryLight = Color(0xFF1E3A8A); // Rich Midnight Blue
-  static const Color primaryContainer = Color(0xFFF0F7FF); // Low-opacity navy tint
+  static const Color primaryContainer = Color(
+    0xFFF0F7FF,
+  ); // Low-opacity navy tint
   static const Color primarySurface = Color(0xFFF8FAFC); // Clean Porcelain Tint
 
   static const Color secondary = Color(0xFF0F2448);
@@ -74,7 +76,9 @@ class AppColors {
   // ===========================================================================
   // 3. BLACK (Precision Typography & Sharp Outlines)
   // ===========================================================================
-  static const Color textPrimary = Color(0xFF000000); // True Black (Maximum Legibility)
+  static const Color textPrimary = Color(
+    0xFF000000,
+  ); // True Black (Maximum Legibility)
   static const Color textSecondary = Color(0xFF374151); // Dark Charcoal Black
   static const Color textMuted = Color(0xFF6B7280); // Slate Charcoal
   static const Color cardBorder = Color(0xFFE5E7EB); // Crisp Precision Border
