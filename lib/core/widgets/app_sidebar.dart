@@ -114,22 +114,14 @@ class AppSidebar extends StatelessWidget {
             ),
           ),
 
-          // Menu Navigation List (Clean without section headings)
+          // Menu Navigation List with divider line below each item
           Expanded(
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 14),
+              padding: EdgeInsets.zero,
               children: [
-                ...primaryItems.map((item) => _buildNavItem(item)),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Divider(height: 1, color: AppColors.divider),
-                ),
-                ...operationsItems.map((item) => _buildNavItem(item)),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  child: Divider(height: 1, color: AppColors.divider),
-                ),
-                ...adminItems.map((item) => _buildNavItem(item)),
+                ...primaryItems.map((item) => _buildNavItemWithDivider(item)),
+                ...operationsItems.map((item) => _buildNavItemWithDivider(item)),
+                ...adminItems.map((item) => _buildNavItemWithDivider(item)),
               ],
             ),
           ),
@@ -141,57 +133,66 @@ class AppSidebar extends StatelessWidget {
     );
   }
 
+  Widget _buildNavItemWithDivider(SidebarItem item) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildNavItem(item),
+        const Divider(
+          height: 1,
+          thickness: 0.8,
+          color: AppColors.cardBorder,
+        ),
+      ],
+    );
+  }
+
   Widget _buildNavItem(SidebarItem item) {
     final isSelected = selectedIndex == item.index;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 3),
-      decoration: BoxDecoration(
-        color: isSelected ? AppColors.primaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(9),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(9),
-          onTap: () => onItemSelected(item.index),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 9.5),
-            child: Row(
-              children: [
-                Icon(
-                  item.icon,
-                  size: 20,
-                  color: isSelected ? AppColors.primary : AppColors.textSecondary,
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    item.title,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                      color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
-                    ),
-                  ),
-                ),
-                if (isSelected) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 3.5,
-                    height: 18,
-                    decoration: BoxDecoration(
+    return Material(
+      color: isSelected
+          ? AppColors.primaryContainer.withValues(alpha: 0.65)
+          : Colors.transparent,
+      child: InkWell(
+        onTap: () => onItemSelected(item.index),
+        splashColor: AppColors.primary.withValues(alpha: 0.22),
+        highlightColor: AppColors.primary.withValues(alpha: 0.12),
+        hoverColor: AppColors.primary.withValues(alpha: 0.05),
+        child: Container(
+          decoration: BoxDecoration(
+            border: isSelected
+                ? const Border(
+                    right: BorderSide(
                       color: AppColors.goldAccent,
-                      borderRadius: BorderRadius.circular(2),
+                      width: 4,
                     ),
+                  )
+                : null,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Icon(
+                item.icon,
+                size: 20,
+                color: isSelected ? AppColors.primary : AppColors.textSecondary,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  item.title,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
                   ),
-                ],
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

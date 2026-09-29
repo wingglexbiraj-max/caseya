@@ -42,9 +42,6 @@ class _LabPageState extends ConsumerState<LabPage> {
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  String _selectedAnalyst = 'Biraj Goswami';
-  bool _isCustomAnalyst = false;
-
   @override
   void initState() {
     super.initState();
@@ -57,12 +54,8 @@ class _LabPageState extends ConsumerState<LabPage> {
         );
         setState(() {
           if (match.isNotEmpty && match != 'Other (Type manually)') {
-            _selectedAnalyst = match;
-            _isCustomAnalyst = false;
             _analystController.text = match;
           } else {
-            _selectedAnalyst = 'Other (Type manually)';
-            _isCustomAnalyst = true;
             _analystController.text = currentUserName;
           }
         });
@@ -83,11 +76,9 @@ class _LabPageState extends ConsumerState<LabPage> {
   void _onSave() async {
     if (_formKey.currentState?.validate() ?? false) {
       final user = ref.read(authProvider);
-      final analystName = _isCustomAnalyst
-          ? (_analystController.text.trim().isNotEmpty
-                ? _analystController.text.trim()
-                : user.name)
-          : _selectedAnalyst;
+      final analystName = _analystController.text.trim().isNotEmpty
+          ? _analystController.text.trim()
+          : user.name;
 
       ref
           .read(labProvider.notifier)
@@ -129,12 +120,8 @@ class _LabPageState extends ConsumerState<LabPage> {
       _snfController.clear();
       _remarksController.clear();
       if (match.isNotEmpty && match != 'Other (Type manually)') {
-        _selectedAnalyst = match;
-        _isCustomAnalyst = false;
         _analystController.text = match;
       } else {
-        _selectedAnalyst = 'Other (Type manually)';
-        _isCustomAnalyst = true;
         _analystController.text = currentUserName;
       }
     });
@@ -151,12 +138,8 @@ class _LabPageState extends ConsumerState<LabPage> {
       _snfController.text = test.snfPercentage.toStringAsFixed(2);
       _remarksController.text = test.remarks;
       if (match.isNotEmpty && match != 'Other (Type manually)') {
-        _selectedAnalyst = match;
-        _isCustomAnalyst = false;
         _analystController.text = match;
       } else {
-        _selectedAnalyst = 'Other (Type manually)';
-        _isCustomAnalyst = true;
         _analystController.text = test.labUserName;
       }
     });
@@ -184,102 +167,64 @@ class _LabPageState extends ConsumerState<LabPage> {
   }
 
   Widget _buildAnalystSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Lab Analyst (Person) *',
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
-            letterSpacing: 0.2,
-          ),
+    return AppTextField(
+      label: 'Lab Analyst (Person) *',
+      hint: 'Type name or select from list',
+      controller: _analystController,
+      prefixIcon: const Icon(
+        Icons.person_rounded,
+        size: 18,
+        color: AppColors.primary,
+      ),
+      suffixIcon: PopupMenuButton<String>(
+        tooltip: 'Select analyst from list',
+        icon: const Icon(
+          Icons.arrow_drop_down_rounded,
+          color: AppColors.textSecondary,
+          size: 26,
         ),
-        const SizedBox(height: 6),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          height: 48,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(9),
-            border: Border.all(color: AppColors.cardBorder, width: 1.2),
-          ),
-          child: Row(
-            children: [
-              const Icon(
-                Icons.person_rounded,
-                size: 18,
-                color: AppColors.primary,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: DropdownButtonHideUnderline(
-                  child: DropdownButton<String>(
-                    value: _selectedAnalyst,
-                    isExpanded: true,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.textSecondary,
-                    ),
-                    items: _defaultAnalysts.map((name) {
-                      final isOther = name == 'Other (Type manually)';
-                      return DropdownMenuItem<String>(
-                        value: name,
-                        child: Text(
-                          name,
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: isOther
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                            color: isOther
-                                ? AppColors.primary
-                                : AppColors.textPrimary,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (val) {
-                      if (val == null) return;
-                      setState(() {
-                        _selectedAnalyst = val;
-                        if (val == 'Other (Type manually)') {
-                          _isCustomAnalyst = true;
-                          _analystController.clear();
-                        } else {
-                          _isCustomAnalyst = false;
-                          _analystController.text = val;
-                        }
-                      });
-                    },
+        onSelected: (val) {
+          setState(() {
+            if (val == 'Other (Type manually)') {
+              _analystController.clear();
+            } else {
+              _analystController.text = val;
+            }
+          });
+        },
+        itemBuilder: (context) => _defaultAnalysts.map((name) {
+          final isOther = name == 'Other (Type manually)';
+          return PopupMenuItem<String>(
+            value: name,
+            child: Row(
+              children: [
+                Icon(
+                  isOther
+                      ? Icons.edit_note_rounded
+                      : Icons.person_outline_rounded,
+                  size: 16,
+                  color: isOther ? AppColors.primary : AppColors.textSecondary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  name,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: isOther ? FontWeight.w700 : FontWeight.w600,
+                    color: isOther ? AppColors.primary : AppColors.textPrimary,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        if (_isCustomAnalyst) ...[
-          const SizedBox(height: 10),
-          AppTextField(
-            label: 'Enter Analyst Name *',
-            hint: 'Type analyst name...',
-            controller: _analystController,
-            prefixIcon: const Icon(
-              Icons.edit_rounded,
-              size: 18,
-              color: AppColors.primary,
+              ],
             ),
-            validator: (val) {
-              if (_isCustomAnalyst && (val == null || val.trim().isEmpty)) {
-                return 'Lab Analyst name is required';
-              }
-              return null;
-            },
-          ),
-        ],
-      ],
+          );
+        }).toList(),
+      ),
+      validator: (val) {
+        if (val == null || val.trim().isEmpty) {
+          return 'Analyst name is required';
+        }
+        return null;
+      },
     );
   }
 
@@ -364,34 +309,39 @@ class _LabPageState extends ConsumerState<LabPage> {
               // ===============================================================
               // 2. LAB ENTRY FORM
               // ===============================================================
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.biotech_rounded,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'RECORD MILK QUALITY TEST',
+                    style: TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               AppCard(
+                topBorderColor: AppColors.primary,
+                topBorderHeight: 4,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'RECORD MILK QUALITY TEST',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.1,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-
                     // Row 1: Date, Time, and Tank/Silo (3 chips in one row)
                     LayoutBuilder(
                       builder: (context, constraints) {
@@ -731,13 +681,14 @@ class _LabPageState extends ConsumerState<LabPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Row 2: Milk Fat (%) and Milk SNF (%)
+                    // Row 2: Milk Fat (%), Milk SNF (%), and Lab Analyst (Person) - 3 in a row
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 700;
 
                         if (isWide) {
                           return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
                                 child: AppTextField(
@@ -755,12 +706,14 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         decimal: true,
                                       ),
                                   validator: (val) {
-                                    if (val == null || val.trim().isEmpty)
+                                    if (val == null || val.trim().isEmpty) {
                                       return 'Milk Fat is required';
+                                    }
                                     final n = Formatters.parseDouble(val);
                                     if (n <= 0) return 'Must be greater than 0';
-                                    if (n < 1.0 || n > 15.0)
+                                    if (n < 1.0 || n > 15.0) {
                                       return 'Warning: Unusually high/low Fat';
+                                    }
                                     return null;
                                   },
                                 ),
@@ -782,20 +735,25 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         decimal: true,
                                       ),
                                   validator: (val) {
-                                    if (val == null || val.trim().isEmpty)
+                                    if (val == null || val.trim().isEmpty) {
                                       return 'Milk SNF is required';
+                                    }
                                     final n = Formatters.parseDouble(val);
                                     if (n <= 0) return 'Must be greater than 0';
-                                    if (n < 5.0 || n > 18.0)
+                                    if (n < 5.0 || n > 18.0) {
                                       return 'Warning: Unusually high/low SNF';
+                                    }
                                     return null;
                                   },
                                 ),
                               ),
+                              const SizedBox(width: 12),
+                              Expanded(child: _buildAnalystSelector()),
                             ],
                           );
                         } else {
                           return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               AppTextField(
                                 label: 'Milk Fat (%)',
@@ -812,8 +770,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       decimal: true,
                                     ),
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty)
+                                  if (val == null || val.trim().isEmpty) {
                                     return 'Fat required';
+                                  }
                                   final n = Formatters.parseDouble(val);
                                   if (n <= 0) return 'Must be > 0';
                                   return null;
@@ -835,13 +794,16 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       decimal: true,
                                     ),
                                 validator: (val) {
-                                  if (val == null || val.trim().isEmpty)
+                                  if (val == null || val.trim().isEmpty) {
                                     return 'SNF required';
+                                  }
                                   final n = Formatters.parseDouble(val);
                                   if (n <= 0) return 'Must be > 0';
                                   return null;
                                 },
                               ),
+                              const SizedBox(height: 12),
+                              _buildAnalystSelector(),
                             ],
                           );
                         }
@@ -849,52 +811,16 @@ class _LabPageState extends ConsumerState<LabPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Row 3: Lab Person display & Optional Remarks
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final isWide = constraints.maxWidth >= 700;
-
-                        if (isWide) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Lab Analyst Dropdown with manual entry
-                              Expanded(child: _buildAnalystSelector()),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: AppTextField(
-                                  label: 'Optional Remarks (Note)',
-                                  hint: 'e.g., Tanker composite sample approved for processing',
-                                  controller: _remarksController,
-                                  prefixIcon: const Icon(
-                                    Icons.edit_note_rounded,
-                                    size: 18,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        } else {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _buildAnalystSelector(),
-                              const SizedBox(height: 12),
-                              AppTextField(
-                                label: 'Optional Remarks (Note)',
-                                hint: 'e.g. Approved sample',
-                                controller: _remarksController,
-                                prefixIcon: const Icon(
-                                  Icons.edit_note_rounded,
-                                  size: 18,
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          );
-                        }
-                      },
+                    // Row 3: Optional Remarks (full-width)
+                    AppTextField(
+                      label: 'Optional Remarks (Note)',
+                      hint: 'e.g., Tanker composite sample approved for processing',
+                      controller: _remarksController,
+                      prefixIcon: const Icon(
+                        Icons.edit_note_rounded,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: 20),
 
@@ -905,7 +831,13 @@ class _LabPageState extends ConsumerState<LabPage> {
                           flex: 3,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
                               padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9),
+                              ),
                             ),
                             icon: Icon(
                               state.editingTest != null
@@ -917,6 +849,11 @@ class _LabPageState extends ConsumerState<LabPage> {
                               state.editingTest != null
                                   ? 'Update Lab Reading'
                                   : 'Save Reading',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
                             ),
                             onPressed: _onSave,
                           ),
@@ -926,10 +863,25 @@ class _LabPageState extends ConsumerState<LabPage> {
                           flex: 1,
                           child: OutlinedButton(
                             style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFEF2F2),
+                              foregroundColor: const Color(0xFFDC2626),
+                              side: const BorderSide(
+                                color: Color(0xFFFCA5A5),
+                                width: 1.2,
+                              ),
                               padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9),
+                              ),
                             ),
                             onPressed: _onClear,
-                            child: const Text('Clear'),
+                            child: const Text(
+                              'Clear',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -963,21 +915,25 @@ class _LabPageState extends ConsumerState<LabPage> {
             Row(
               children: [
                 Container(
-                  width: 4,
-                  height: 14,
+                  padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.analytics_rounded,
+                    size: 20,
                     color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 const Text(
                   'LATEST READINGS DASHBOARD (TODAY)',
                   style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 1.1,
-                    color: AppColors.textSecondary,
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                    color: AppColors.textPrimary,
                   ),
                 ),
               ],
@@ -985,7 +941,7 @@ class _LabPageState extends ConsumerState<LabPage> {
             const Text(
               'Automatic Source for Milk Standardization',
               style: TextStyle(
-                fontSize: 11.5,
+                fontSize: 12,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
@@ -1016,7 +972,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                mainAxisExtent: 176,
+                mainAxisExtent: 182,
               ),
               itemBuilder: (context, index) {
                 final silo = visibleSilos[index];
@@ -1052,8 +1008,8 @@ class _LabPageState extends ConsumerState<LabPage> {
         ? const Color(0xFF0284C7)
         : const Color(0xFFD97706);
     final cardBg = isPMST ? const Color(0xFFF0F9FF) : const Color(0xFFFFFBEB);
-    final borderColor = themeColor.withValues(alpha: hasReading ? 0.35 : 0.22);
-    final shadowColor = themeColor.withValues(alpha: hasReading ? 0.08 : 0.03);
+    final borderColor = Colors.black.withValues(alpha: 0.12);
+    final shadowColor = Colors.black.withValues(alpha: 0.04);
     final valueColor = isPMST
         ? const Color(0xFF0284C7)
         : const Color(0xFFD97706);
@@ -1070,7 +1026,6 @@ class _LabPageState extends ConsumerState<LabPage> {
     }();
 
     return Container(
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: cardBg,
         gradient: LinearGradient(
@@ -1079,7 +1034,7 @@ class _LabPageState extends ConsumerState<LabPage> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: hasReading ? 1.5 : 1.1),
+        border: Border.all(color: borderColor, width: 1.1),
         boxShadow: [
           BoxShadow(
             color: shadowColor,
@@ -1088,57 +1043,246 @@ class _LabPageState extends ConsumerState<LabPage> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Silo Name + Status Indicator
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          children: [
+            Container(
+              height: 3.5,
+              color: isPMST ? const Color(0xFF0284C7) : AppColors.primary,
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: themeColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: themeColor.withValues(alpha: 0.25),
+                    // Silo Name + Status Indicator
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(7),
+                                decoration: BoxDecoration(
+                                  color: themeColor.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: themeColor.withValues(alpha: 0.25),
+                                  ),
+                                ),
+                                child: Icon(
+                                  Icons.storage_rounded,
+                                  color: themeColor,
+                                  size: 17,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      silo.name,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 15,
+                                        color: titleColor,
+                                        letterSpacing: -0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1.5),
+                                    Text(
+                                      _getSiloFullName(silo),
+                                      style: const TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textSecondary,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Icon(
-                        Icons.storage_rounded,
-                        color: themeColor,
-                        size: 17,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            silo.name,
-                            style: TextStyle(
-                              fontWeight: FontWeight.w900,
-                              fontSize: 15,
-                              color: titleColor,
-                              letterSpacing: -0.3,
+                        const SizedBox(width: 8),
+                        if (hasReading)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF16A34A)
+                                  .withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: const Color(0xFF16A34A)
+                                    .withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Color(0xFF16A34A),
+                                  size: 11,
+                                ),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Fresh Reading',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF15803D),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        else
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.danger.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColors.danger.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: AppColors.danger,
+                                  size: 11,
+                                ),
+                                SizedBox(width: 3),
+                                Text(
+                                  'No reading today',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(height: 1.5),
+                      ],
+                    ),
+
+                    // Fat & SNF Values
+                    if (hasReading)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'FAT',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  '${reading.fatPercentage.toStringAsFixed(2)}%',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                    color: valueColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(width: 1, height: 26, color: borderColor),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'SNF',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                                Text(
+                                  '${reading.snfPercentage.toStringAsFixed(2)}%',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w900,
+                                    color: valueColor,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    else
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Awaiting today\'s laboratory test. Enter Fat & SNF below.',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: AppColors.textMuted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ),
+
+                    // Footer (Last tested date, time & analyst)
+                    Container(
+                      padding: const EdgeInsets.only(top: 6),
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(
+                            color: borderColor.withValues(alpha: 0.2),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
                           Text(
-                            _getSiloFullName(silo),
+                            hasReading
+                                ? 'Tested: $testDateFormatted, ${reading.testTime}'
+                                : 'No sample',
                             style: const TextStyle(
-                              fontSize: 10.5,
+                              fontSize: 11,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
                             ),
-                            maxLines: 1,
+                          ),
+                          Text(
+                            hasReading ? reading.labUserName : 'Pending',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textSecondary,
+                            ),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ],
@@ -1147,180 +1291,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                   ],
                 ),
               ),
-              const SizedBox(width: 8),
-              if (hasReading)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF16A34A).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: const Color(0xFF16A34A).withValues(alpha: 0.25),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.check_circle_rounded,
-                        color: Color(0xFF16A34A),
-                        size: 11,
-                      ),
-                      SizedBox(width: 3),
-                      Text(
-                        'Fresh Reading',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: Color(0xFF15803D),
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 7,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: AppColors.danger.withValues(alpha: 0.2),
-                    ),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.warning_amber_rounded,
-                        color: AppColors.danger,
-                        size: 11,
-                      ),
-                      SizedBox(width: 3),
-                      Text(
-                        'No reading today',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.danger,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-
-          // Fat & SNF Values
-          if (hasReading)
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'FAT',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        '${reading.fatPercentage.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: valueColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(width: 1, height: 26, color: borderColor),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'SNF',
-                        style: TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w800,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                      Text(
-                        '${reading.snfPercentage.toStringAsFixed(2)}%',
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.w900,
-                          color: valueColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'Awaiting today\'s laboratory test. Enter Fat & SNF below.',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  color: AppColors.textMuted,
-                  fontStyle: FontStyle.italic,
-                ),
-              ),
             ),
-
-          // Footer (Last tested date, time & analyst)
-          Container(
-            padding: const EdgeInsets.only(top: 6),
-            decoration: BoxDecoration(
-              border: Border(
-                top: BorderSide(
-                  color: borderColor.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  hasReading
-                      ? 'Tested: $testDateFormatted, ${reading.testTime}'
-                      : 'No sample',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                Text(
-                  hasReading ? reading.labUserName : 'Pending',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1329,375 +1302,394 @@ class _LabPageState extends ConsumerState<LabPage> {
   // READING HISTORY TABLE
   // ---------------------------------------------------------------------------
   Widget _buildHistoryTable(LabState state, bool canManage) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 4,
-                      height: 14,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'LABORATORY READING HISTORY',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1.1,
-                        color: AppColors.textSecondary,
-                      ),
-                    ),
-                  ],
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.history_rounded,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
                 ),
-                StatusBadge.info(
-                  '${state.filteredHistory.length} Test Records',
+                const SizedBox(width: 10),
+                const Text(
+                  'LABORATORY READING HISTORY',
+                  style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
               ],
             ),
+            StatusBadge.info('${state.filteredHistory.length} Test Records'),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.cardBorder, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-          const Divider(height: 1),
-
-          Padding(
-            padding: const EdgeInsets.all(16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Filter Controls (Date, Silo, Search)
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isWide = constraints.maxWidth >= 750;
+                Container(height: 4, color: AppColors.primary),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Filter Controls (Date, Silo, Search)
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 750;
 
-                    return Row(
-                      children: [
-                        Expanded(
-                          flex: isWide ? 6 : 12,
-                          child: TextField(
-                            controller: _searchController,
-                            decoration: const InputDecoration(
-                              hintText:
-                                  'Search date, silo, analyst, remarks...',
-                              prefixIcon: Icon(Icons.search_rounded, size: 19),
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: 14,
-                                vertical: 12,
-                              ),
-                            ),
-                            onChanged: (val) {
-                              ref
-                                  .read(labProvider.notifier)
-                                  .setSearchQuery(val);
-                            },
-                          ),
-                        ),
-                        if (isWide) ...[
-                          const SizedBox(width: 12),
-                          DropdownButton<String>(
-                            value: state.filterSiloId,
-                            hint: const Text(
-                              'All Silos / Tanks',
-                              style: TextStyle(fontSize: 13),
-                            ),
-                            items: [
-                              const DropdownMenuItem(
-                                value: '',
-                                child: Text('All Silos / Tanks'),
-                              ),
-                              ...state.silos.map(
-                                (s) => DropdownMenuItem(
-                                  value: s.id,
-                                  child: Text(s.name),
-                                ),
-                              ),
-                            ],
-                            onChanged: (val) {
-                              ref
-                                  .read(labProvider.notifier)
-                                  .setFilterSiloId(
-                                    val?.isEmpty ?? true ? null : val,
-                                  );
-                            },
-                          ),
-                          const SizedBox(width: 12),
-                          OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 12,
-                              ),
-                            ),
-                            icon: const Icon(
-                              Icons.date_range_rounded,
-                              size: 16,
-                            ),
-                            label: Text(
-                              state.filterDate != null
-                                  ? Formatters.formatDate(state.filterDate!)
-                                  : 'Filter Date',
-                              style: const TextStyle(fontSize: 12.5),
-                            ),
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: state.filterDate ?? DateTime.now(),
-                                firstDate: DateTime(2020),
-                                lastDate: DateTime(2035),
-                              );
-                              ref
-                                  .read(labProvider.notifier)
-                                  .setFilterDate(picked);
-                            },
-                          ),
-                          if (state.filterDate != null)
-                            IconButton(
-                              icon: const Icon(Icons.clear_rounded, size: 18),
-                              onPressed: () => ref
-                                  .read(labProvider.notifier)
-                                  .setFilterDate(null),
-                            ),
-                        ],
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Table / List of Historical Test Records
-                if (state.filteredHistory.isEmpty) ...[
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: AppColors.alertLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AppColors.alert.withValues(alpha: 0.25),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.inbox_outlined,
-                          size: 20,
-                          color: AppColors.alert,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'No lab readings matching current filter.',
-                          style: TextStyle(
-                            color: AppColors.alert,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ] else ...[
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: state.filteredHistory.length,
-                    separatorBuilder: (_, index) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final item = state.filteredHistory[index];
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryContainer,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.science_rounded,
-                                color: AppColors.primary,
-                                size: 20,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        item.testDate,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        item.testTime,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                          color: AppColors.textSecondary,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      StatusBadge.neutral(
-                                        item.siloName,
-                                        fontSize: 11,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Tested by: ${item.labUserName}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
+                          return Row(
+                            children: [
+                              Expanded(
+                                flex: isWide ? 6 : 12,
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Search date, silo, analyst, remarks...',
+                                    prefixIcon: Icon(
+                                      Icons.search_rounded,
+                                      size: 19,
+                                    ),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
                                     ),
                                   ),
-                                  if (item.remarks.trim().isNotEmpty) ...[
-                                    const SizedBox(height: 4),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 3,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.danger.withValues(
-                                          alpha: 0.08,
-                                        ),
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(
-                                          color: AppColors.danger.withValues(
-                                            alpha: 0.25,
-                                          ),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(
-                                            Icons.sticky_note_2_rounded,
-                                            size: 13,
-                                            color: AppColors.danger,
-                                          ),
-                                          const SizedBox(width: 5),
-                                          Flexible(
-                                            child: Text(
-                                              'Note: ${item.remarks.trim()}',
-                                              style: const TextStyle(
-                                                fontSize: 11.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.danger,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
+                                  onChanged: (val) {
+                                    ref
+                                        .read(labProvider.notifier)
+                                        .setSearchQuery(val);
+                                  },
+                                ),
+                              ),
+                              if (isWide) ...[
+                                const SizedBox(width: 12),
+                                DropdownButton<String>(
+                                  value: state.filterSiloId,
+                                  hint: const Text(
+                                    'All Silos / Tanks',
+                                    style: TextStyle(fontSize: 13),
+                                  ),
+                                  items: [
+                                    const DropdownMenuItem(
+                                      value: '',
+                                      child: Text('All Silos / Tanks'),
+                                    ),
+                                    ...state.silos.map(
+                                      (s) => DropdownMenuItem(
+                                        value: s.id,
+                                        child: Text(s.name),
                                       ),
                                     ),
                                   ],
-                                ],
-                              ),
-                            ),
-                            // Fat % & SNF %
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  'Fat: ${item.fatPercentage.toStringAsFixed(2)}%',
-                                  style: const TextStyle(
-                                    fontSize: 14.5,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppColors.primaryDark,
-                                  ),
-                                ),
-                                Text(
-                                  'SNF: ${item.snfPercentage.toStringAsFixed(2)}%',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 8),
-                            // Action Menu (Edit, Delete)
-                            PopupMenuButton<String>(
-                              icon: const Icon(
-                                Icons.more_vert_rounded,
-                                size: 20,
-                                color: AppColors.textSecondary,
-                              ),
-                              onSelected: (val) async {
-                                if (val == 'edit') {
-                                  _loadIntoForm(item);
-                                } else if (val == 'delete') {
-                                  final confirm = await ConfirmationDialog.show(
-                                    context: context,
-                                    title: 'Delete Lab Test',
-                                    message:
-                                        'Are you sure you want to permanently delete this lab test for ${item.siloName} on ${item.testDate} (${item.testTime})?',
-                                    confirmLabel: 'Delete Test',
-                                    isDestructive: true,
-                                  );
-                                  if (confirm) {
+                                  onChanged: (val) {
                                     ref
                                         .read(labProvider.notifier)
-                                        .deleteReading(item.id);
-                                  }
-                                }
-                              },
-                              itemBuilder: (context) => [
-                                const PopupMenuItem(
-                                  value: 'edit',
-                                  child: Text('Edit Reading'),
+                                        .setFilterSiloId(
+                                          val?.isEmpty ?? true ? null : val,
+                                        );
+                                  },
                                 ),
-                                if (canManage)
-                                  const PopupMenuItem(
-                                    value: 'delete',
-                                    child: Text(
-                                      'Delete',
-                                      style: TextStyle(color: AppColors.danger),
+                                const SizedBox(width: 12),
+                                OutlinedButton.icon(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 12,
                                     ),
                                   ),
+                                  icon: const Icon(
+                                    Icons.date_range_rounded,
+                                    size: 16,
+                                  ),
+                                  label: Text(
+                                    state.filterDate != null
+                                        ? Formatters.formatDate(
+                                            state.filterDate!,
+                                          )
+                                        : 'Filter Date',
+                                    style: const TextStyle(fontSize: 12.5),
+                                  ),
+                                  onPressed: () async {
+                                    final picked = await showDatePicker(
+                                      context: context,
+                                      initialDate:
+                                          state.filterDate ?? DateTime.now(),
+                                      firstDate: DateTime(2020),
+                                      lastDate: DateTime(2035),
+                                    );
+                                    ref
+                                        .read(labProvider.notifier)
+                                        .setFilterDate(picked);
+                                  },
+                                ),
+                                if (state.filterDate != null)
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.clear_rounded,
+                                      size: 18,
+                                    ),
+                                    onPressed: () => ref
+                                        .read(labProvider.notifier)
+                                        .setFilterDate(null),
+                                  ),
                               ],
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Table / List of Historical Test Records
+                      if (state.filteredHistory.isEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.alertLight,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: AppColors.alert.withValues(alpha: 0.25),
                             ),
-                          ],
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.inbox_outlined,
+                                size: 20,
+                                color: AppColors.alert,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'No lab readings matching current filter.',
+                                style: TextStyle(
+                                  color: AppColors.alert,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      );
-                    },
+                      ] else ...[
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: state.filteredHistory.length,
+                          separatorBuilder: (_, index) =>
+                              const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final item = state.filteredHistory[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryContainer,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.science_rounded,
+                                      color: AppColors.primary,
+                                      size: 20,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              item.testDate,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              item.testTime,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            StatusBadge.neutral(
+                                              item.siloName,
+                                              fontSize: 11,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Tested by: ${item.labUserName}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                        if (item.remarks.trim().isNotEmpty) ...[
+                                          const SizedBox(height: 4),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 3,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.danger
+                                                  .withValues(alpha: 0.08),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                              border: Border.all(
+                                                color: AppColors.danger
+                                                    .withValues(alpha: 0.25),
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(
+                                                  Icons.sticky_note_2_rounded,
+                                                  size: 13,
+                                                  color: AppColors.danger,
+                                                ),
+                                                const SizedBox(width: 5),
+                                                Flexible(
+                                                  child: Text(
+                                                    'Note: ${item.remarks.trim()}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: AppColors.danger,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  // Fat % & SNF %
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        'Fat: ${item.fatPercentage.toStringAsFixed(2)}%',
+                                        style: const TextStyle(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                      ),
+                                      Text(
+                                        'SNF: ${item.snfPercentage.toStringAsFixed(2)}%',
+                                        style: const TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Action Menu (Edit, Delete)
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(
+                                      Icons.more_vert_rounded,
+                                      size: 20,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    onSelected: (val) async {
+                                      if (val == 'edit') {
+                                        _loadIntoForm(item);
+                                      } else if (val == 'delete') {
+                                        final confirm =
+                                            await ConfirmationDialog.show(
+                                              context: context,
+                                              title: 'Delete Lab Test',
+                                              message:
+                                                  'Are you sure you want to permanently delete this lab test for ${item.siloName} on ${item.testDate} (${item.testTime})?',
+                                              confirmLabel: 'Delete Test',
+                                              isDestructive: true,
+                                            );
+                                        if (confirm) {
+                                          ref
+                                              .read(labProvider.notifier)
+                                              .deleteReading(item.id);
+                                        }
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text('Edit Reading'),
+                                      ),
+                                      if (canManage)
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text(
+                                            'Delete',
+                                            style: TextStyle(
+                                              color: AppColors.danger,
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ],
                   ),
-                ],
+                ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

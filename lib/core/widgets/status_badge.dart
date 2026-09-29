@@ -5,6 +5,7 @@ class StatusBadge extends StatelessWidget {
   final String text;
   final Color? textColor;
   final Color? backgroundColor;
+  final Color? borderColor;
   final IconData? icon;
   final double fontSize;
 
@@ -13,6 +14,7 @@ class StatusBadge extends StatelessWidget {
     required this.text,
     this.textColor,
     this.backgroundColor,
+    this.borderColor,
     this.icon,
     this.fontSize = 12,
   });
@@ -90,8 +92,9 @@ class StatusBadge extends StatelessWidget {
   factory StatusBadge.neutral(String text, {IconData? icon, double fontSize = 12}) {
     return StatusBadge(
       text: text,
-      textColor: AppColors.textSecondary,
-      backgroundColor: const Color(0xFFF1F5F3),
+      textColor: AppColors.textPrimary,
+      backgroundColor: const Color(0xFFF8FAFC),
+      borderColor: Colors.black.withValues(alpha: 0.14),
       icon: icon,
       fontSize: fontSize,
     );
@@ -104,6 +107,9 @@ class StatusBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: backgroundColor ?? AppColors.primaryContainer,
         borderRadius: BorderRadius.circular(6),
+        border: borderColor != null
+            ? Border.all(color: borderColor!, width: 1.0)
+            : null,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

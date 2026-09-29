@@ -10,6 +10,8 @@ class AppCard extends StatelessWidget {
   final double borderRadius;
   final VoidCallback? onTap;
   final bool hasGlow;
+  final Color? topBorderColor;
+  final double topBorderHeight;
 
   const AppCard({
     super.key,
@@ -21,6 +23,8 @@ class AppCard extends StatelessWidget {
     this.borderRadius = 12,
     this.onTap,
     this.hasGlow = false,
+    this.topBorderColor,
+    this.topBorderHeight = 3.5,
   });
 
   @override
@@ -43,19 +47,39 @@ class AppCard extends StatelessWidget {
       ],
     );
 
+    Widget content = Padding(
+      padding: padding,
+      child: child,
+    );
+
+    if (topBorderColor != null) {
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: topBorderHeight,
+            color: topBorderColor,
+          ),
+          Padding(
+            padding: padding,
+            child: child,
+          ),
+        ],
+      );
+    }
+
     if (onTap != null) {
       return Container(
         margin: margin,
         decoration: decoration,
-        child: Material(
-          color: Colors.transparent,
+        child: ClipRRect(
           borderRadius: BorderRadius.circular(borderRadius),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(borderRadius),
-            onTap: onTap,
-            child: Padding(
-              padding: padding,
-              child: child,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              child: content,
             ),
           ),
         ),
@@ -64,12 +88,14 @@ class AppCard extends StatelessWidget {
 
     return Container(
       margin: margin,
-      padding: padding,
       decoration: decoration,
-      child: Material(
-        color: Colors.transparent,
-        child: SelectionArea(
-          child: child,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Material(
+          color: Colors.transparent,
+          child: SelectionArea(
+            child: content,
+          ),
         ),
       ),
     );
