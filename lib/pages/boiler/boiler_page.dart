@@ -30,7 +30,6 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  bool _entriesExpanded = false;
 
   @override
   void dispose() {
@@ -166,34 +165,42 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                 const SizedBox(height: 16),
               ],
 
+              // Data Entry Heading (Outside the Card)
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.local_fire_department_rounded,
+                      size: 20,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'SHIFT FUEL LOGGING',
+                    style: TextStyle(
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
               // Data Entry Card
               AppCard(
+                topBorderColor: AppColors.primary,
+                topBorderHeight: 4,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 4,
-                          height: 14,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          'SHIFT FUEL LOGGING',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 1.1,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
 
                     // Row 1: Date, Shift, and Fuel Top-up (3 chips in one row)
                     LayoutBuilder(
@@ -494,17 +501,63 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Save / Record Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
+                    // Action Buttons (Record Boiler Entry & Clear)
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 3,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                            ),
+                            icon: Icon(
+                              state.editingRecord != null ? Icons.check_rounded : Icons.save_outlined,
+                              size: 20,
+                            ),
+                            label: Text(
+                              state.editingRecord != null ? 'Update Boiler Record' : 'Record Boiler Entry',
+                              style: const TextStyle(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                            onPressed: _onSave,
+                          ),
                         ),
-                        icon: Icon(state.editingRecord != null ? Icons.check_rounded : Icons.save_outlined, size: 20),
-                        label: Text(state.editingRecord != null ? 'Update Boiler Record' : 'Record Boiler Entry'),
-                        onPressed: _onSave,
-                      ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 1,
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: const Color(0xFFFEF2F2),
+                              foregroundColor: const Color(0xFFDC2626),
+                              side: const BorderSide(
+                                color: Color(0xFFFCA5A5),
+                                width: 1.2,
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(9),
+                              ),
+                            ),
+                            onPressed: _cancelEditing,
+                            child: const Text(
+                              'Clear',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -515,7 +568,6 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
                 const SizedBox(height: 20),
                 ResultCard(
                   title: 'BOILER CONSUMPTION RESULT',
-                  subtitle: '${state.selectedShift} • Formula: ((Difference × 900) ÷ 70)',
                   items: [
                     ResultItem(
                       label: 'Opening Level',
@@ -639,303 +691,267 @@ class _BoilerPageState extends ConsumerState<BoilerPage> {
   }
 
   Widget _buildHistorySection(BoilerState state, bool canManage) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder, width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _entriesExpanded = !_entriesExpanded),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 3.5,
-                              height: 13,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            const Text(
-                              'RECENT BOILER ENTRIES (DATE-WISE)',
-                              style: TextStyle(
-                                fontSize: 11.5,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.1,
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        state.allRecords.isEmpty
-                            ? '0 Entries'
-                            : '${state.allRecords.length} Entries Recorded',
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                      ),
-                    ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: state.allRecords.isNotEmpty ? AppColors.primaryContainer : AppColors.cardBorderSubtle,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _entriesExpanded ? 'Hide Entries' : 'View Entries',
-                          style: TextStyle(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: state.allRecords.isNotEmpty ? AppColors.primary : AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _entriesExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ],
+                  child: const Icon(
+                    Icons.history_rounded,
+                    size: 20,
+                    color: AppColors.primary,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'RECENT BOILER ENTRIES (DATE-WISE)',
+                  style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
             ),
-          ),
-          if (_entriesExpanded) ...[
-            const Divider(height: 1),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Filters Row
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final isWide = constraints.maxWidth >= 700;
-
-                      return Row(
-                        children: [
-                          Expanded(
-                            flex: isWide ? 6 : 12,
-                            child: TextField(
-                              controller: _searchController,
-                              decoration: const InputDecoration(
-                                hintText: 'Search date, shift, employee, note...',
-                                prefixIcon: Icon(Icons.search_rounded, size: 19),
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              ),
-                              onChanged: (val) {
-                                ref.read(boilerProvider.notifier).setSearchQuery(val);
-                              },
-                            ),
-                          ),
-                          if (isWide) ...[
-                            const SizedBox(width: 12),
-                            DropdownButton<String>(
-                              value: state.filterShift,
-                              hint: const Text('Filter Shift', style: TextStyle(fontSize: 13)),
-                              items: [
-                                const DropdownMenuItem(value: '', child: Text('All Shifts')),
-                                ...AppConstants.shifts.map((s) => DropdownMenuItem(value: s, child: Text(s))),
-                              ],
-                              onChanged: (val) {
-                                ref.read(boilerProvider.notifier).setFilterShift(val?.isEmpty ?? true ? null : val);
-                              },
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Entries List
-                  if (state.filteredRecords.isEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: AppColors.alertLight,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.inbox_outlined, size: 20, color: AppColors.alert),
-                          SizedBox(width: 8),
-                          Text('No boiler records matching current filter.', style: TextStyle(color: AppColors.alert, fontWeight: FontWeight.w700)),
-                        ],
-                      ),
-                    ),
-                  ] else ...[
-                    ListView.separated(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: state.filteredRecords.length,
-                      separatorBuilder: (_, index) => const Divider(height: 1),
-                      itemBuilder: (context, index) {
-                        final item = state.filteredRecords[index];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 9),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.metricBgBoiler,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          item.date,
-                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        StatusBadge.neutral(item.shift, fontSize: 11),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Opening: ${Formatters.formatSmart(item.openingCm)} CM  •  Closing: ${Formatters.formatSmart(item.closingCm)} CM  •  Running: ${Formatters.formatSmart(item.runningHours)} hr',
-                                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                                    ),
-                                    if (item.fuelTopUp > 0)
-                                      Text(
-                                        'Fuel Top-up: ${Formatters.formatSmart(item.fuelTopUp)} L',
-                                        style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
-                                      ),
-                                    if (item.remarks.trim().isNotEmpty) ...[
-                                      const SizedBox(height: 5),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.danger.withValues(alpha: 0.08),
-                                          borderRadius: BorderRadius.circular(6),
-                                          border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
-                                            const SizedBox(width: 6),
-                                            Flexible(
-                                              child: Text(
-                                                'Note: ${item.remarks.trim()}',
-                                                style: const TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: AppColors.danger,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '${Formatters.formatSmart(item.netReportedConsumption)} L',
-                                    style: const TextStyle(
-                                      fontSize: 15.5,
-                                      fontWeight: FontWeight.w900,
-                                      color: AppColors.primaryDark,
-                                    ),
-                                  ),
-                                  Text(
-                                    '${Formatters.formatDecimal(item.consumptionPerHour)} L/hr',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 8),
-                              // Actions (Edit, Delete)
-                              PopupMenuButton<String>(
-                                icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
-                                onSelected: (val) async {
-                                  if (val == 'edit') {
-                                    _loadRecordIntoForm(item);
-                                  } else if (val == 'delete') {
-                                    final confirm = await ConfirmationDialog.show(
-                                      context: context,
-                                      title: 'Delete Boiler Record',
-                                      message: 'Are you sure you want to permanently delete boiler entry ${item.recordId} from ${item.date} (${item.shift})?',
-                                      confirmLabel: 'Delete Record',
-                                      isDestructive: true,
-                                    );
-                                    if (confirm) {
-                                      ref.read(boilerProvider.notifier).deleteRecord(item.recordId);
-                                    }
-                                  }
-                                },
-                                itemBuilder: (context) => [
-                                  const PopupMenuItem(value: 'edit', child: Text('Edit Record')),
-                                  if (canManage)
-                                    const PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text('Delete', style: TextStyle(color: AppColors.danger)),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-                  ],
-                ],
-              ),
+            StatusBadge.info(
+              state.allRecords.isEmpty
+                  ? '0 Entries'
+                  : '${state.allRecords.length} Entries Recorded',
             ),
           ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.cardBorder, width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(height: 4, color: AppColors.primary),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Filters Row
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 700;
+
+                          return Row(
+                            children: [
+                              Expanded(
+                                flex: isWide ? 6 : 12,
+                                child: TextField(
+                                  controller: _searchController,
+                                  decoration: const InputDecoration(
+                                    hintText: 'Search date, shift, employee, note...',
+                                    prefixIcon: Icon(Icons.search_rounded, size: 19),
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  ),
+                                  onChanged: (val) {
+                                    ref.read(boilerProvider.notifier).setSearchQuery(val);
+                                  },
+                                ),
+                              ),
+                              if (isWide) ...[
+                                const SizedBox(width: 12),
+                                DropdownButton<String>(
+                                  value: state.filterShift,
+                                  hint: const Text('Filter Shift', style: TextStyle(fontSize: 13)),
+                                  items: [
+                                    const DropdownMenuItem(value: '', child: Text('All Shifts')),
+                                    ...AppConstants.shifts.map((s) => DropdownMenuItem(value: s, child: Text(s))),
+                                  ],
+                                  onChanged: (val) {
+                                    ref.read(boilerProvider.notifier).setFilterShift(val?.isEmpty ?? true ? null : val);
+                                  },
+                                ),
+                              ],
+                            ],
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Entries List
+                      if (state.filteredRecords.isEmpty) ...[
+                        Container(
+                          padding: const EdgeInsets.all(24),
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: AppColors.alertLight,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.inbox_outlined, size: 20, color: AppColors.alert),
+                              SizedBox(width: 8),
+                              Text('No boiler records matching current filter.', style: TextStyle(color: AppColors.alert, fontWeight: FontWeight.w700)),
+                            ],
+                          ),
+                        ),
+                      ] else ...[
+                        ListView.separated(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: state.filteredRecords.length,
+                          separatorBuilder: (_, index) => const Divider(height: 1),
+                          itemBuilder: (context, index) {
+                            final item = state.filteredRecords[index];
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 9),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.metricBgBoiler,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.local_fire_department_rounded, color: AppColors.goldAccent, size: 22),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              item.date,
+                                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            StatusBadge.neutral(item.shift, fontSize: 11),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Opening: ${Formatters.formatSmart(item.openingCm)} CM  •  Closing: ${Formatters.formatSmart(item.closingCm)} CM  •  Running: ${Formatters.formatSmart(item.runningHours)} hr',
+                                          style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                        ),
+                                        if (item.fuelTopUp > 0)
+                                          Text(
+                                            'Fuel Top-up: ${Formatters.formatSmart(item.fuelTopUp)} L',
+                                            style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
+                                          ),
+                                        if (item.remarks.trim().isNotEmpty) ...[
+                                          const SizedBox(height: 5),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.danger.withValues(alpha: 0.08),
+                                              borderRadius: BorderRadius.circular(6),
+                                              border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
+                                                const SizedBox(width: 6),
+                                                Flexible(
+                                                  child: Text(
+                                                    'Note: ${item.remarks.trim()}',
+                                                    style: const TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.danger,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '${Formatters.formatSmart(item.netReportedConsumption)} L',
+                                        style: const TextStyle(
+                                          fontSize: 15.5,
+                                          fontWeight: FontWeight.w900,
+                                          color: AppColors.primaryDark,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${Formatters.formatDecimal(item.consumptionPerHour)} L/hr',
+                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(width: 8),
+                                  // Actions (Edit, Delete)
+                                  PopupMenuButton<String>(
+                                    icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
+                                    onSelected: (val) async {
+                                      if (val == 'edit') {
+                                        _loadRecordIntoForm(item);
+                                      } else if (val == 'delete') {
+                                        final confirm = await ConfirmationDialog.show(
+                                          context: context,
+                                          title: 'Delete Boiler Record',
+                                          message: 'Are you sure you want to permanently delete boiler entry ${item.recordId} from ${item.date} (${item.shift})?',
+                                          confirmLabel: 'Delete Record',
+                                          isDestructive: true,
+                                        );
+                                        if (confirm) {
+                                          ref.read(boilerProvider.notifier).deleteRecord(item.recordId);
+                                        }
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(value: 'edit', child: Text('Edit Record')),
+                                      if (canManage)
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text('Delete', style: TextStyle(color: AppColors.danger)),
+                                        ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

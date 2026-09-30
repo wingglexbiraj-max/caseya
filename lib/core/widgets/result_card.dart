@@ -49,22 +49,21 @@ class ResultCard extends StatelessWidget {
             ),
           ],
         ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Header with Soft Emerald Gradient
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 15),
-            decoration: BoxDecoration(
-              gradient: AppColors.cardHeaderGradient,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(11),
-                topRight: Radius.circular(11),
-              ),
-              border: const Border(
-                bottom: BorderSide(color: AppColors.cardBorder, width: 1.1),
-              ),
-            ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(11),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(height: 4, color: headerColor ?? AppColors.primary),
+              // Header with Soft Emerald Gradient
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 21, vertical: 15),
+                decoration: const BoxDecoration(
+                  gradient: AppColors.cardHeaderGradient,
+                  border: Border(
+                    bottom: BorderSide(color: AppColors.cardBorder, width: 1.1),
+                  ),
+                ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -201,6 +200,7 @@ class ResultCard extends StatelessWidget {
         ],
       ),
     ),
-  );
-}
+  ),
+);
+  }
 }
