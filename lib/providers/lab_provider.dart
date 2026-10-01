@@ -98,6 +98,7 @@ class LabNotifier extends StateNotifier<LabState> {
       : super(LabState(
           selectedDate: DateTime.now(),
           selectedTime: TimeOfDay.now(),
+          filterDate: DateTime.now(),
         )) {
     init();
   }
@@ -106,16 +107,18 @@ class LabNotifier extends StateNotifier<LabState> {
     state = state.copyWith(isLoading: true);
     final silos = await _repo.getSilos();
     final tests = await _repo.getTests();
-    final todayStr = Formatters.formatDate(DateTime.now());
+    final today = DateTime.now();
+    final todayStr = Formatters.formatDate(today);
     final todayMap = await _repo.getLatestReadingsBySilo(todayDateStr: todayStr);
 
     state = state.copyWith(
       silos: silos,
       allTests: tests,
-      filteredHistory: tests,
+      filterDate: today,
       todayLatestBySilo: todayMap,
       isLoading: false,
     );
+    _applyFilters();
   }
 
   void setDate(DateTime date) {
@@ -153,7 +156,8 @@ class LabNotifier extends StateNotifier<LabState> {
   }
 
   void setFilterDate(DateTime? date) {
-    state = state.copyWith(filterDate: date, clearFilterDate: date == null);
+    final target = date ?? DateTime.now();
+    state = state.copyWith(filterDate: target);
     _applyFilters();
   }
 

@@ -41,6 +41,7 @@ class _LabPageState extends ConsumerState<LabPage> {
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  bool _historyExpanded = false;
 
   @override
   void initState() {
@@ -1305,170 +1306,191 @@ class _LabPageState extends ConsumerState<LabPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
+        InkWell(
+          onTap: () => setState(() => _historyExpanded = !_historyExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.history_rounded,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.history_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'LABORATORY READING HISTORY',
+                      style: TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'LABORATORY READING HISTORY',
-                  style: TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6,
-                    color: AppColors.textPrimary,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StatusBadge.info(
+                      '${state.filteredHistory.length} Test Records',
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.cardBorderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _historyExpanded ? 'Collapse' : 'Expand',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _historyExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            StatusBadge.info('${state.filteredHistory.length} Test Records'),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cardBorder, width: 1.2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
-              ),
-            ],
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(height: 4, color: AppColors.primary),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Filter Controls (Date, Silo, Search)
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isWide = constraints.maxWidth >= 750;
+        ),
+        if (_historyExpanded) ...[
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 4, color: AppColors.primary),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Filter Controls (Date, Silo, Search)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isWide = constraints.maxWidth >= 750;
 
-                          return Row(
-                            children: [
-                              Expanded(
-                                flex: isWide ? 6 : 12,
-                                child: TextField(
-                                  controller: _searchController,
-                                  decoration: const InputDecoration(
-                                    hintText: 'Search date, silo, analyst, remarks...',
-                                    prefixIcon: Icon(
-                                      Icons.search_rounded,
-                                      size: 19,
-                                    ),
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                      vertical: 12,
+                            if (isWide) {
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    flex: 6,
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: const InputDecoration(
+                                        hintText:
+                                            'Search date, silo, analyst, remarks...',
+                                        prefixIcon: Icon(
+                                          Icons.search_rounded,
+                                          size: 19,
+                                        ),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      onChanged: (val) {
+                                        ref
+                                            .read(labProvider.notifier)
+                                            .setSearchQuery(val);
+                                      },
                                     ),
                                   ),
-                                  onChanged: (val) {
-                                    ref
-                                        .read(labProvider.notifier)
-                                        .setSearchQuery(val);
-                                  },
-                                ),
-                              ),
-                              if (isWide) ...[
-                                const SizedBox(width: 12),
-                                DropdownButton<String>(
-                                  value: state.filterSiloId,
-                                  hint: const Text(
-                                    'All Silos / Tanks',
-                                    style: TextStyle(fontSize: 13),
-                                  ),
-                                  items: [
-                                    const DropdownMenuItem(
-                                      value: '',
-                                      child: Text('All Silos / Tanks'),
-                                    ),
-                                    ...state.silos.map(
-                                      (s) => DropdownMenuItem(
-                                        value: s.id,
-                                        child: Text(s.name),
+                                  const SizedBox(width: 12),
+                                  _buildSiloFilterChip(state),
+                                  const SizedBox(width: 12),
+                                  _buildDateFilterChip(state),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  TextField(
+                                    controller: _searchController,
+                                    decoration: const InputDecoration(
+                                      hintText:
+                                          'Search date, silo, analyst, remarks...',
+                                      prefixIcon: Icon(
+                                        Icons.search_rounded,
+                                        size: 19,
+                                      ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
                                       ),
                                     ),
-                                  ],
-                                  onChanged: (val) {
-                                    ref
-                                        .read(labProvider.notifier)
-                                        .setFilterSiloId(
-                                          val?.isEmpty ?? true ? null : val,
-                                        );
-                                  },
-                                ),
-                                const SizedBox(width: 12),
-                                OutlinedButton.icon(
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 12,
-                                    ),
+                                    onChanged: (val) {
+                                      ref
+                                          .read(labProvider.notifier)
+                                          .setSearchQuery(val);
+                                    },
                                   ),
-                                  icon: const Icon(
-                                    Icons.date_range_rounded,
-                                    size: 16,
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      _buildSiloFilterChip(state),
+                                      _buildDateFilterChip(state),
+                                    ],
                                   ),
-                                  label: Text(
-                                    state.filterDate != null
-                                        ? Formatters.formatDate(
-                                            state.filterDate!,
-                                          )
-                                        : 'Filter Date',
-                                    style: const TextStyle(fontSize: 12.5),
-                                  ),
-                                  onPressed: () async {
-                                    final picked = await showDatePicker(
-                                      context: context,
-                                      initialDate:
-                                          state.filterDate ?? DateTime.now(),
-                                      firstDate: DateTime(2020),
-                                      lastDate: DateTime(2035),
-                                    );
-                                    ref
-                                        .read(labProvider.notifier)
-                                        .setFilterDate(picked);
-                                  },
-                                ),
-                                if (state.filterDate != null)
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.clear_rounded,
-                                      size: 18,
-                                    ),
-                                    onPressed: () => ref
-                                        .read(labProvider.notifier)
-                                        .setFilterDate(null),
-                                  ),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 16),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
 
                       // Table / List of Historical Test Records
                       if (state.filteredHistory.isEmpty) ...[
@@ -1689,7 +1711,167 @@ class _LabPageState extends ConsumerState<LabPage> {
             ),
           ),
         ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildDateFilterChip(LabState state) {
+    final isToday = state.filterDate == null ||
+        Formatters.formatDate(state.filterDate!) ==
+            Formatters.formatDate(DateTime.now());
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: state.filterDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2035),
+            );
+            if (picked != null) {
+              ref.read(labProvider.notifier).setFilterDate(picked);
+            }
+          },
+          borderRadius: BorderRadius.circular(9),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  state.filterDate != null
+                      ? (isToday
+                          ? 'Today (${Formatters.formatDate(state.filterDate!)})'
+                          : Formatters.formatDate(state.filterDate!))
+                      : 'Select Date',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_drop_down_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!isToday) ...[
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () =>
+                ref.read(labProvider.notifier).setFilterDate(DateTime.now()),
+            borderRadius: BorderRadius.circular(9),
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1.2,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.replay_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Today',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildSiloFilterChip(LabState state) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.storage_rounded,
+            size: 17,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: state.filterSiloId ?? '',
+              isDense: true,
+              icon: const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: '',
+                  child: Text('All Silos / Tanks'),
+                ),
+                ...state.silos.map(
+                  (s) => DropdownMenuItem(
+                    value: s.id,
+                    child: Text('${s.name} (${s.description})'),
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                ref.read(labProvider.notifier).setFilterSiloId(
+                      val == null || val.isEmpty ? null : val,
+                    );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

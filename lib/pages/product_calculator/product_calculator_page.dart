@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/constants/dairy_products.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_card.dart';
@@ -23,13 +24,18 @@ class ProductCalculatorPage extends ConsumerStatefulWidget {
 
 class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   final TextEditingController _quantityController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _historyExpanded = false;
   bool _metadataExpanded = false;
+  DateTime? _filterDate = DateTime.now();
+  String? _filterProductId;
+  String _searchQuery = '';
 
   @override
   void dispose() {
     _quantityController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -132,39 +138,53 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       // Calculation Controls Form (Flex 62)
                       Expanded(
                         flex: isWide ? 62 : 100,
-                        child: AppCard(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(7),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.calculate_rounded,
+                                    size: 20,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'INPUT SPECIFICATIONS',
+                                  style: TextStyle(
+                                    fontSize: 16.5,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.6,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            AppCard(
+                              topBorderColor: AppColors.primary,
+                              topBorderHeight: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(
-                                    width: 4,
-                                    height: 14,
-                                    decoration: BoxDecoration(
-                                      color: AppColors.primary,
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Text(
-                                    'INPUT SPECIFICATIONS',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 1.1,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
 
                               // Product Selection Dropdown
                               SearchableDropdown<ProductModel>(
                                 label: 'Product',
                                 hint: 'Select product from plant catalog...',
-                                items: state.products,
+                                items: state.products
+                                    .where((p) =>
+                                        p.productName.trim() != '2' &&
+                                        p.productId.trim() != '2' &&
+                                        p.productName.trim().isNotEmpty)
+                                    .toList(),
                                 selectedItem: state.selectedProduct,
                                 itemLabel: (p) => p.productName,
                                 onChanged: (product) {
@@ -274,8 +294,10 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                   onPressed: _onCalculate,
                                 ),
                               ),
-                            ],
-                          ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -358,7 +380,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
 
               // Recent Calculations History
               const SizedBox(height: 32),
-              _buildHistorySection(state.history),
+              _buildHistorySection(state.history, state.products),
             ],
           ),
         ),
@@ -367,60 +389,105 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   }
 
   Widget _buildMetadataCard(ProductModel product) {
-    return AppCard(
-      backgroundColor: const Color(0xFFF9FBFA),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: AppColors.goldAccent.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.inventory_2_rounded,
+                    size: 20,
+                    color: AppColors.goldAccent,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                const Text(
+                  'PRODUCT SPECIFICATIONS',
+                  style: TextStyle(
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 0.6,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            StatusBadge.neutral(product.category),
+          ],
+        ),
+        const SizedBox(height: 12),
+        AppCard(
+          topBorderColor: AppColors.goldAccent,
+          topBorderHeight: 4,
+          backgroundColor: const Color(0xFFF9FBFA),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              InkWell(
+                onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        width: 4,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: AppColors.goldAccent,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'PRODUCT SPECIFICATIONS & METADATA',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
+                      Text(
+                        _metadataExpanded
+                            ? 'Hide Specifications'
+                            : 'Show Specifications & Metadata',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
                           color: AppColors.primaryDark,
                         ),
                       ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      StatusBadge.neutral(product.category),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _metadataExpanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppColors.cardBorderSubtle),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _metadataExpanded ? 'Collapse' : 'Expand',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Icon(
+                              _metadataExpanded
+                                  ? Icons.keyboard_arrow_up_rounded
+                                  : Icons.keyboard_arrow_down_rounded,
+                              size: 18,
+                              color: AppColors.primary,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          if (_metadataExpanded) ...[
-            const SizedBox(height: 14),
+              if (_metadataExpanded) ...[
+                const SizedBox(height: 14),
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -459,8 +526,10 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
           ],
         ],
       ),
-    );
-  }
+    ),
+  ],
+);
+}
 
   Widget _buildTabulatedRow(
     String label,
@@ -518,126 +587,549 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
     );
   }
 
-  Widget _buildHistorySection(List<ProductCalculationRecord> history) {
-    if (history.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.alert.withValues(alpha: 0.25)),
-        ),
-        child: const Column(
-          children: [
-            Icon(Icons.inbox_outlined, size: 36, color: AppColors.alert),
-            SizedBox(height: 8),
-            Text(
-              'No previous product calculation records yet.',
-              style: TextStyle(color: AppColors.alert, fontSize: 13.5, fontWeight: FontWeight.w700),
-            ),
-          ],
-        ),
-      );
-    }
+  Widget _buildHistorySection(
+    List<ProductCalculationRecord> allHistory,
+    List<ProductModel> products,
+  ) {
+    final filteredHistory = allHistory.where((item) {
+      if (_filterDate != null) {
+        if (!_matchesDate(item, _filterDate!)) return false;
+      }
+      if (_filterProductId != null && _filterProductId!.isNotEmpty) {
+        final sel = products.where((p) => p.productId == _filterProductId).firstOrNull;
+        final matchId = item.productId == _filterProductId;
+        final matchName = item.productName == _filterProductId;
+        final matchSel = sel != null &&
+            (item.productName.toLowerCase() == sel.productName.toLowerCase() ||
+             item.productName.toLowerCase().contains(sel.shortCode.toLowerCase()) ||
+             item.productId == sel.productId);
+        if (!matchId && !matchName && !matchSel) {
+          return false;
+        }
+      }
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        final matches = item.productName.toLowerCase().contains(q) ||
+            item.productNameWithQuantity.toLowerCase().contains(q) ||
+            item.employeeName.toLowerCase().contains(q) ||
+            item.packingNeeded.toLowerCase().contains(q) ||
+            item.inputMode.toLowerCase().contains(q) ||
+            item.totalPriceDisplay.toLowerCase().contains(q);
+        if (!matches) return false;
+      }
+      return true;
+    }).toList();
 
-    return AppCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _historyExpanded = !_historyExpanded),
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 14,
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Heading OUTSIDE of card
+        InkWell(
+          onTap: () => setState(() => _historyExpanded = !_historyExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'RECENT PRODUCT CALCULATIONS',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1.1,
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      StatusBadge.info('${history.length} Saved Records'),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _historyExpanded
-                            ? Icons.keyboard_arrow_up_rounded
-                            : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary,
+                      child: const Icon(
+                        Icons.history_rounded,
                         size: 20,
+                        color: AppColors.primary,
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'RECENT PRODUCT CALCULATIONS',
+                      style: TextStyle(
+                        fontSize: 16.5,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 0.6,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StatusBadge.info(
+                      '${filteredHistory.length} Saved Records',
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.cardBorderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _historyExpanded ? 'Collapse' : 'Expand',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          Icon(
+                            _historyExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_historyExpanded) ...[
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 4, color: AppColors.primary),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Filter Controls (Search, Product Chip Card, Date Chip Card)
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isWide = constraints.maxWidth >= 750;
+
+                            if (isWide) {
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    flex: 6,
+                                    child: TextField(
+                                      controller: _searchController,
+                                      decoration: const InputDecoration(
+                                        hintText:
+                                            'Search product, employee, crates, packaging...',
+                                        prefixIcon: Icon(
+                                          Icons.search_rounded,
+                                          size: 19,
+                                        ),
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 14,
+                                          vertical: 12,
+                                        ),
+                                      ),
+                                      onChanged: (val) {
+                                        setState(() {
+                                          _searchQuery = val;
+                                        });
+                                      },
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  _buildProductFilterChip(products),
+                                  const SizedBox(width: 12),
+                                  _buildDateFilterChip(),
+                                ],
+                              );
+                            } else {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  TextField(
+                                    controller: _searchController,
+                                    decoration: const InputDecoration(
+                                      hintText:
+                                          'Search product, employee, crates, packaging...',
+                                      prefixIcon: Icon(
+                                        Icons.search_rounded,
+                                        size: 19,
+                                      ),
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
+                                      ),
+                                    ),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _searchQuery = val;
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 10,
+                                    runSpacing: 10,
+                                    crossAxisAlignment:
+                                        WrapCrossAlignment.center,
+                                    children: [
+                                      _buildProductFilterChip(products),
+                                      _buildDateFilterChip(),
+                                    ],
+                                  ),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Records list or empty state
+                        if (filteredHistory.isEmpty) ...[
+                          Container(
+                            padding: const EdgeInsets.all(24),
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.alertLight,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.alert.withValues(alpha: 0.25),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(
+                                  Icons.inbox_outlined,
+                                  size: 20,
+                                  color: AppColors.alert,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'No product calculations found for ${_filterDate != null ? Formatters.formatDate(_filterDate!) : 'selected filter'}.',
+                                  style: const TextStyle(
+                                    color: AppColors.alert,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ] else ...[
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredHistory.length,
+                            separatorBuilder: (_, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final item = filteredHistory[index];
+                              final titleText = item.productNameWithQuantity
+                                      .isNotEmpty
+                                  ? item.productNameWithQuantity
+                                  : '${item.productName} — ${Formatters.formatSmart(item.inputQuantity)} ${item.inputMode}';
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary
+                                            .withValues(alpha: 0.08),
+                                        borderRadius:
+                                            BorderRadius.circular(8),
+                                      ),
+                                      child: const Icon(
+                                        Icons.inventory_2_outlined,
+                                        size: 20,
+                                        color: AppColors.primary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            titleText,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w800,
+                                              fontSize: 14,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+                                          Text(
+                                            '${item.date} • ${item.time} • ${item.employeeName}\n'
+                                            'Packing: ${item.packingNeeded.isNotEmpty ? item.packingNeeded : '${Formatters.formatSmart(item.crates)} Crates'} | '
+                                            'Quantity: ${item.totalQuantityDisplay.isNotEmpty ? item.totalQuantityDisplay : '${Formatters.formatSmart(item.volumeLitres)} L'}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              color: AppColors.textSecondary,
+                                              height: 1.35,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '${Formatters.formatInt(item.pieces)} pcs',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 14,
+                                            color: AppColors.primaryDark,
+                                          ),
+                                        ),
+                                        if (item.totalPriceDisplay
+                                            .isNotEmpty) ...[
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            item.totalPriceDisplay,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.goldAccent,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          if (_historyExpanded) ...[
-            const SizedBox(height: 16),
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: history.length.clamp(0, 5),
-              separatorBuilder: (_, index) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final item = history[index];
-              final titleText = item.productNameWithQuantity.isNotEmpty
-                  ? item.productNameWithQuantity
-                  : '${item.productName} — ${Formatters.formatSmart(item.inputQuantity)} ${item.inputMode}';
+        ],
+      ],
+    );
+  }
 
-              return ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                title: Text(
-                  titleText,
-                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+  bool _matchesDate(ProductCalculationRecord r, DateTime filterDate) {
+    final targetIso = Formatters.formatIsoDate(filterDate);
+    if (r.date == targetIso) return true;
+    if (r.date == Formatters.formatDate(filterDate)) return true;
+    if (r.createdAt.year == filterDate.year &&
+        r.createdAt.month == filterDate.month &&
+        r.createdAt.day == filterDate.day) {
+      return true;
+    }
+    return false;
+  }
+
+  Widget _buildDateFilterChip() {
+    final isToday = _filterDate == null ||
+        Formatters.formatDate(_filterDate!) ==
+            Formatters.formatDate(DateTime.now());
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _filterDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2035),
+            );
+            if (picked != null) {
+              setState(() {
+                _filterDate = picked;
+              });
+            }
+          },
+          borderRadius: BorderRadius.circular(9),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: AppColors.primary,
                 ),
-                subtitle: Text(
-                  '${item.date} • ${item.time} • ${item.employeeName}\n'
-                  'Packing: ${item.packingNeeded.isNotEmpty ? item.packingNeeded : '${Formatters.formatSmart(item.crates)} Crates'} | '
-                  'Quantity: ${item.totalQuantityDisplay.isNotEmpty ? item.totalQuantityDisplay : '${Formatters.formatSmart(item.volumeLitres)} L'}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                const SizedBox(width: 8),
+                Text(
+                  _filterDate != null
+                      ? (isToday
+                          ? 'Today (${Formatters.formatDate(_filterDate!)})'
+                          : Formatters.formatDate(_filterDate!))
+                      : 'Select Date',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
-                trailing: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${Formatters.formatInt(item.pieces)} pcs',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13.5, color: AppColors.primaryDark),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_drop_down_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!isToday) ...[
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () => setState(() => _filterDate = DateTime.now()),
+            borderRadius: BorderRadius.circular(9),
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1.2,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.replay_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Today',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
-                    if (item.totalPriceDisplay.isNotEmpty)
-                      Text(
-                        item.totalPriceDisplay,
-                        style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700, color: AppColors.goldAccent),
-                      ),
-                  ],
-                ),
-              );
-            },
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ],
-    ),
-  );
+    );
+  }
+
+  Widget _buildProductFilterChip(List<ProductModel> products) {
+    final validProducts = (products.isNotEmpty ? products : DairyProducts.officialProducts)
+        .where((p) =>
+            p.productName.trim() != '2' &&
+            p.productId.trim() != '2' &&
+            p.productName.trim().isNotEmpty)
+        .toList();
+    final isSelectedValid = _filterProductId != null &&
+        validProducts.any((p) => p.productId == _filterProductId);
+
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.inventory_2_rounded,
+            size: 17,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: isSelectedValid ? _filterProductId : '',
+              isDense: true,
+              icon: const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 13,
+                color: AppColors.textPrimary,
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: '',
+                  child: Text('All Products'),
+                ),
+                ...validProducts.map(
+                  (p) => DropdownMenuItem(
+                    value: p.productId,
+                    child: Text(p.productName),
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _filterProductId = (val == null || val.isEmpty) ? null : val;
+                });
+              },
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
