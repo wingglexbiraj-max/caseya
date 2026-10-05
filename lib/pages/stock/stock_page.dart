@@ -1,229 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
+import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/status_badge.dart';
+import '../../models/inventory_item_model.dart';
+import '../../providers/inventory_stock_provider.dart';
 
-class StockPage extends StatefulWidget {
+class StockPage extends ConsumerStatefulWidget {
   const StockPage({super.key});
 
   @override
-  State<StockPage> createState() => _StockPageState();
+  ConsumerState<StockPage> createState() => _StockPageState();
 }
 
-class _StockPageState extends State<StockPage> {
-  String _selectedCategory = 'All';
+class _StockPageState extends ConsumerState<StockPage> {
   final TextEditingController _searchController = TextEditingController();
-
-  static const List<Map<String, dynamic>> _inventoryData = [
-    // --- CUPS ---
-    {
-      'name': 'Lassi Cup (200ml)',
-      'category': 'Cups',
-      'packaging': '33 Boxes',
-      'totalQty': '82,500 pcs',
-      'details': '2,500 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.local_drink_rounded,
-    },
-    {
-      'name': 'S80 Cup (Sweet Curd 80g)',
-      'category': 'Cups',
-      'packaging': '22 Boxes',
-      'totalQty': '52,800 pcs',
-      'details': '2,400 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.takeout_dining_rounded,
-    },
-    {
-      'name': 'S200 Cup (Sweet Curd 200g)',
-      'category': 'Cups',
-      'packaging': '11 Boxes',
-      'totalQty': '22,000 pcs',
-      'details': '2,000 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.takeout_dining_rounded,
-    },
-    {
-      'name': 'S400 Cup (Sweet Curd 400g)',
-      'category': 'Cups',
-      'packaging': '40 Boxes',
-      'totalQty': '4,000 pcs',
-      'details': '100 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.takeout_dining_rounded,
-    },
-    {
-      'name': 'P80 Cup (Plain Curd 80g)',
-      'category': 'Cups',
-      'packaging': '16 Boxes',
-      'totalQty': '38,400 pcs',
-      'details': '2,400 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.takeout_dining_rounded,
-    },
-    {
-      'name': 'P200 Cup (Plain Curd 200g)',
-      'category': 'Cups',
-      'packaging': '5 Boxes',
-      'totalQty': '10,000 pcs',
-      'details': '2,000 pcs / box',
-      'status': 'Low Stock Alert',
-      'icon': Icons.takeout_dining_rounded,
-    },
-    {
-      'name': 'P400 Cup (Plain Curd 400g)',
-      'category': 'Cups',
-      'packaging': '47 Boxes',
-      'totalQty': '47,000 pcs',
-      'details': '1,000 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.takeout_dining_rounded,
-    },
-
-    // --- POLY ROLL ---
-    {
-      'name': 'Poly Film STD 500ml',
-      'category': 'Poly Roll',
-      'packaging': '8 Rolls',
-      'totalQty': '8 Rolls',
-      'details': 'Standardized milk 500 ml packaging film',
-      'status': 'Adequate',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film STD 250ml',
-      'category': 'Poly Roll',
-      'packaging': '42 Rolls',
-      'totalQty': '42 Rolls',
-      'details': 'Standardized milk 250 ml packaging film',
-      'status': 'Adequate',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film STD 200ml',
-      'category': 'Poly Roll',
-      'packaging': '15 Rolls',
-      'totalQty': '15 Rolls',
-      'details': 'Standardized milk 200 ml packaging film',
-      'status': 'Adequate',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film SM+ 500ml',
-      'category': 'Poly Roll',
-      'packaging': '5 Rolls',
-      'totalQty': '5 Rolls',
-      'details': 'Smart Plus toned milk 500 ml film',
-      'status': 'Low Stock Alert',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film Sweet Curd 400gm',
-      'category': 'Poly Roll',
-      'packaging': '3 Rolls',
-      'totalQty': '3 Rolls',
-      'details': 'Sweet curd 400g pouch film',
-      'status': 'Low Stock Alert',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film Sweet Curd 1kg',
-      'category': 'Poly Roll',
-      'packaging': '6 Rolls',
-      'totalQty': '6 Rolls',
-      'details': 'Sweet curd 1 kg pouch packaging film',
-      'status': 'Adequate',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film Plain Curd 400gm',
-      'category': 'Poly Roll',
-      'packaging': '3 Rolls',
-      'totalQty': '3 Rolls',
-      'details': 'Plain curd 400g pouch film',
-      'status': 'Low Stock Alert',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film Plain Curd 1kg',
-      'category': 'Poly Roll',
-      'packaging': '7 Rolls',
-      'totalQty': '7 Rolls',
-      'details': 'Plain curd 1 kg pouch packaging film',
-      'status': 'Adequate',
-      'icon': Icons.album_rounded,
-    },
-
-    // --- ALUMINIUM FOIL ---
-    {
-      'name': 'Foil 80gm (Pink)',
-      'category': 'Aluminium Foil',
-      'packaging': '22 Boxes',
-      'totalQty': '831,600 lids',
-      'details': '37,800 lids / box • Sweet curd 80g',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-    {
-      'name': 'Foil 200/400gm (Pink)',
-      'category': 'Aluminium Foil',
-      'packaging': '12 Boxes',
-      'totalQty': '16,800 lids',
-      'details': '1,400 lids / box • Sweet curd cups',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-    {
-      'name': 'Foil 80gm (Blue)',
-      'category': 'Aluminium Foil',
-      'packaging': '69 Boxes',
-      'totalQty': '96,600 lids',
-      'details': '1,400 lids / box • Plain curd 80g & Lassi 200ml',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-    {
-      'name': 'Foil 200/400gm (Blue)',
-      'category': 'Aluminium Foil',
-      'packaging': '35 Boxes',
-      'totalQty': '49,000 lids',
-      'details': '1,400 lids / box • Plain curd cups',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-
-    // --- SERVING MATERIAL ---
-    {
-      'name': 'Wooden Spoon',
-      'category': 'Serving Material',
-      'packaging': '7 Boxes',
-      'totalQty': '126,000 pcs',
-      'details': '18,000 pcs / box • Curd & dessert spoon',
-      'status': 'Adequate',
-      'icon': Icons.flatware_rounded,
-    },
-
-    // --- INGREDIENTS ---
-    {
-      'name': 'Sugar',
-      'category': 'Ingredients',
-      'packaging': '19 Bags',
-      'totalQty': '950 kg',
-      'details': '50 kg / bag • Sweet curd production buffer',
-      'status': 'Adequate',
-      'icon': Icons.inventory_2_rounded,
-    },
-    {
-      'name': 'SMP (Skimmed Milk Powder)',
-      'category': 'Ingredients',
-      'packaging': '57 Bags',
-      'totalQty': '1,425 kg',
-      'details': '25 kg / bag • Plant standardization stock',
-      'status': 'Adequate',
-      'icon': Icons.grain_rounded,
-    },
-  ];
+  bool _isLedgerExpanded = true;
 
   @override
   void dispose() {
@@ -251,18 +45,35 @@ class _StockPageState extends State<StockPage> {
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveLayout.isMobile(context);
-    final query = _searchController.text.trim().toLowerCase();
+    final stockState = ref.watch(inventoryStockProvider);
+    final filtered = stockState.filteredItems;
+    final counts = stockState.categoryCounts;
 
     final categories = ['All', 'Cups', 'Poly Roll', 'Aluminium Foil', 'Serving Material', 'Ingredients'];
 
-    final filtered = _inventoryData.where((item) {
-      final matchesCategory = _selectedCategory == 'All' || item['category'] == _selectedCategory;
-      final matchesQuery = query.isEmpty ||
-          item['name'].toString().toLowerCase().contains(query) ||
-          item['packaging'].toString().toLowerCase().contains(query) ||
-          item['details'].toString().toLowerCase().contains(query);
-      return matchesCategory && matchesQuery;
-    }).toList();
+    // Compute KPI sums
+    double totalIngredientsKg = 0.0;
+    double totalSmpBags = 0.0;
+    double totalSugarBags = 0.0;
+    double totalFoilRemainingLids = 0.0;
+    double totalFoilRemainingBoxes = 0.0;
+    double totalCupsRemainingPcs = 0.0;
+
+    for (final item in stockState.allItems) {
+      if (item.category == 'Ingredients') {
+        totalIngredientsKg += item.remainingQty;
+        if (item.id == 'ingredient_smp') {
+          totalSmpBags = item.remainingPackages;
+        } else if (item.id == 'ingredient_sugar') {
+          totalSugarBags = item.remainingPackages;
+        }
+      } else if (item.category == 'Aluminium Foil') {
+        totalFoilRemainingLids += item.remainingQty;
+        totalFoilRemainingBoxes += item.remainingPackages;
+      } else if (item.category == 'Cups') {
+        totalCupsRemainingPcs += item.remainingQty;
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -274,26 +85,32 @@ class _StockPageState extends State<StockPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Quick KPIs
+            // Top Live Quick KPIs
             Row(
               children: [
                 Expanded(
                   child: _buildMetricTile(
                     'Ingredients Buffer',
-                    '2,375 kg',
-                    '57 Bags SMP • 19 Bags Sugar',
+                    '${Formatters.formatSmart(totalIngredientsKg)} kg',
+                    '${Formatters.formatSmart(totalSmpBags)} Bags SMP • ${Formatters.formatSmart(totalSugarBags)} Bags Sugar',
                     Icons.grain_rounded,
                     AppColors.goldAccent,
+                    consumedSubtitle: stockState.totalSugarUsedKg > 0 || stockState.totalSmpUsedKg > 0
+                        ? '−${Formatters.formatSmart(stockState.totalSugarUsedKg + stockState.totalSmpUsedKg)} kg batch used'
+                        : null,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildMetricTile(
-                    'Poly Roll Stock',
-                    '89 Rolls',
-                    'STD, SM+ & Curd Pouches',
-                    Icons.album_rounded,
+                    'Cups Inventory',
+                    '${Formatters.formatInt(totalCupsRemainingPcs)} pcs',
+                    '7 Types (Lassi, Sweet & Plain Curd)',
+                    Icons.takeout_dining_rounded,
                     AppColors.primary,
+                    consumedSubtitle: stockState.totalCupsUsed > 0
+                        ? '−${Formatters.formatInt(stockState.totalCupsUsed)} cups consumed'
+                        : null,
                   ),
                 ),
                 if (!isMobile) ...[
@@ -301,17 +118,272 @@ class _StockPageState extends State<StockPage> {
                   Expanded(
                     child: _buildMetricTile(
                       'Aluminium Foil Buffer',
-                      '994k Lids',
-                      '138 Total Boxes on Floor',
+                      '${Formatters.formatInt(totalFoilRemainingLids)} lids',
+                      '${Formatters.formatSmart(totalFoilRemainingBoxes)} Boxes on Floor (Pink & Blue)',
                       Icons.circle_outlined,
                       AppColors.accentCyanDeep,
+                      consumedSubtitle: stockState.totalFoilsUsed > 0
+                          ? '−${Formatters.formatInt(stockState.totalFoilsUsed)} foils used'
+                          : null,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildMetricTile(
+                      'Poly Roll Stock',
+                      '89 Rolls',
+                      'STD, SM+ & Curd Pouches',
+                      Icons.album_rounded,
+                      AppColors.primaryLight,
                     ),
                   ),
                 ],
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 18),
 
+            // Live Connection Status Banner
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.sync_rounded, color: AppColors.primary, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textPrimary),
+                        children: [
+                          const TextSpan(
+                            text: 'Live Linked to Production & Standardization Registers: ',
+                            style: TextStyle(fontWeight: AppFontWeights.bold, color: AppColors.primaryDark),
+                          ),
+                          TextSpan(
+                            text: stockState.deductionLedger.isEmpty
+                                ? 'Whenever you record production entries (e.g. 20 cups of Lassi or curd cups) or milk batches, cups, foils, wooden spoons, sugar, and SMP are automatically deducted in real time.'
+                                : 'Active deductions: ${stockState.totalCupsUsed} cups, ${stockState.totalFoilsUsed} foils, ${stockState.totalSpoonsUsed} wooden spoons, ${Formatters.formatSmart(stockState.totalSugarUsedKg)} kg sugar, ${Formatters.formatSmart(stockState.totalSmpUsedKg)} kg SMP deducted.',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (stockState.deductionLedger.isNotEmpty)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _isLedgerExpanded = !_isLedgerExpanded;
+                        });
+                      },
+                      icon: Icon(
+                        _isLedgerExpanded ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                        size: 18,
+                        color: AppColors.primary,
+                      ),
+                      label: Text(
+                        _isLedgerExpanded ? 'Hide Ledger' : 'View Ledger (${stockState.deductionLedger.length})',
+                        style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.primary),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Expandable Production & Batch Deduction Ledger Card
+            if (stockState.deductionLedger.isNotEmpty && _isLedgerExpanded) ...[
+              AppCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      alignment: WrapAlignment.spaceBetween,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            const Icon(Icons.receipt_long_rounded, color: AppColors.primary, size: 20),
+                            const Text(
+                              'Live Production & Batch Consumption Ledger',
+                              style: TextStyle(
+                                fontSize: AppTextSizes.body,
+                                fontWeight: AppFontWeights.bold,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                '${stockState.deductionLedger.length} Records',
+                                style: const TextStyle(
+                                  fontSize: AppTextSizes.caption,
+                                  fontWeight: AppFontWeights.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Cross-verified against Production & Batch Registers',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            color: AppColors.textMuted,
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    const Divider(height: 1),
+                    const SizedBox(height: 8),
+
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: stockState.deductionLedger.length,
+                      separatorBuilder: (_, _) => const Divider(height: 1, indent: 40),
+                      itemBuilder: (context, index) {
+                        final entry = stockState.deductionLedger[index];
+                        final isFoil = entry.unit == 'lids';
+                        final isIngredient = entry.unit == 'kg';
+                        final isSpoon = entry.inventoryItemId == 'serving_wooden_spoon';
+
+                        final badgeColor = entry.source == 'Production Register'
+                            ? AppColors.primary
+                            : (entry.source == 'Milk Standardization' ? AppColors.accentCyanDeep : AppColors.goldAccent);
+
+                        final itemColor = isIngredient
+                            ? AppColors.goldAccent
+                            : (isSpoon
+                                ? AppColors.warning
+                                : (isFoil ? AppColors.accentCyanDeep : AppColors.primary));
+
+                        final itemIcon = isIngredient
+                            ? Icons.grain_rounded
+                            : (isSpoon
+                                ? Icons.flatware_rounded
+                                : (isFoil ? Icons.circle_outlined : Icons.takeout_dining_rounded));
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: itemColor.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  itemIcon,
+                                  color: itemColor,
+                                  size: 18,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Wrap(
+                                      crossAxisAlignment: WrapCrossAlignment.center,
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: [
+                                        Text(
+                                          entry.inventoryItemName,
+                                          style: const TextStyle(
+                                            fontWeight: AppFontWeights.bold,
+                                            fontSize: AppTextSizes.body,
+                                            color: AppColors.textPrimary,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: badgeColor.withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            entry.source,
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: AppFontWeights.bold,
+                                              color: badgeColor,
+                                            ),
+                                          ),
+                                        ),
+                                        if (entry.isCrossVerified)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.success.withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              '✓ Cross-Verified',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: AppFontWeights.bold,
+                                                color: AppColors.success,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${entry.date} ${entry.time} • Batch: ${entry.batchNo} • Product: ${entry.productName} • ${entry.notes}',
+                                      style: const TextStyle(
+                                        fontSize: AppTextSizes.caption,
+                                        color: AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.danger.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '−${Formatters.formatSmart(entry.quantityDeducted)} ${entry.unit}',
+                                  style: const TextStyle(
+                                    fontWeight: AppFontWeights.bold,
+                                    fontSize: AppTextSizes.caption,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Main Inventory Table Card
             AppCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -319,7 +391,7 @@ class _StockPageState extends State<StockPage> {
                   // Search input
                   TextField(
                     controller: _searchController,
-                    onChanged: (_) => setState(() {}),
+                    onChanged: (val) => ref.read(inventoryStockProvider.notifier).setSearchQuery(val),
                     decoration: InputDecoration(
                       hintText: 'Search items (e.g. STD 500ml, Sugar, S80, Foil)...',
                       prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textSecondary),
@@ -328,7 +400,7 @@ class _StockPageState extends State<StockPage> {
                               icon: const Icon(Icons.clear_rounded, size: 18),
                               onPressed: () {
                                 _searchController.clear();
-                                setState(() {});
+                                ref.read(inventoryStockProvider.notifier).clearSearch();
                               },
                             )
                           : null,
@@ -337,15 +409,13 @@ class _StockPageState extends State<StockPage> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Category Filter Chips
+                  // Category Filter Chips with Dynamic Item Counts
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: categories.map((cat) {
-                      final isSelected = _selectedCategory == cat;
-                      final count = cat == 'All'
-                          ? _inventoryData.length
-                          : _inventoryData.where((item) => item['category'] == cat).length;
+                      final isSelected = stockState.selectedCategory == cat;
+                      final count = counts[cat] ?? 0;
                       final chipText = '$cat ($count)';
 
                       return ChoiceChip(
@@ -374,9 +444,7 @@ class _StockPageState extends State<StockPage> {
                         ),
                         onSelected: (selected) {
                           if (selected) {
-                            setState(() {
-                              _selectedCategory = cat;
-                            });
+                            ref.read(inventoryStockProvider.notifier).setSelectedCategory(cat);
                           }
                         },
                       );
@@ -384,8 +452,11 @@ class _StockPageState extends State<StockPage> {
                   ),
                   const SizedBox(height: 18),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       Text(
                         '${filtered.length} ITEMS LOGGED',
@@ -396,112 +467,63 @@ class _StockPageState extends State<StockPage> {
                           color: AppColors.textSecondary,
                         ),
                       ),
-                      StatusBadge.success('Physical Floor Count Verified'),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          if (stockState.totalCupsUsed > 0 || stockState.totalSugarUsedKg > 0)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.warningLight,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                              ),
+                              child: const Text(
+                                'Live Deductions Active',
+                                style: TextStyle(
+                                  fontSize: AppTextSizes.caption,
+                                  fontWeight: AppFontWeights.bold,
+                                  color: AppColors.goldDark,
+                                ),
+                              ),
+                            ),
+                          StatusBadge.success('Physical Floor Count Verified'),
+                        ],
+                      ),
                     ],
                   ),
                   const SizedBox(height: 12),
 
-                  ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: filtered.length,
-                    separatorBuilder: (_, _) => const Divider(height: 1),
-                    itemBuilder: (context, index) {
-                      final item = filtered[index];
-                      final isLow = item['status'] == 'Low Stock Alert';
-
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: isLow ? AppColors.warningLight : AppColors.primaryContainer,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                item['icon'] as IconData,
-                                color: isLow ? AppColors.warning : AppColors.primary,
-                                size: 22,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Flexible(
-                                        child: Text(
-                                          item['name'],
-                                          style: const TextStyle(
-                                            fontWeight: AppFontWeights.bold,
-                                            fontSize: AppTextSizes.body,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      StatusBadge.neutral(item['category'], fontSize: AppTextSizes.caption),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    item['details'],
-                                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  item['packaging'],
-                                  style: const TextStyle(
-                                    fontWeight: AppFontWeights.bold,
-                                    fontSize: AppTextSizes.body,
-                                    color: AppColors.primaryDark,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  item['totalQty'],
-                                  style: const TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: AppFontWeights.semiBold,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                if (isLow)
-                                  const Text(
-                                    'Low Buffer Alert',
-                                    style: TextStyle(
-                                      fontSize: AppTextSizes.caption,
-                                      color: AppColors.danger,
-                                      fontWeight: AppFontWeights.bold,
-                                    ),
-                                  )
-                                else
-                                  const Text(
-                                    'Adequate',
-                                    style: TextStyle(
-                                      fontSize: AppTextSizes.caption,
-                                      color: AppColors.success,
-                                      fontWeight: AppFontWeights.semiBold,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                  if (filtered.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      alignment: Alignment.center,
+                      child: Column(
+                        children: [
+                          const Icon(Icons.search_off_rounded, size: 48, color: AppColors.textMuted),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'No inventory items match your search.',
+                            style: TextStyle(fontWeight: AppFontWeights.bold, color: AppColors.textSecondary),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Try changing category filter or search keywords.',
+                            style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filtered.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (context, index) => _buildItemChipCard(filtered[index]),
+                    ),
                 ],
               ),
             ),
@@ -511,7 +533,14 @@ class _StockPageState extends State<StockPage> {
     );
   }
 
-  Widget _buildMetricTile(String title, String val, String subtitle, IconData icon, Color color) {
+  Widget _buildMetricTile(
+    String title,
+    String val,
+    String subtitle,
+    IconData icon,
+    Color color, {
+    String? consumedSubtitle,
+  }) {
     return AppCard(
       padding: const EdgeInsets.all(14),
       child: Row(
@@ -520,7 +549,7 @@ class _StockPageState extends State<StockPage> {
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+              shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 22),
           ),
@@ -531,19 +560,201 @@ class _StockPageState extends State<StockPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.semiBold, color: AppColors.textSecondary),
+                  style: const TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    fontWeight: AppFontWeights.semiBold,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
                 Text(
                   val,
-                  style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: AppTextSizes.subheading,
+                    fontWeight: AppFontWeights.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 Text(
                   subtitle,
                   style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted),
                   overflow: TextOverflow.ellipsis,
                 ),
+                if (consumedSubtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    consumedSubtitle,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: AppFontWeights.bold,
+                      color: AppColors.danger,
+                    ),
+                  ),
+                ],
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Color _getItemCardBgColor(String category) {
+    return Colors.black.withValues(alpha: 0.035); // Low opacity black background
+  }
+
+  Color _getItemBorderColor(String category) {
+    switch (category) {
+      case 'Cups':
+        return const Color(0xFF1D4ED8).withValues(alpha: 0.22);
+      case 'Aluminium Foil':
+        return const Color(0xFF6D28D9).withValues(alpha: 0.22);
+      case 'Poly Roll':
+        return const Color(0xFF047857).withValues(alpha: 0.22);
+      case 'Ingredients':
+        return const Color(0xFFB45309).withValues(alpha: 0.22);
+      case 'Serving Material':
+        return const Color(0xFFBE123C).withValues(alpha: 0.22);
+      default:
+        return Colors.black.withValues(alpha: 0.08);
+    }
+  }
+
+  Color _getItemCategoryTextColor(String category) {
+    switch (category) {
+      case 'Cups':
+        return const Color(0xFF1D4ED8); // Blue 700
+      case 'Aluminium Foil':
+        return const Color(0xFF6D28D9); // Violet 700
+      case 'Poly Roll':
+        return const Color(0xFF047857); // Emerald 700
+      case 'Ingredients':
+        return const Color(0xFFB45309); // Amber 700
+      case 'Serving Material':
+        return const Color(0xFFBE123C); // Rose 700
+      default:
+        return AppColors.primary;
+    }
+  }
+
+  Widget _buildItemChipCard(InventoryItemModel item) {
+    final isLow = item.status == 'Low Stock Alert';
+    final isOutOfStock = item.status == 'Out of Stock Alert';
+
+    final cardBgColor = _getItemCardBgColor(item.category);
+    final borderColor = _getItemBorderColor(item.category);
+    final categoryColor = _getItemCategoryTextColor(item.category);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: cardBgColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.06),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              item.icon,
+              color: Colors.black.withValues(alpha: 0.65),
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: const TextStyle(
+                    fontWeight: AppFontWeights.bold,
+                    fontSize: AppTextSizes.body,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  'Category: ${item.category}',
+                  style: TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    fontWeight: AppFontWeights.bold,
+                    color: categoryColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.details,
+                  style: const TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    color: AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '${Formatters.formatSmart(item.remainingPackages)} ${item.packagingUnit}',
+                style: const TextStyle(
+                  fontWeight: AppFontWeights.bold,
+                  fontSize: AppTextSizes.body,
+                  color: AppColors.primaryDark,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                '${Formatters.formatSmart(item.remainingQty)} ${item.baseUnit}',
+                style: const TextStyle(
+                  fontSize: AppTextSizes.caption,
+                  fontWeight: AppFontWeights.semiBold,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              if (isOutOfStock)
+                const Text(
+                  'Out of Stock Alert',
+                  style: TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    color: AppColors.danger,
+                    fontWeight: AppFontWeights.bold,
+                  ),
+                )
+              else if (isLow)
+                const Text(
+                  'Low Buffer Alert',
+                  style: TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    color: AppColors.warning,
+                    fontWeight: AppFontWeights.bold,
+                  ),
+                )
+              else
+                const Text(
+                  'Adequate',
+                  style: TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    color: AppColors.success,
+                    fontWeight: AppFontWeights.semiBold,
+                  ),
+                ),
+            ],
           ),
         ],
       ),
