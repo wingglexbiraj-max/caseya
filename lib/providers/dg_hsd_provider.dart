@@ -142,11 +142,15 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
       fuelAdded: state.fuelAdded,
       startPercentage: state.startPercentage,
       endPercentage: state.endPercentage,
-      fuelConsumption: state.fuelConsumption,
+      fuelConsumption: state.fuelConsumption > 0 ? state.fuelConsumption : null,
       kwh: state.kwh,
       runningHours: state.runningHours,
     );
-    state = state.copyWith(liveResult: result, clearMessages: true);
+    state = state.copyWith(
+      liveResult: result,
+      errorMessage: result.validationError,
+      clearMessages: result.validationError == null,
+    );
   }
 
   void setDate(DateTime date) {
@@ -250,11 +254,11 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
     state = state.copyWith(
       clearEditing: true,
       fuelAdded: 0.0,
-      startPercentage: 80.0,
-      endPercentage: 65.0,
-      fuelConsumption: 50.0,
-      kwh: 175.0,
-      runningHours: 3.5,
+      startPercentage: 0.0,
+      endPercentage: 0.0,
+      fuelConsumption: 0.0,
+      kwh: 0.0,
+      runningHours: 0.0,
       remarks: '',
     );
     _recalculate();
@@ -267,10 +271,41 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
     final result = state.liveResult;
     if (result == null) return false;
 
-    if (state.runningHours <= 0) {
-      state = state.copyWith(errorMessage: 'Running hours must be greater than 0');
+    if (state.fuelAdded < 0) {
+      state = state.copyWith(errorMessage: 'Top-up litres cannot be negative.');
       return false;
     }
+
+    if (state.startPercentage < 0 || state.startPercentage > 100) {
+      state = state.copyWith(errorMessage: 'Opening fuel level must be between 0% and 100%.');
+      return false;
+    }
+
+    if (state.endPercentage < 0 || state.endPercentage > 100) {
+      state = state.copyWith(errorMessage: 'Closing fuel level must be between 0% and 100%.');
+      return false;
+    }
+
+    if (result.exceedsCapacity) {
+      state = state.copyWith(
+        errorMessage: 'Fuel level after top-up (${Formatters.formatSmart(result.fuelAfterTopUp)} L / ${Formatters.formatDecimal(result.percentageAfterTopUp)}%) exceeds DG tank capacity of ${Formatters.formatSmart(result.tankCapacity)} L.',
+      );
+      return false;
+    }
+
+    if (result.consumedLitres < 0) {
+      state = state.copyWith(errorMessage: 'Closing fuel level cannot exceed fuel level after top-up.');
+      return false;
+    }
+
+    if (state.runningHours <= 0) {
+      state = state.copyWith(errorMessage: 'Running hours must be greater than 0.');
+      return false;
+    }
+
+    final double effectiveFuelConsumption = state.fuelConsumption > 0
+        ? state.fuelConsumption
+        : (result.consumedLitres > 0 ? result.consumedLitres : 0.0);
 
     final dateStr = Formatters.formatDate(state.selectedDate);
     final now = DateTime.now();
@@ -303,7 +338,7 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
           startPercentage: state.startPercentage,
           endPercentage: state.endPercentage,
           percentageDrop: result.percentageDrop,
-          fuelConsumption: state.fuelConsumption,
+          fuelConsumption: effectiveFuelConsumption,
           kwh: state.kwh,
           runningHours: state.runningHours,
           consumptionPerHour: result.consumptionPerHour,
@@ -337,7 +372,7 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
           startPercentage: state.startPercentage,
           endPercentage: state.endPercentage,
           percentageDrop: result.percentageDrop,
-          fuelConsumption: state.fuelConsumption,
+          fuelConsumption: effectiveFuelConsumption,
           kwh: state.kwh,
           runningHours: state.runningHours,
           consumptionPerHour: result.consumptionPerHour,

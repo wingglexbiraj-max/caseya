@@ -8,10 +8,16 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/live_time_chip.dart';
+import '../../core/widgets/confirmation_dialog.dart';
 import '../../models/batch_record_model.dart';
 import '../../providers/batch_records_provider.dart';
 import '../../providers/production_provider.dart';
+import '../../providers/lab_provider.dart';
 import '../../services/milk_standardization_calculator.dart';
+import '../../core/widgets/metric_card.dart';
+import '../../models/product_model.dart';
+import '../../models/standardization_record.dart';
+import '../../providers/standardization_provider.dart';
 import 'add_batch_dialog.dart';
 
 class BatchRecordsPage extends ConsumerStatefulWidget {
@@ -33,14 +39,12 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
   // Accordion expanded state for batch cards
   final Set<String> _expandedBatchIds = {};
 
-  // Standardization Batch Products List
-  static final List<String> standardizationProductNames =
-      MilkStandardizationCalculator.standardizationProducts
-          .map((p) => p.productName)
-          .toList();
+  // History section collapse state (collapsed by default)
+  bool _historyExpanded = false;
 
   // Form State
   String? _selectedProduct;
+  StandardizationRecord? _selectedStandardizationRecord;
   String _selectedLoggedBy = ProductionState.authorizedPersonsList.first;
   DateTime _selectedDate = DateTime.now();
   TimeOfDay? _selectedTime;
@@ -92,6 +96,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     _customPersonController.clear();
     setState(() {
       _selectedProduct = null;
+      _selectedStandardizationRecord = null;
       _selectedDate = DateTime.now();
       _selectedTime = null;
       _isLiveTime = true;
@@ -142,6 +147,36 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     final totalVolume = milk + water + sugar + smp;
     final now = DateTime.now();
     final dateIso = Formatters.formatIsoDate(_selectedDate);
+
+    // DUPLICATE BATCH CHECK:
+    // If a batch for the same product and date already exists, ask the user to confirm
+    final existingBatches = ref.read(batchRecordsProvider).batches.where(
+      (b) => b.productionDate == dateIso &&
+             b.productName.trim().toLowerCase() == _selectedProduct!.trim().toLowerCase(),
+    ).toList();
+
+    if (existingBatches.isNotEmpty) {
+      final existing = existingBatches.first;
+      final isStd = existing.notes != null &&
+          (existing.notes!.contains('Standardized') || existing.batchNumber.startsWith('STD-'));
+      final sourceDesc = isStd ? ' (from Milk Standardization)' : '';
+
+      final confirmDuplicate = await ConfirmationDialog.show(
+        context: context,
+        title: 'Batch Already Recorded for Today',
+        message:
+            'A batch for "$_selectedProduct" has already been recorded on $dateIso:\n'
+            '• Batch #${existing.batchNumber} (${Formatters.formatSmart(existing.batchQuantity)} ${existing.batchUnit}$sourceDesc)\n\n'
+            'Are you sure you want to add it again?',
+        confirmLabel: 'Yes, Add Again',
+        cancelLabel: 'Cancel',
+      );
+
+      if (!confirmDuplicate) {
+        return;
+      }
+    }
+
     final effectiveShift = _isLiveTime
         ? AppConstants.determineShift(DateTime.now())
         : (_selectedTime != null
@@ -198,7 +233,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
       batchUnit: 'L',
       shift: effectiveShift,
       operatorName: effectivePerson,
-      notes: _notesController.text.trim(),
+      notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       ingredients: ingredients,
       createdAt: now,
       updatedAt: now,
@@ -206,6 +241,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
 
     final success = await ref.read(batchRecordsProvider.notifier).createBatch(batch);
     if (success && mounted) {
+      ref.read(labProvider.notifier).refreshSiloStock();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -226,6 +262,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     );
 
     if (result == true && mounted) {
+      ref.read(labProvider.notifier).refreshSiloStock();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -307,59 +344,42 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     return '$prefix$dStr';
   }
 
-  IconData _getProductIcon(String product) {
-    switch (product.toLowerCase()) {
-      case 'lassi':
-      case 'purabi lassi 200 ml':
-        return Icons.local_drink_rounded;
-      case 'curd':
-      case 'sweet curd':
-      case 'sweet curd cup 400g':
-      case 'plain curd cup':
-      case 'plain curd cup 80g':
-      case 'plain curd cup 400g':
-        return Icons.takeout_dining_rounded;
-      case 'plain curd pouch':
-      case 'curd pouch 400 g':
-      case 'curd pouch 1 kg':
-        return Icons.shopping_bag_outlined;
-      case 'std milk':
-      case 'milk pouch':
-      case 'milk':
-      case 'std 500 ml':
-      case 'std 250 ml':
-        return Icons.water_drop_rounded;
-      case 'sm+ (army milk)':
-      case 'purabi smart + 500 ml':
-        return Icons.shield_rounded;
-      case 'paneer':
-      case 'purabi paneer 200g':
-        return Icons.layers_rounded;
-      default:
-        return Icons.blender_rounded;
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(batchRecordsProvider);
     final isMobile = ResponsiveLayout.isMobile(context);
 
+    final stdState = ref.watch(standardizationProvider);
+    final targetProducts = stdState.targetProducts.isNotEmpty
+        ? stdState.targetProducts
+        : MilkStandardizationCalculator.standardizationProducts;
+
     final grouped = state.groupedByDate;
     final dailySummaries = state.dailySummaries;
 
-    // Standardization products list for batch entry dropdown (aligned with milk standardization)
-    final batchProductNames = standardizationProductNames;
-
     // Unified product options list for history search & filter dropdown
     final allProductNames = <String>{
-      ...batchProductNames,
+      ...targetProducts.map((p) => p.productName),
       ...state.batches.map((b) => b.productName),
     }.toList();
 
     // Global totals
     final totalBatches = state.batches.length;
     final totalProduction = state.batches.fold(0.0, (acc, b) => acc + b.batchQuantity);
+
+    final effectiveShift = _isLiveTime
+        ? AppConstants.determineShift(DateTime.now())
+        : (_selectedTime != null
+            ? AppConstants.determineShift(DateTime(
+                _selectedDate.year,
+                _selectedDate.month,
+                _selectedDate.day,
+                _selectedTime!.hour,
+                _selectedTime!.minute,
+              ))
+            : _determineCurrentShift());
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -371,135 +391,258 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // -------------------------------------------------------------
-            // 1. TOP KPI SUMMARY CARDS (Total Batches Logged & Volume)
-            // -------------------------------------------------------------
+            // =================================================================
+            // 1. TOTAL METRIC SUMMARY (All Dates Till Now - Lifetime Cumulative)
+            // Exactly matches Dashboard Total Metric Summary design
+            // =================================================================
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: _buildKpiTile(
-                    'Total Batches Logged',
-                    '$totalBatches Batches',
-                    'Across all production dates',
-                    Icons.blender_rounded,
-                    AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildKpiTile(
-                    'Total Production Volume',
-                    '${Formatters.formatSmart(totalProduction)} L',
-                    'Cumulative dairy yield',
-                    Icons.water_drop_rounded,
-                    AppColors.accentCyanDeep,
-                  ),
-                ),
-                if (!isMobile) ...[
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _buildKpiTile(
-                      'Production Dates',
-                      '${grouped.length} Days',
-                      'Active manufacturing records',
-                      Icons.calendar_month_rounded,
-                      AppColors.goldAccent,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.analytics_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
                     ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'TOTAL METRIC SUMMARY',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.subheading,
+                        fontWeight: AppFontWeights.bold,
+                        letterSpacing: 0.2,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                const Text(
+                  'All Dates Till Now',
+                  style: TextStyle(
+                    fontSize: AppTextSizes.caption,
+                    fontWeight: AppFontWeights.medium,
+                    color: AppColors.textMuted,
                   ),
-                ],
+                ),
               ],
+            ),
+            const SizedBox(height: 12),
+
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final crossAxisCount = constraints.maxWidth < 600
+                    ? 1
+                    : (constraints.maxWidth < 1000 ? 2 : 3);
+                final itemWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 16)) / crossAxisCount;
+
+                return Wrap(
+                  spacing: 16,
+                  runSpacing: 16,
+                  children: [
+                    SizedBox(
+                      width: itemWidth,
+                      child: MetricCard(
+                        title: 'Total Batches Logged',
+                        value: Formatters.formatSmart(totalBatches.toDouble()),
+                        unit: totalBatches == 1 ? 'Batch' : 'Batches',
+                        subtitle: 'Across all production dates',
+                        icon: Icons.blender_rounded,
+                        iconColor: Colors.black.withValues(alpha: 0.60),
+                        iconBgColor: Colors.black.withValues(alpha: 0.06),
+                        cardBgColor: const Color(0xFFEFF6FF),
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: MetricCard(
+                        title: 'Total Production Volume',
+                        value: Formatters.formatSmart(totalProduction),
+                        unit: 'Litres',
+                        subtitle: 'Cumulative dairy yield',
+                        icon: Icons.water_drop_rounded,
+                        iconColor: Colors.black.withValues(alpha: 0.60),
+                        iconBgColor: Colors.black.withValues(alpha: 0.06),
+                        cardBgColor: const Color(0xFFECFDF5),
+                      ),
+                    ),
+                    SizedBox(
+                      width: itemWidth,
+                      child: MetricCard(
+                        title: 'Production Dates',
+                        value: '${grouped.length}',
+                        unit: grouped.length == 1 ? 'Day' : 'Days',
+                        subtitle: 'Active manufacturing records',
+                        icon: Icons.calendar_month_rounded,
+                        iconColor: Colors.black.withValues(alpha: 0.60),
+                        iconBgColor: Colors.black.withValues(alpha: 0.06),
+                        cardBgColor: const Color(0xFFFFFBEB),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 24),
 
             // -------------------------------------------------------------
-            // 2. ADD BATCH ENTRY SECTION (Heading outside card like Boiler)
+            // 2. ADD BATCH ENTRY SECTION
             // -------------------------------------------------------------
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.blender_rounded,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.blender_rounded,
+                        size: 20,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Text(
+                      'ADD BATCH ENTRY',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.subheading,
+                        fontWeight: AppFontWeights.bold,
+                        letterSpacing: 0.2,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'ADD BATCH ENTRY',
-                  style: TextStyle(
-                    fontSize: AppTextSizes.subheading,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                StatusBadge.info(effectiveShift),
               ],
             ),
             const SizedBox(height: 12),
-            _buildAddBatchEntryCard(batchProductNames),
+            _buildAddBatchEntryCard(targetProducts),
             const SizedBox(height: 32),
 
             // -------------------------------------------------------------
-            // 3. DAILY BATCH RECORDS (Heading outside card like Boiler)
+            // 3. DAILY BATCH RECORDS HISTORY (Collapsible, Collapsed by Default)
             // -------------------------------------------------------------
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.history_rounded,
-                    size: 20,
-                    color: AppColors.primary,
-                  ),
+            InkWell(
+              onTap: () {
+                setState(() {
+                  _historyExpanded = !_historyExpanded;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.history_rounded,
+                            size: 20,
+                            color: Colors.black.withValues(alpha: 0.60),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        const Text(
+                          'DAILY BATCH RECORDS HISTORY',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.subheading,
+                            fontWeight: AppFontWeights.bold,
+                            letterSpacing: 0.6,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        StatusBadge.info(
+                          '${state.filteredBatches.length} ${state.filteredBatches.length == 1 ? 'Batch' : 'Batches'}',
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppColors.cardBorderSubtle),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                _historyExpanded ? 'Collapse' : 'Expand',
+                                style: const TextStyle(
+                                  fontSize: AppTextSizes.caption,
+                                  fontWeight: AppFontWeights.bold,
+                                  color: AppColors.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Icon(
+                                _historyExpanded
+                                    ? Icons.keyboard_arrow_up_rounded
+                                    : Icons.keyboard_arrow_down_rounded,
+                                size: 18,
+                                color: AppColors.primary,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 10),
-                const Text(
-                  'DAILY BATCH RECORDS (DATE-WISE)',
-                  style: TextStyle(
-                    fontSize: AppTextSizes.subheading,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            _buildFilterToolbar(state, allProductNames),
-            const SizedBox(height: 10),
-            _buildTodaysConsumption(state.batches),
-            const SizedBox(height: 20),
-
-            // -------------------------------------------------------------
-            // 4. DATE-WISE GROUPED BATCHES LIST
-            // -------------------------------------------------------------
-            if (grouped.isEmpty)
-              _buildEmptyState()
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: grouped.length,
-                itemBuilder: (context, index) {
-                  final dateKey = grouped.keys.elementAt(index);
-                  final batchesOnDate = grouped[dateKey]!;
-                  final summary = dailySummaries[dateKey]!;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
-                    child: _buildDateGroupSection(dateKey, summary, batchesOnDate),
-                  );
-                },
               ),
+            ),
+
+            if (_historyExpanded) ...[
+              const SizedBox(height: 12),
+              _buildFilterToolbar(state, allProductNames),
+              const SizedBox(height: 10),
+              _buildTodaysConsumption(state.batches),
+              const SizedBox(height: 20),
+
+              // -------------------------------------------------------------
+              // 4. DATE-WISE GROUPED BATCHES LIST
+              // -------------------------------------------------------------
+              if (grouped.isEmpty)
+                _buildEmptyState()
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: grouped.length,
+                  itemBuilder: (context, index) {
+                    final dateKey = grouped.keys.elementAt(index);
+                    final batchesOnDate = grouped[dateKey]!;
+                    final summary = dailySummaries[dateKey]!;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: _buildDateGroupSection(dateKey, summary, batchesOnDate),
+                    );
+                  },
+                ),
+            ],
           ],
         ),
       ),
@@ -509,25 +652,26 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
   // ---------------------------------------------------------------------------
   // WIDGET: ADD BATCH ENTRY SECTION
   // ---------------------------------------------------------------------------
-  Widget _buildAddBatchEntryCard(List<String> productNames) {
+  Widget _buildAddBatchEntryCard(List<ProductModel> targetProducts) {
     final isCustomPerson = _selectedLoggedBy == 'Other (Type manually)';
     final currentVolume = _currentTotalVolume;
 
+    final stdState = ref.watch(standardizationProvider);
+    final stdBatches = stdState.history;
+
     return AppCard(
-      topBorderColor: AppColors.primary,
-      topBorderHeight: 4,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 0: Date & Live Time Chips
+          // Row 0: Date, Time & Logged By (3 Chips in One Line)
           LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 650;
+              final isWide = constraints.maxWidth >= 720;
 
               final dateWidget = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Date', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
+                  const Text('Date', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: 6),
                   InkWell(
                     onTap: _selectDate,
@@ -545,7 +689,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                         children: [
                           Text(
                             Formatters.formatDate(_selectedDate),
-                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
+                            style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                           ),
                           const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
                         ],
@@ -558,7 +702,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
               final timeWidget = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Time', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
+                  const Text('Time', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold)),
                   const SizedBox(height: 6),
                   LiveTimeChip(
                     selectedTime: _selectedTime,
@@ -580,95 +724,16 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 ],
               );
 
-              if (isWide) {
-                return Row(
-                  children: [
-                    Expanded(child: dateWidget),
-                    const SizedBox(width: 14),
-                    Expanded(child: timeWidget),
-                  ],
-                );
-              } else {
-                return Column(
-                  children: [
-                    dateWidget,
-                    const SizedBox(height: 12),
-                    timeWidget,
-                  ],
-                );
-              }
-            },
-          ),
-          const SizedBox(height: 16),
-
-          // Row 1: Batch Name & Logged By Dropdowns
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 650;
-
-              final productDropdownWidget = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Batch Name',
-                    style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(9),
-                      border: Border.all(color: AppColors.cardBorder, width: 1.2),
-                    ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: (_selectedProduct != null && productNames.contains(_selectedProduct))
-                            ? _selectedProduct
-                            : null,
-                        hint: const Text(
-                          'Select Batch',
-                          style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
-                        ),
-                        isExpanded: true,
-                        items: productNames.map((name) {
-                          return DropdownMenuItem(
-                            value: name,
-                            child: Row(
-                              children: [
-                                Icon(_getProductIcon(name), size: 16, color: AppColors.primary),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    name,
-                                    style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedProduct = val);
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              );
-
-              final personDropdownWidget = Column(
+              final personWidget = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
                     'Logged By',
-                    style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                    style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold),
                   ),
                   const SizedBox(height: 6),
                   Container(
-                    height: 44,
+                    height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -686,7 +751,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                             value: person,
                             child: Text(
                               person,
-                              style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600),
+                              style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.semiBold),
                               overflow: TextOverflow.ellipsis,
                             ),
                           );
@@ -697,15 +762,301 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                       ),
                     ),
                   ),
-                  if (isCustomPerson) ...[
-                    const SizedBox(height: 8),
-                    AppTextField(
-                      label: 'Enter Name',
-                      hint: 'Type employee name...',
-                      controller: _customPersonController,
-                      onChanged: (_) => setState(() {}),
+                ],
+              );
+
+              if (isWide) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: dateWidget),
+                        const SizedBox(width: 12),
+                        Expanded(child: timeWidget),
+                        const SizedBox(width: 12),
+                        Expanded(child: personWidget),
+                      ],
                     ),
+                    if (isCustomPerson) ...[
+                      const SizedBox(height: 10),
+                      AppTextField(
+                        label: 'Enter Name',
+                        hint: 'Type employee name...',
+                        controller: _customPersonController,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ],
                   ],
+                );
+              } else {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    dateWidget,
+                    const SizedBox(height: 12),
+                    timeWidget,
+                    const SizedBox(height: 12),
+                    personWidget,
+                    if (isCustomPerson) ...[
+                      const SizedBox(height: 10),
+                      AppTextField(
+                        label: 'Enter Name',
+                        hint: 'Type employee name...',
+                        controller: _customPersonController,
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ],
+                  ],
+                );
+              }
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Row 1: Select Batch & Fetch from Milk Standardization (Side-by-Side)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 720;
+
+              final batchDropdownWidget = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.blender_rounded, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Select Batch',
+                        style: TextStyle(
+                          fontSize: AppTextSizes.body,
+                          fontWeight: AppFontWeights.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (_selectedProduct != null) ...[
+                        const Spacer(),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedProduct = null;
+                              _selectedStandardizationRecord = null;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            child: Row(
+                              children: [
+                                Icon(Icons.close_rounded, size: 14, color: AppColors.danger),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Clear',
+                                  style: TextStyle(
+                                    fontSize: AppTextSizes.caption,
+                                    fontWeight: AppFontWeights.bold,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: _selectedProduct != null
+                            ? AppColors.primary
+                            : AppColors.cardBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: (targetProducts.any((p) => p.productName.trim().toLowerCase() == _selectedProduct?.trim().toLowerCase()))
+                            ? targetProducts.firstWhere((p) => p.productName.trim().toLowerCase() == _selectedProduct?.trim().toLowerCase()).productName
+                            : '',
+                        isExpanded: true,
+                        icon: const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: '',
+                            child: Text(
+                              'Select Batch',
+                              style: TextStyle(
+                                fontSize: AppTextSizes.body,
+                                fontWeight: AppFontWeights.medium,
+                                color: AppColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          ...targetProducts.map((p) {
+                            final specs = 'Fat: ${Formatters.formatPercent(p.targetFat ?? 0)}% • SNF: ${Formatters.formatPercent(p.targetSnf ?? 0)}%${p.targetSugar != null && p.targetSugar! > 0 ? ' • Sugar: ${Formatters.formatPercent(p.targetSugar!)}%' : ''}';
+                            return DropdownMenuItem<String>(
+                              value: p.productName,
+                              child: Text(
+                                '${p.productName}  ($specs)',
+                                style: const TextStyle(
+                                  fontSize: AppTextSizes.body,
+                                  fontWeight: AppFontWeights.semiBold,
+                                  color: AppColors.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          setState(() {
+                            _selectedProduct = (val == null || val.isEmpty) ? null : val;
+                            _selectedStandardizationRecord = null;
+                          });
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              final fetchFromStdWidget = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.sync_alt_rounded, size: 16, color: AppColors.primary),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Fetch from Milk Standardization',
+                        style: TextStyle(
+                          fontSize: AppTextSizes.body,
+                          fontWeight: AppFontWeights.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      if (_selectedStandardizationRecord != null) ...[
+                        const Spacer(),
+                        InkWell(
+                          onTap: () {
+                            setState(() {
+                              _selectedStandardizationRecord = null;
+                            });
+                          },
+                          borderRadius: BorderRadius.circular(6),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            child: Row(
+                              children: [
+                                Icon(Icons.close_rounded, size: 14, color: AppColors.danger),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Clear',
+                                  style: TextStyle(
+                                    fontSize: AppTextSizes.caption,
+                                    fontWeight: AppFontWeights.bold,
+                                    color: AppColors.danger,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(9),
+                      border: Border.all(
+                        color: _selectedStandardizationRecord != null
+                            ? AppColors.primary
+                            : AppColors.cardBorder,
+                        width: 1.2,
+                      ),
+                    ),
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: (_selectedStandardizationRecord != null &&
+                                stdBatches.any((b) => b.recordId == _selectedStandardizationRecord!.recordId))
+                            ? _selectedStandardizationRecord!.recordId
+                            : '',
+                        isExpanded: true,
+                        icon: const Icon(
+                          Icons.arrow_drop_down_rounded,
+                          color: AppColors.primary,
+                          size: 24,
+                        ),
+                        items: [
+                          const DropdownMenuItem<String>(
+                            value: '',
+                            child: Text(
+                              '-- Select Standardization Batch (Optional) --',
+                              style: TextStyle(
+                                fontSize: AppTextSizes.body,
+                                fontWeight: AppFontWeights.medium,
+                                color: AppColors.textSecondary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          ...stdBatches.map((b) {
+                            final batchQty = b.finalQuantity > 0 ? b.finalQuantity : b.totalBatchRequired;
+                            final timeAndDate = b.time.isNotEmpty ? '${b.time}, ${b.date}' : b.date;
+                            final label = '${b.targetProductName} • ${Formatters.formatSmart(batchQty)} L • $timeAndDate';
+                            return DropdownMenuItem<String>(
+                              value: b.recordId,
+                              child: Text(
+                                label,
+                                style: const TextStyle(
+                                  fontSize: AppTextSizes.body,
+                                  fontWeight: AppFontWeights.semiBold,
+                                  color: AppColors.textPrimary,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }),
+                        ],
+                        onChanged: (val) {
+                          if (val == null || val.isEmpty) {
+                            setState(() {
+                              _selectedStandardizationRecord = null;
+                            });
+                          } else {
+                            final b = stdBatches.firstWhere((item) => item.recordId == val);
+                            setState(() {
+                              _selectedStandardizationRecord = b;
+                              _selectedProduct = b.targetProductName;
+                              _milkController.text = Formatters.formatSmart(b.inputMilkQuantity);
+                              _waterController.text = Formatters.formatSmart(b.waterRequired);
+                              _sugarController.text = Formatters.formatSmart(b.sugarRequired);
+                              _smpController.text = Formatters.formatSmart(b.smpRequired);
+                              if (b.notes.isNotEmpty) {
+                                _notesController.text = 'From Std Record: ${b.notes}';
+                              }
+                            });
+                          }
+                        },
+                      ),
+                    ),
+                  ),
                 ],
               );
 
@@ -713,17 +1064,17 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 3, child: productDropdownWidget),
+                    Expanded(child: batchDropdownWidget),
                     const SizedBox(width: 14),
-                    Expanded(flex: 2, child: personDropdownWidget),
+                    Expanded(child: fetchFromStdWidget),
                   ],
                 );
               } else {
                 return Column(
                   children: [
-                    productDropdownWidget,
+                    batchDropdownWidget,
                     const SizedBox(height: 14),
-                    personDropdownWidget,
+                    fetchFromStdWidget,
                   ],
                 );
               }
@@ -731,7 +1082,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
           ),
           const SizedBox(height: 18),
 
-          // Row 3: Four Formulation Inputs: Milk Taken, Water, Sugar, SMP
+          // Row 2: Four Formulation Inputs: Milk Taken, Water, Sugar, SMP
           LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth >= 680;
@@ -809,9 +1160,9 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
           ),
           const SizedBox(height: 16),
 
-          // Total Batch Quantity Banner (Placed directly above Batch Note, styled like Boiler page)
-          _buildLiveTotalBatchBanner(currentVolume),
-          const SizedBox(height: 14),
+          // Calculation Metrics Section (Product Calculator / Boiler / DG style)
+          _buildLiveBatchMetrics(currentVolume),
+          const SizedBox(height: 16),
 
           // Batch Note
           AppTextField(
@@ -841,7 +1192,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     'Record Batch Entry',
                     style: TextStyle(
                       fontSize: AppTextSizes.body,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -869,7 +1220,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     'Clear',
                     style: TextStyle(
                       fontSize: AppTextSizes.body,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                     ),
                   ),
                 ),
@@ -881,89 +1232,138 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     );
   }
 
-  Widget _buildLiveTotalBatchBanner(double totalVolume) {
+  Widget _buildLiveBatchMetrics(double totalVolume) {
     final m = Formatters.parseDouble(_milkController.text);
     final w = Formatters.parseDouble(_waterController.text);
     final s = Formatters.parseDouble(_sugarController.text);
     final smp = Formatters.parseDouble(_smpController.text);
 
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 4),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.15),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(Icons.blender_rounded, color: AppColors.accentCyan, size: 24),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'TOTAL BATCH QUANTITY',
-                  style: TextStyle(
-                    fontSize: AppTextSizes.caption,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.9,
-                    color: AppColors.goldAccent,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  '${Formatters.formatSmart(totalVolume)} L',
-                  style: const TextStyle(
-                    fontSize: AppTextSizes.subheading,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (totalVolume > 0) ...[
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Calculation Metrics Header inside card
+        Row(
+          children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                color: Colors.black.withValues(alpha: 0.06),
+                shape: BoxShape.circle,
               ),
-              child: Text(
-                'Milk: ${Formatters.formatSmart(m)}L • Water: ${Formatters.formatSmart(w)}L\nSugar: ${Formatters.formatSmart(s)}kg • SMP: ${Formatters.formatSmart(smp)}kg',
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: AppTextSizes.caption,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
-                ),
-                textAlign: TextAlign.right,
+              child: Icon(
+                Icons.analytics_outlined,
+                size: 16,
+                color: Colors.black.withValues(alpha: 0.60),
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Text(
+              'BATCH CALCULATION METRICS',
+              style: TextStyle(
+                fontSize: AppTextSizes.caption,
+                fontWeight: AppFontWeights.bold,
+                letterSpacing: 0.6,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
-        ],
-      ),
+        ),
+        const SizedBox(height: 12),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final cardTotal = MetricCard(
+              title: 'Total Batch Volume',
+              value: totalVolume > 0 ? Formatters.formatSmart(totalVolume) : '0',
+              unit: 'Litres',
+              subtitle: totalVolume > 0 ? 'Cumulative dairy yield' : 'Enter ingredients above',
+              icon: Icons.blender_rounded,
+              iconColor: Colors.black.withValues(alpha: 0.60),
+              iconBgColor: Colors.black.withValues(alpha: 0.06),
+              cardBgColor: const Color(0xFFEFF6FF), // Soft Blue
+            );
+
+            final cardMilk = MetricCard(
+              title: 'Milk Taken',
+              value: m > 0 ? Formatters.formatSmart(m) : '0',
+              unit: 'Litres',
+              subtitle: 'Raw milk quantity',
+              icon: Icons.water_drop_rounded,
+              iconColor: Colors.black.withValues(alpha: 0.60),
+              iconBgColor: Colors.black.withValues(alpha: 0.06),
+              cardBgColor: const Color(0xFFECFDF5), // Soft Mint
+            );
+
+            final cardWater = MetricCard(
+              title: 'Water Added',
+              value: w > 0 ? Formatters.formatSmart(w) : '0',
+              unit: 'Litres',
+              subtitle: w > 0 ? 'Dilution liquid' : 'No water added',
+              icon: Icons.water_rounded,
+              iconColor: Colors.black.withValues(alpha: 0.60),
+              iconBgColor: Colors.black.withValues(alpha: 0.06),
+              cardBgColor: const Color(0xFFF5F3FF), // Soft Purple
+            );
+
+            final cardSugar = MetricCard(
+              title: 'Sugar Added',
+              value: s > 0 ? Formatters.formatSmart(s) : '0',
+              unit: 'Kg',
+              subtitle: s > 0 ? 'Sweetener' : 'No sugar added',
+              icon: Icons.cookie_outlined,
+              iconColor: Colors.black.withValues(alpha: 0.60),
+              iconBgColor: Colors.black.withValues(alpha: 0.06),
+              cardBgColor: const Color(0xFFFFFBEB), // Soft Amber
+            );
+
+            final cardSmp = MetricCard(
+              title: 'SMP Added',
+              value: smp > 0 ? Formatters.formatSmart(smp) : '0',
+              unit: 'Kg',
+              subtitle: smp > 0 ? 'Skimmed Milk Powder' : 'No SMP added',
+              icon: Icons.grain_rounded,
+              iconColor: Colors.black.withValues(alpha: 0.60),
+              iconBgColor: Colors.black.withValues(alpha: 0.06),
+              cardBgColor: const Color(0xFFFFF7ED), // Soft Peach/Orange
+            );
+
+            if (constraints.maxWidth >= 900) {
+              return IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(child: cardTotal),
+                    const SizedBox(width: 12),
+                    Expanded(child: cardMilk),
+                    const SizedBox(width: 12),
+                    Expanded(child: cardWater),
+                    const SizedBox(width: 12),
+                    Expanded(child: cardSugar),
+                    const SizedBox(width: 12),
+                    Expanded(child: cardSmp),
+                  ],
+                ),
+              );
+            } else {
+              final crossAxisCount = constraints.maxWidth < 560
+                  ? 1
+                  : (constraints.maxWidth < 820 ? 2 : 3);
+              final itemWidth = (constraints.maxWidth - ((crossAxisCount - 1) * 12)) / crossAxisCount;
+
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(width: itemWidth, child: cardTotal),
+                  SizedBox(width: itemWidth, child: cardMilk),
+                  SizedBox(width: itemWidth, child: cardWater),
+                  SizedBox(width: itemWidth, child: cardSugar),
+                  SizedBox(width: itemWidth, child: cardSmp),
+                ],
+              );
+            }
+          },
+        ),
+      ],
     );
   }
   // ---------------------------------------------------------------------------
@@ -1026,7 +1426,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     isDense: true,
                     style: const TextStyle(
                       fontSize: AppTextSizes.body,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                       color: AppColors.textPrimary,
                     ),
                     items: allProductFilterOptions.map((p) {
@@ -1084,7 +1484,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                           'Today',
                           style: TextStyle(
                             fontSize: AppTextSizes.body,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             color: isTodaySelected ? Colors.white : AppColors.textSecondary,
                           ),
                         ),
@@ -1124,7 +1524,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                               : 'Select Date',
                           style: TextStyle(
                             fontSize: AppTextSizes.body,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             color: isCustomDateSelected ? Colors.white : AppColors.textSecondary,
                           ),
                         ),
@@ -1147,7 +1547,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                   icon: const Icon(Icons.refresh_rounded, size: 16),
                   label: const Text(
                     'Reset to Today',
-                    style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                    style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                   ),
                   onPressed: () {
                     ref.read(batchRecordsProvider.notifier).clearFilters();
@@ -1220,7 +1620,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
             '$label: ',
             style: const TextStyle(
               fontSize: AppTextSizes.body,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppFontWeights.semiBold,
               color: AppColors.textSecondary,
             ),
           ),
@@ -1228,7 +1628,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
             '${Formatters.formatSmart(val)} $unit',
             style: TextStyle(
               fontSize: AppTextSizes.body,
-              fontWeight: FontWeight.w800,
+              fontWeight: AppFontWeights.bold,
               color: color,
             ),
           ),
@@ -1240,7 +1640,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
       '•',
       style: TextStyle(
         fontSize: AppTextSizes.body,
-        fontWeight: FontWeight.w800,
+        fontWeight: AppFontWeights.bold,
         color: AppColors.textMuted,
       ),
     );
@@ -1261,7 +1661,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 "Today's Consumption:",
                 style: TextStyle(
                   fontSize: AppTextSizes.body,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: AppFontWeights.bold,
                   color: AppColors.primaryDark,
                 ),
               ),
@@ -1304,7 +1704,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                   _formatDateHeading(dateStr),
                   style: const TextStyle(
                     fontSize: AppTextSizes.subheading,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: AppFontWeights.bold,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -1319,7 +1719,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                   ),
                   child: Text(
                     'Total: ${Formatters.formatSmart(summary.totalQuantity)} L',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption),
+                    style: const TextStyle(color: Colors.white, fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption),
                   ),
                 ),
               ],
@@ -1381,7 +1781,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     style: const TextStyle(
                       color: AppColors.primary,
                       fontSize: AppTextSizes.body,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: AppFontWeights.bold,
                     ),
                   ),
                 ),
@@ -1398,7 +1798,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                       Text(
                         batch.productName,
                         style: const TextStyle(
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           fontSize: AppTextSizes.body,
                           color: AppColors.textPrimary,
                         ),
@@ -1415,7 +1815,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                             Formatters.formatTime(batch.createdAt),
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: AppFontWeights.semiBold,
                               color: AppColors.textSecondary,
                             ),
                           ),
@@ -1427,7 +1827,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                               displayShift,
                               style: const TextStyle(
                                 fontSize: AppTextSizes.caption,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: AppFontWeights.semiBold,
                                 color: AppColors.textSecondary,
                               ),
                             ),
@@ -1445,7 +1845,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                             'Logged by: ${batch.operatorName ?? 'Not specified'}',
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: AppFontWeights.semiBold,
                               color: AppColors.textSecondary,
                             ),
                           ),
@@ -1467,7 +1867,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                   child: Text(
                     '${Formatters.formatSmart(batch.batchQuantity)} ${batch.batchUnit}',
                     style: const TextStyle(
-                      fontWeight: FontWeight.w800,
+                      fontWeight: AppFontWeights.bold,
                       fontSize: AppTextSizes.body,
                       color: AppColors.primaryDark,
                     ),
@@ -1517,7 +1917,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     'Ingredients Formulation Breakdown',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                       color: isExpanded ? AppColors.primaryDark : AppColors.textSecondary,
                     ),
                   ),
@@ -1532,7 +1932,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                       '${batch.ingredients.length} items',
                       style: TextStyle(
                         fontSize: AppTextSizes.caption,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: AppFontWeights.bold,
                         color: isExpanded ? AppColors.primaryDark : AppColors.textSecondary,
                       ),
                     ),
@@ -1586,15 +1986,15 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                         children: const [
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            child: Text('Ingredient', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
+                            child: Text('Ingredient', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
                           ),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            child: Text('Quantity Used', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
+                            child: Text('Quantity Used', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
                           ),
                           Padding(
                             padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            child: Text('Unit', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
+                            child: Text('Unit', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
                           ),
                         ],
                       ),
@@ -1611,7 +2011,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                                   Flexible(
                                     child: Text(
                                       ing.ingredientName,
-                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTextSizes.caption),
+                                      style: const TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: AppTextSizes.caption),
                                     ),
                                   ),
                                 ],
@@ -1621,14 +2021,14 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                               child: Text(
                                 Formatters.formatSmart(ing.quantity),
-                                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption, color: AppColors.textPrimary),
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption, color: AppColors.textPrimary),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                               child: Text(
                                 ing.unit,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
+                                style: const TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                               ),
                             ),
                           ],
@@ -1687,7 +2087,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
             const SizedBox(height: 14),
             const Text(
               'No Batch Records Found',
-              style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800, color: AppColors.alert),
+              style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold, color: AppColors.alert),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -1700,42 +2100,4 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     );
   }
 
-  Widget _buildKpiTile(String title, String val, String subtitle, IconData icon, Color color) {
-    return AppCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                ),
-                Text(
-                  val,
-                  style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

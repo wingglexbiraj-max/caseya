@@ -201,7 +201,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                 indicatorColor: AppColors.primary,
                 indicatorWeight: 3,
                 labelStyle:
-                    const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
+                    const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                 tabs: [
                   Tab(
                     icon: const Icon(Icons.table_chart_rounded, size: 18),
@@ -297,7 +297,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         'PLANT LOGISTICS & GATE OUT',
                         style: TextStyle(
                           fontSize: AppTextSizes.caption,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           letterSpacing: 1.1,
                           color: Color(0xFF38BDF8),
                         ),
@@ -306,7 +306,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         'Dispatch Records',
                         style: TextStyle(
                           fontSize: isMobile ? AppTextSizes.subheading : AppTextSizes.heading,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: AppFontWeights.bold,
                           color: Colors.white,
                           letterSpacing: -0.5,
                         ),
@@ -320,7 +320,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                 icon: const Icon(Icons.add_rounded, size: 18, color: Colors.white),
                 label: const Text(
                   'New Vehicle Dispatch',
-                  style: TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                  style: TextStyle(fontWeight: AppFontWeights.bold, color: Colors.white),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.goldAccent,
@@ -370,7 +370,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                               _formatDisplayDate(state.selectedDate),
                               style: const TextStyle(
                                 color: Colors.white,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: AppFontWeights.bold,
                                 fontSize: AppTextSizes.body,
                               ),
                             ),
@@ -401,7 +401,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                   ),
                   child: const Text(
                     'Jump to Today',
-                    style: TextStyle(color: Color(0xFFFDE68A), fontWeight: FontWeight.w700, fontSize: AppTextSizes.caption),
+                    style: TextStyle(color: Color(0xFFFDE68A), fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption),
                   ),
                 ),
               const Spacer(),
@@ -430,7 +430,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         style: TextStyle(
                           color: isViewingToday ? const Color(0xFF34D399) : Colors.white70,
                           fontSize: AppTextSizes.caption,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -543,7 +543,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                     'DAILY DISPATCH CONSOLIDATED SUMMARY',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: AppFontWeights.bold,
                       letterSpacing: 1.1,
                       color: AppColors.textSecondary,
                     ),
@@ -553,7 +553,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                     'Consolidated Product Totals for ${_formatDisplayDate(state.selectedDate)}',
                     style: const TextStyle(
                       fontSize: AppTextSizes.subheading,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: AppFontWeights.bold,
                       color: AppColors.textPrimary,
                     ),
                   ),
@@ -581,7 +581,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                       'No Dispatches Recorded for this Date',
                       style: TextStyle(
                         fontSize: AppTextSizes.subheading,
-                        fontWeight: FontWeight.w800,
+                        fontWeight: AppFontWeights.bold,
                         color: Color(0xFF991B1B),
                       ),
                     ),
@@ -669,7 +669,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                                       Text(
                                         s.productName,
                                         style: const TextStyle(
-                                          fontWeight: FontWeight.w800,
+                                          fontWeight: AppFontWeights.bold,
                                           fontSize: AppTextSizes.body,
                                           color: AppColors.textPrimary,
                                         ),
@@ -695,7 +695,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                               child: Text(
                                 s.formattedCrates,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: AppFontWeights.bold,
                                   fontSize: AppTextSizes.body,
                                   color: AppColors.textPrimary,
                                 ),
@@ -709,7 +709,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                               child: Text(
                                 s.formattedPieces,
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: AppFontWeights.semiBold,
                                   fontSize: AppTextSizes.body,
                                   color: AppColors.textSecondary,
                                 ),
@@ -736,7 +736,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                                 child: Text(
                                   s.formattedQuantity,
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: AppFontWeights.bold,
                                     fontSize: AppTextSizes.body,
                                     color: isLiquid
                                         ? const Color(0xFF0369A1)
@@ -754,7 +754,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                                 '${s.vehicleCount} ${s.vehicleCount == 1 ? 'veh' : 'vehs'} • ${s.distributorCount} dist',
                                 style: const TextStyle(
                                   fontSize: AppTextSizes.caption,
-                                  fontWeight: FontWeight.w600,
+                                  fontWeight: AppFontWeights.semiBold,
                                   color: AppColors.textSecondary,
                                 ),
                               ),
@@ -782,7 +782,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                   const Text(
                     'DAILY TOTALS:',
                     style: TextStyle(
-                      fontWeight: FontWeight.w900,
+                      fontWeight: AppFontWeights.bold,
                       fontSize: AppTextSizes.caption,
                       letterSpacing: 0.5,
                       color: AppColors.textPrimary,
@@ -793,11 +793,11 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                     children: [
                       Text(
                         'Total Crates: ${Formatters.formatSmart(state.totalCratesForSelectedDate)}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
+                        style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                       ),
                       Text(
                         'Total Pieces: ${state.totalPiecesForSelectedDate}',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
+                        style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                       ),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -808,7 +808,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         child: Text(
                           'Liquid Milk/Lassi: ${Formatters.formatSmart(state.totalLitresForSelectedDate)} L',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w900,
+                            fontWeight: AppFontWeights.bold,
                             fontSize: AppTextSizes.caption,
                             color: Color(0xFF0284C7),
                           ),
@@ -823,7 +823,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         child: Text(
                           'Curd/Solids: ${Formatters.formatSmart(state.totalKgForSelectedDate)} kg',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w900,
+                            fontWeight: AppFontWeights.bold,
                             fontSize: AppTextSizes.caption,
                             color: Color(0xFFD97706),
                           ),
@@ -918,7 +918,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         'No Vehicle Dispatches Match Filter',
                         style: TextStyle(
                           fontSize: AppTextSizes.subheading,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           color: Color(0xFF991B1B),
                         ),
                       ),
@@ -987,7 +987,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         dispatch.vehicleNumber,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: AppFontWeights.bold,
                           fontSize: AppTextSizes.body,
                           letterSpacing: 0.8,
                         ),
@@ -997,7 +997,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                     Text(
                       dispatch.distributorName,
                       style: const TextStyle(
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppFontWeights.bold,
                         fontSize: AppTextSizes.body,
                         color: AppColors.textPrimary,
                       ),
@@ -1014,7 +1014,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         dispatch.summaryLabel,
                         style: const TextStyle(
                           fontSize: AppTextSizes.caption,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           color: Color(0xFFB45309),
                         ),
                       ),
@@ -1027,7 +1027,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                       'Time: ${dispatch.dispatchTime}',
                       style: const TextStyle(
                         fontSize: AppTextSizes.caption,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: AppFontWeights.semiBold,
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -1095,7 +1095,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         child: Text(
                           item.productName,
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             fontSize: AppTextSizes.body,
                             color: AppColors.textPrimary,
                           ),
@@ -1110,7 +1110,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         child: Text(
                           '${item.formattedCrates} • ${item.formattedPieces} • ${item.formattedQuantityWithUnit}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             fontSize: AppTextSizes.caption,
                             color: AppColors.textPrimary,
                           ),
@@ -1142,7 +1142,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                       'Note: ${dispatch.remarks}',
                       style: const TextStyle(
                         fontSize: AppTextSizes.caption,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: AppFontWeights.bold,
                         color: Color(0xFF991B1B),
                       ),
                     ),
@@ -1173,7 +1173,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
               'No Distributor Data for this Date',
               style: TextStyle(
                 fontSize: AppTextSizes.subheading,
-                fontWeight: FontWeight.w800,
+                fontWeight: AppFontWeights.bold,
                 color: Color(0xFF991B1B),
               ),
             ),
@@ -1212,7 +1212,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                             dist.distributorName,
                             style: const TextStyle(
                               fontSize: AppTextSizes.subheading,
-                              fontWeight: FontWeight.w900,
+                              fontWeight: AppFontWeights.bold,
                               color: AppColors.textPrimary,
                             ),
                           ),
@@ -1221,7 +1221,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
                               color: AppColors.textSecondary,
-                              fontWeight: FontWeight.w600,
+                              fontWeight: AppFontWeights.semiBold,
                             ),
                           ),
                         ],
@@ -1238,7 +1238,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                     child: Text(
                       '${Formatters.formatSmart(dist.totalCrates)} Crates Total',
                       style: const TextStyle(
-                        fontWeight: FontWeight.w800,
+                        fontWeight: AppFontWeights.bold,
                         fontSize: AppTextSizes.caption,
                         color: Color(0xFFB45309),
                       ),
@@ -1261,14 +1261,14 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                         Text(
                           '• ${item.productName}',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             fontSize: AppTextSizes.body,
                           ),
                         ),
                         Text(
                           '${item.formattedCrates} (${item.formattedPieces} • ${item.formattedQuantityWithUnit})',
                           style: const TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppFontWeights.semiBold,
                             fontSize: AppTextSizes.caption,
                             color: AppColors.textSecondary,
                           ),
@@ -1303,7 +1303,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
               'No Historical Dispatches Found',
               style: TextStyle(
                 fontSize: AppTextSizes.subheading,
-                fontWeight: FontWeight.w800,
+                fontWeight: AppFontWeights.bold,
                 color: Color(0xFF991B1B),
               ),
             ),
@@ -1320,7 +1320,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
             'DISPATCH ARCHIVE HISTORY',
             style: TextStyle(
               fontSize: AppTextSizes.caption,
-              fontWeight: FontWeight.w800,
+              fontWeight: AppFontWeights.bold,
               letterSpacing: 1.1,
               color: AppColors.textSecondary,
             ),
@@ -1375,7 +1375,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                               Text(
                                 _formatDisplayDate(hist.date),
                                 style: TextStyle(
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: AppFontWeights.bold,
                                   fontSize: AppTextSizes.body,
                                   color: isSelected ? AppColors.primary : AppColors.textPrimary,
                                 ),
@@ -1396,7 +1396,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                             Text(
                               '${Formatters.formatSmart(hist.totalCrates)} Crates',
                               style: const TextStyle(
-                                fontWeight: FontWeight.w800,
+                                fontWeight: AppFontWeights.bold,
                                 fontSize: AppTextSizes.body,
                               ),
                             ),
@@ -1430,7 +1430,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
         text,
         textAlign: alignRight ? TextAlign.right : TextAlign.left,
         style: const TextStyle(
-          fontWeight: FontWeight.w800,
+          fontWeight: AppFontWeights.bold,
           fontSize: AppTextSizes.caption,
           letterSpacing: 0.5,
           color: AppColors.textSecondary,
@@ -1487,7 +1487,7 @@ class _MetricTile extends StatelessWidget {
                   title.toUpperCase(),
                   style: const TextStyle(
                     fontSize: AppTextSizes.caption,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: AppFontWeights.bold,
                     letterSpacing: 0.6,
                     color: AppColors.textSecondary,
                   ),
@@ -1510,7 +1510,7 @@ class _MetricTile extends StatelessWidget {
             value,
             style: const TextStyle(
               fontSize: AppTextSizes.subheading,
-              fontWeight: FontWeight.w900,
+              fontWeight: AppFontWeights.bold,
               color: AppColors.textPrimary,
               letterSpacing: -0.5,
             ),
@@ -1521,7 +1521,7 @@ class _MetricTile extends StatelessWidget {
             subtitle,
             style: const TextStyle(
               fontSize: AppTextSizes.caption,
-              fontWeight: FontWeight.w500,
+              fontWeight: AppFontWeights.medium,
               color: AppColors.textSecondary,
             ),
             maxLines: 1,
@@ -1803,7 +1803,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: AppTextSizes.subheading,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: AppFontWeights.bold,
                           ),
                         ),
                       ],
@@ -1828,7 +1828,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                         '1. VEHICLE & ROUTE DETAILS',
                         style: TextStyle(
                           fontSize: AppTextSizes.caption,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           letterSpacing: 1.1,
                           color: AppColors.textSecondary,
                         ),
@@ -1845,7 +1845,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                               children: [
                                 const Text(
                                   'Distributor Name *',
-                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                                 ),
                                 const SizedBox(height: 5),
                                 Autocomplete<String>(
@@ -1891,7 +1891,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                               children: [
                                 const Text(
                                   'Vehicle Number *',
-                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                                 ),
                                 const SizedBox(height: 5),
                                 TextFormField(
@@ -1920,7 +1920,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                               children: [
                                 const Text(
                                   'Dispatch Time',
-                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                                 ),
                                 const SizedBox(height: 5),
                                 TextFormField(
@@ -1948,7 +1948,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                               children: [
                                 const Text(
                                   'Driver Name (Optional)',
-                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                                 ),
                                 const SizedBox(height: 5),
                                 TextFormField(
@@ -1972,7 +1972,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                               children: [
                                 const Text(
                                   'Route / Area (Optional)',
-                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                                  style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                                 ),
                                 const SizedBox(height: 5),
                                 TextFormField(
@@ -1997,7 +1997,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                         children: [
                           const Text(
                             'Remarks / Notes (Optional - Highlights in red alert if populated)',
-                            style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold),
                           ),
                           const SizedBox(height: 5),
                           TextFormField(
@@ -2021,7 +2021,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                             '2. DISPATCH PRODUCTS (ONE VEHICLE = MULTIPLE PRODUCTS)',
                             style: TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: AppFontWeights.bold,
                               letterSpacing: 1.1,
                               color: AppColors.textSecondary,
                             ),
@@ -2029,7 +2029,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                           TextButton.icon(
                             onPressed: _addProductRow,
                             icon: const Icon(Icons.add, size: 16),
-                            label: const Text('Add Product', style: TextStyle(fontWeight: FontWeight.w800)),
+                            label: const Text('Add Product', style: TextStyle(fontWeight: AppFontWeights.bold)),
                           ),
                         ],
                       ),
@@ -2182,7 +2182,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                                       'Conversion: ${calcResult.crates == calcResult.crates.roundToDouble() ? calcResult.crates.toInt() : Formatters.formatSmart(calcResult.crates)} Crates • ${calcResult.pieces} Pieces • ${Formatters.formatSmart(calcResult.totalQuantity)} ${selectedProduct.baseUnitLabel == "Litres" ? "L" : "kg"}',
                                       style: const TextStyle(
                                         fontSize: AppTextSizes.caption,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: AppFontWeights.bold,
                                         color: AppColors.primary,
                                       ),
                                     ),
@@ -2215,17 +2215,17 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                       children: [
                         Text(
                           'Crates: ${Formatters.formatSmart(liveCrates)}',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
+                          style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                         ),
                         Text(
                           'Pieces: $livePieces',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
+                          style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                         ),
                         if (liveLitres > 0)
                           Text(
                             'Liquid: ${Formatters.formatSmart(liveLitres)} L',
                             style: const TextStyle(
-                              fontWeight: FontWeight.w800,
+                              fontWeight: AppFontWeights.bold,
                               fontSize: AppTextSizes.body,
                               color: Color(0xFF0284C7),
                             ),
@@ -2234,7 +2234,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                           Text(
                             'Curd: ${Formatters.formatSmart(liveKg)} kg',
                             style: const TextStyle(
-                              fontWeight: FontWeight.w800,
+                              fontWeight: AppFontWeights.bold,
                               fontSize: AppTextSizes.body,
                               color: Color(0xFFD97706),
                             ),
@@ -2260,7 +2260,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
                               : const Icon(Icons.check_rounded, size: 18),
                           label: Text(
                             widget.existing != null ? 'Update Dispatch' : 'Save Vehicle Dispatch',
-                            style: const TextStyle(fontWeight: FontWeight.w800),
+                            style: const TextStyle(fontWeight: AppFontWeights.bold),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
@@ -2316,7 +2316,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                           dispatch.vehicleNumber,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontWeight: FontWeight.w900,
+                            fontWeight: AppFontWeights.bold,
                             fontSize: AppTextSizes.body,
                             letterSpacing: 0.8,
                           ),
@@ -2327,7 +2327,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                         dispatch.distributorName,
                         style: const TextStyle(
                           fontSize: AppTextSizes.subheading,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: AppFontWeights.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -2374,7 +2374,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                           'Note: ${dispatch.remarks}',
                           style: const TextStyle(
                             fontSize: AppTextSizes.caption,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             color: Color(0xFF991B1B),
                           ),
                         ),
@@ -2389,7 +2389,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                 'DISPATCHED PRODUCTS',
                 style: TextStyle(
                   fontSize: AppTextSizes.caption,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: AppFontWeights.bold,
                   letterSpacing: 1.1,
                   color: AppColors.textSecondary,
                 ),
@@ -2406,23 +2406,23 @@ class _VehicleDetailDialog extends StatelessWidget {
                     children: const [
                       Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('Product', style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption)),
+                        child: Text('Product', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                       ),
                       Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('Input', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption)),
+                        child: Text('Input', textAlign: TextAlign.right, style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                       ),
                       Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('Crates', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption)),
+                        child: Text('Crates', textAlign: TextAlign.right, style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                       ),
                       Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('Pieces', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption)),
+                        child: Text('Pieces', textAlign: TextAlign.right, style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                       ),
                       Padding(
                         padding: EdgeInsets.all(8.0),
-                        child: Text('Quantity', textAlign: TextAlign.right, style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption)),
+                        child: Text('Quantity', textAlign: TextAlign.right, style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                       ),
                     ],
                   ),
@@ -2431,7 +2431,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                       children: [
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          child: Text(i.productName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.caption)),
+                          child: Text(i.productName, style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -2439,7 +2439,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          child: Text(i.formattedCrates, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.caption)),
+                          child: Text(i.formattedCrates, textAlign: TextAlign.right, style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -2447,7 +2447,7 @@ class _VehicleDetailDialog extends StatelessWidget {
                         ),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                          child: Text(i.formattedQuantityWithUnit, textAlign: TextAlign.right, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.caption)),
+                          child: Text(i.formattedQuantityWithUnit, textAlign: TextAlign.right, style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.caption)),
                         ),
                       ],
                     );
@@ -2466,10 +2466,10 @@ class _VehicleDetailDialog extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Vehicle Totals:', style: TextStyle(fontWeight: FontWeight.w800)),
+                    const Text('Vehicle Totals:', style: TextStyle(fontWeight: AppFontWeights.bold)),
                     Text(
                       '${Formatters.formatSmart(dispatch.totalCrates)} Crates • ${dispatch.totalPieces} Pieces • ${Formatters.formatSmart(dispatch.totalLitres)} L • ${Formatters.formatSmart(dispatch.totalKg)} kg',
-                      style: const TextStyle(fontWeight: FontWeight.w800, color: AppColors.primary),
+                      style: const TextStyle(fontWeight: AppFontWeights.bold, color: AppColors.primary),
                     ),
                   ],
                 ),
@@ -2485,8 +2485,8 @@ class _VehicleDetailDialog extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
-        Text(value, style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w800)),
+        Text(label, style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: AppFontWeights.semiBold)),
+        Text(value, style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold)),
       ],
     );
   }

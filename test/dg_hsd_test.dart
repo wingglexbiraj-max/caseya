@@ -21,7 +21,7 @@ void main() {
       expect(result.consumptionPerHour, closeTo(14.2857, 0.001));
       expect(result.unitsPerLitre, 3.5); // 175 / 50 = 3.5 kWh/L
       expect(result.averageLoadKw, 50.0); // 175 / 3.5 = 50 kW
-      expect(result.breakdownSteps.length, 5);
+      expect(result.breakdownSteps.length, 7);
     });
 
     test('Zero running hours handles division by zero safely', () {
@@ -96,6 +96,111 @@ void main() {
       expect(fromJson.consumptionPerHour, 13.75);
       expect(fromJson.unitsPerLitre, 3.5);
       expect(fromJson.remarks, 'DG ran smoothly for pasteurization run');
+    });
+  });
+
+  group('DG Fuel Tank Fuel-Level & Capacity (380 L) Calculation Tests', () {
+    test('DG Tank constant capacity is configured at 380 litres', () {
+      expect(DgHsdCalculator.DG_TANK_CAPACITY, 380.0);
+      expect(DgHsdCalculator.dgTankCapacity, 380.0);
+    });
+
+    test('Exact User Example: Opening 25%, Top-up 100 L, Closing 15%', () {
+      // Opening: 25% * 380 = 95 L
+      // Top-up: 100 L -> After top-up = 195 L (51.32%)
+      // Closing: 15% * 380 = 57 L
+      // Consumed: 95 + 100 - 57 = 138 L
+      final result = DgHsdCalculator.calculate(
+        fuelAdded: 100.0,
+        startPercentage: 25.0,
+        endPercentage: 15.0,
+        kwh: 483.0,
+        runningHours: 8.0,
+      );
+
+      expect(result.openingLitres, 95.0);
+      expect(result.topUpLitres, 100.0);
+      expect(result.fuelAfterTopUp, 195.0);
+      expect(result.percentageAfterTopUp, closeTo(51.3157, 0.01)); // 51.32%
+      expect(result.closingLitres, 57.0);
+      expect(result.consumedLitres, 138.0);
+      expect(result.fuelConsumption, 138.0);
+      expect(result.exceedsCapacity, isFalse);
+      expect(result.validationError, isNull);
+      expect(result.isValid, isTrue);
+    });
+
+    test('Dynamic calculation: Opening 50%, Top-up 0 L, Closing 20%', () {
+      // Opening: 50% * 380 = 190 L
+      // Top-up: 0 L -> After top-up = 190 L (50%)
+      // Closing: 20% * 380 = 76 L
+      // Consumed: 190 + 0 - 76 = 114 L
+      final result = DgHsdCalculator.calculate(
+        fuelAdded: 0.0,
+        startPercentage: 50.0,
+        endPercentage: 20.0,
+        kwh: 380.0,
+        runningHours: 6.0,
+      );
+
+      expect(result.openingLitres, 190.0);
+      expect(result.topUpLitres, 0.0);
+      expect(result.fuelAfterTopUp, 190.0);
+      expect(result.percentageAfterTopUp, 50.0);
+      expect(result.closingLitres, 76.0);
+      expect(result.consumedLitres, 114.0);
+      expect(result.fuelConsumption, 114.0);
+      expect(result.exceedsCapacity, isFalse);
+    });
+
+    test('Validation: Fuel after top-up exceeding 380 L flags error', () {
+      // Opening 80% (304 L) + Top-up 100 L = 404 L > 380 L
+      final result = DgHsdCalculator.calculate(
+        fuelAdded: 100.0,
+        startPercentage: 80.0,
+        endPercentage: 40.0,
+        kwh: 100.0,
+        runningHours: 2.0,
+      );
+
+      expect(result.exceedsCapacity, isTrue);
+      expect(result.isValid, isFalse);
+      expect(result.validationError, contains('exceeds DG tank capacity of 380 L'));
+    });
+
+    test('Validation: Negative top-up litres flags error', () {
+      final result = DgHsdCalculator.calculate(
+        fuelAdded: -20.0,
+        startPercentage: 50.0,
+        endPercentage: 30.0,
+        kwh: 100.0,
+        runningHours: 2.0,
+      );
+
+      expect(result.validationError, contains('Top-up litres cannot be negative'));
+      expect(result.isValid, isFalse);
+    });
+
+    test('Validation: Percentage outside 0-100% flags error', () {
+      final invalidStart = DgHsdCalculator.calculate(
+        fuelAdded: 0.0,
+        startPercentage: 110.0,
+        endPercentage: 30.0,
+        kwh: 100.0,
+        runningHours: 2.0,
+      );
+      expect(invalidStart.validationError, contains('Opening fuel level must be between 0% and 100%'));
+      expect(invalidStart.isValid, isFalse);
+
+      final invalidEnd = DgHsdCalculator.calculate(
+        fuelAdded: 0.0,
+        startPercentage: 50.0,
+        endPercentage: -5.0,
+        kwh: 100.0,
+        runningHours: 2.0,
+      );
+      expect(invalidEnd.validationError, contains('Closing fuel level must be between 0% and 100%'));
+      expect(invalidEnd.isValid, isFalse);
     });
   });
 }

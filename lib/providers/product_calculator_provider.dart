@@ -101,25 +101,54 @@ class ProductCalculatorNotifier extends StateNotifier<ProductCalculatorState> {
           : 'Pieces';
     }
 
+    ProductCalculationResult? result;
+    if (state.enteredQuantity > 0) {
+      result = CalculationService.calculateProduct(
+        product: product,
+        inputMode: newMode,
+        inputQuantity: state.enteredQuantity,
+      );
+    }
+
     state = state.copyWith(
       selectedProduct: product,
       selectedInputMode: newMode,
-      clearResult: true,
+      result: result,
+      clearResult: result == null,
       clearMessages: true,
     );
   }
 
   void setInputMode(String mode) {
+    ProductCalculationResult? result;
+    if (state.selectedProduct != null && state.enteredQuantity > 0) {
+      result = CalculationService.calculateProduct(
+        product: state.selectedProduct!,
+        inputMode: mode,
+        inputQuantity: state.enteredQuantity,
+      );
+    }
     state = state.copyWith(
       selectedInputMode: mode,
-      clearResult: true,
+      result: result,
+      clearResult: result == null,
       clearMessages: true,
     );
   }
 
   void setQuantity(double qty) {
+    ProductCalculationResult? result;
+    if (state.selectedProduct != null && qty > 0) {
+      result = CalculationService.calculateProduct(
+        product: state.selectedProduct!,
+        inputMode: state.selectedInputMode,
+        inputQuantity: qty,
+      );
+    }
     state = state.copyWith(
       enteredQuantity: qty,
+      result: result,
+      clearResult: result == null,
       clearMessages: true,
     );
   }
@@ -182,6 +211,16 @@ class ProductCalculatorNotifier extends StateNotifier<ProductCalculatorState> {
       successMessage: '✓ Calculation record saved to plant operational history.',
     );
     return true;
+  }
+
+  void resetForm() {
+    state = state.copyWith(
+      clearSelectedProduct: true,
+      selectedInputMode: 'Pieces',
+      enteredQuantity: 0.0,
+      clearResult: true,
+      clearMessages: true,
+    );
   }
 }
 

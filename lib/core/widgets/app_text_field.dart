@@ -18,6 +18,8 @@ class AppTextField extends StatelessWidget {
   final bool autofocus;
   final int maxLines;
   final FocusNode? focusNode;
+  final void Function(String)? onFieldSubmitted;
+  final VoidCallback? onTap;
 
   const AppTextField({
     super.key,
@@ -36,6 +38,8 @@ class AppTextField extends StatelessWidget {
     this.autofocus = false,
     this.maxLines = 1,
     this.focusNode,
+    this.onFieldSubmitted,
+    this.onTap,
   });
 
   @override
@@ -47,17 +51,19 @@ class AppTextField extends StatelessWidget {
           label,
           style: const TextStyle(
             fontSize: AppTextSizes.body,
-            fontWeight: FontWeight.w600,
+            fontWeight: AppFontWeights.semiBold,
             color: AppColors.textPrimary,
             letterSpacing: 0.2,
           ),
         ),
         const SizedBox(height: 6),
         TextFormField(
+          onTap: onTap,
           controller: controller,
           initialValue: initialValue,
           validator: validator,
           onChanged: onChanged,
+          onFieldSubmitted: onFieldSubmitted,
           keyboardType: keyboardType,
           inputFormatters: inputFormatters,
           readOnly: readOnly,
@@ -66,7 +72,7 @@ class AppTextField extends StatelessWidget {
           focusNode: focusNode,
           style: TextStyle(
             fontSize: AppTextSizes.body,
-            fontWeight: FontWeight.w500,
+            fontWeight: AppFontWeights.medium,
             color: readOnly ? AppColors.textSecondary : AppColors.textPrimary,
           ),
           decoration: InputDecoration(
@@ -75,7 +81,7 @@ class AppTextField extends StatelessWidget {
             suffixText: suffixText,
             suffixStyle: const TextStyle(
               fontSize: AppTextSizes.caption,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppFontWeights.semiBold,
               color: AppColors.textSecondary,
             ),
             suffixIcon: suffixIcon,

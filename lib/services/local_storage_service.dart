@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../core/constants/app_constants.dart';
 import '../core/constants/dairy_products.dart';
@@ -14,9 +15,16 @@ import '../models/dg_hsd_record.dart';
 import '../models/silo_model.dart';
 import '../models/lab_milk_test.dart';
 import '../models/dispatch_record.dart';
+import '../models/milk_stock_entry.dart';
+import 'package:uuid/uuid.dart';
 
 class LocalStorageService {
   static SharedPreferences? _prefs;
+
+  @visibleForTesting
+  static void resetForTesting() {
+    _prefs = null;
+  }
 
   static Future<SharedPreferences> get _instance async {
     _prefs ??= await SharedPreferences.getInstance();
@@ -467,6 +475,7 @@ class LocalStorageService {
         finalSnf: 9.02,
         calculationFormulaVersion: 'v1.2-Standard-Dairy-MassBalance',
         notes: 'Morning Lassi production batch #LS-0927',
+        testedBy: 'Lab User',
         createdAt: now.subtract(const Duration(hours: 6)),
       ),
     ];
@@ -798,11 +807,17 @@ class LocalStorageService {
     try {
       final List<dynamic> list = jsonDecode(jsonStr);
       final listSilos = list.map((e) => SiloModel.fromJson(e as Map<String, dynamic>)).toList();
-      // Remove Silo 1 and Silo 2 as requested (only PMST and RMST supported)
-      final filtered = listSilos.where((s) => s.id != 'SILO_1' && s.id != 'SILO_2' && !s.name.toLowerCase().contains('silo 1') && !s.name.toLowerCase().contains('silo 2')).toList();
-      if (filtered.length != listSilos.length) {
-        await saveSilos(filtered);
-      }
+      // Remove Silo 1 and Silo 2 as requested (only PMST and RMST supported) and sanitize RMST description
+      final filtered = listSilos
+          .where((s) => s.id != 'SILO_1' && s.id != 'SILO_2' && !s.name.toLowerCase().contains('silo 1') && !s.name.toLowerCase().contains('silo 2'))
+          .map((s) {
+            if (s.id == 'RMST' && (s.description.contains('Reception') || s.description.contains('reception'))) {
+              return s.copyWith(description: 'Raw Milk Storage Tank');
+            }
+            return s;
+          })
+          .toList();
+      await saveSilos(filtered);
       return filtered.isNotEmpty ? filtered : SiloModel.defaultSilos;
     } catch (_) {
       return SiloModel.defaultSilos;
@@ -824,6 +839,203 @@ class LocalStorageService {
   static Future<void> _seedInitialSilos(SharedPreferences prefs) async {
     final jsonStr = jsonEncode(SiloModel.defaultSilos.map((e) => e.toJson()).toList());
     await prefs.setString(AppConstants.storageKeySilos, jsonStr);
+  }
+
+  // ===========================================================================
+  // MILK STOCK ENTRIES & REAL-TIME DYNAMIC BALANCE
+  // ===========================================================================
+
+  static Future<List<MilkStockEntry>> getMilkStockEntries() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeyMilkStock);
+    if (jsonStr == null || jsonStr.isEmpty) {
+      final initial = [
+        MilkStockEntry(
+          id: 'initial_stock_seed',
+          recordedAt: DateTime.now().subtract(const Duration(hours: 4)),
+          pmstStockLitres: 8200.0,
+          rmstStockLitres: 12500.0,
+          notes: 'Opening Silo Balance',
+          recordedBy: 'QC Lab Chemist',
+        ),
+      ];
+      await saveMilkStockEntries(initial);
+      return initial;
+    }
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      final records = list.map((e) => MilkStockEntry.fromJson(e as Map<String, dynamic>)).toList();
+      records.sort((a, b) => b.recordedAt.compareTo(a.recordedAt));
+      return records;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveMilkStockEntries(List<MilkStockEntry> entries) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(entries.map((e) => e.toJson()).toList());
+    await prefs.setString(AppConstants.storageKeyMilkStock, jsonStr);
+  }
+
+  static Future<MilkStockEntry?> getLatestMilkStockEntry() async {
+    final entries = await getMilkStockEntries();
+    return entries.isNotEmpty ? entries.first : null;
+  }
+
+  static Future<MilkStockEntry> recordMilkStock({
+    required double pmstLitres,
+    required double rmstLitres,
+    String? notes,
+    String? recordedBy,
+    DateTime? recordedAt,
+  }) async {
+    final entries = await getMilkStockEntries();
+    final newEntry = MilkStockEntry(
+      id: const Uuid().v4(),
+      recordedAt: recordedAt ?? DateTime.now(),
+      pmstStockLitres: pmstLitres,
+      rmstStockLitres: rmstLitres,
+      notes: notes,
+      recordedBy: recordedBy ?? 'QC Lab Chemist',
+    );
+    entries.insert(0, newEntry);
+    await saveMilkStockEntries(entries);
+
+    // Also update SiloModel records
+    final silos = await getSilos();
+    final updatedSilos = silos.map((s) {
+      final id = s.id.toUpperCase();
+      if (id.contains('PMST')) {
+        return s.copyWith(currentStockLitres: pmstLitres, lastStockUpdated: newEntry.recordedAt);
+      } else if (id.contains('RMST')) {
+        return s.copyWith(currentStockLitres: rmstLitres, lastStockUpdated: newEntry.recordedAt);
+      }
+      return s;
+    }).toList();
+    await saveSilos(updatedSilos);
+
+    return newEntry;
+  }
+
+  /// Calculates dynamic real-time milk stock for PMST and RMST
+  /// Deducts milk used for batch making and standardization created after the latest stock entry.
+  static Future<Map<String, dynamic>> calculateCurrentSiloStock() async {
+    final latestEntry = await getLatestMilkStockEntry();
+    double basePmst = latestEntry?.pmstStockLitres ?? 8200.0;
+    double baseRmst = latestEntry?.rmstStockLitres ?? 12500.0;
+    final entryTime = latestEntry?.recordedAt ?? DateTime.now().subtract(const Duration(hours: 12));
+
+    // Fetch batch records & standardization records
+    final batches = await getBatchRecords();
+    final stdRecords = await getStandardizationRecords();
+
+    double pmstDeducted = 0.0;
+    double rmstDeducted = 0.0;
+
+    for (final batch in batches) {
+      if (batch.createdAt.isAfter(entryTime) || batch.createdAt.isAtSameMomentAs(entryTime)) {
+        double milkInBatch = 0.0;
+        bool foundMilkIngredient = false;
+        for (final ing in batch.ingredients) {
+          final name = ing.ingredientName.toLowerCase();
+          if (name.contains('milk') && !name.contains('smp') && !name.contains('powder')) {
+            milkInBatch += ing.quantity;
+            foundMilkIngredient = true;
+          }
+        }
+        if (!foundMilkIngredient && batch.batchUnit == 'L') {
+          milkInBatch = batch.batchQuantity;
+        }
+
+        final silo = (batch.siloId ?? '').toUpperCase();
+        final notesLower = (batch.notes ?? '').toLowerCase();
+        final productLower = batch.productName.toLowerCase();
+
+        if (silo == 'RMST' || silo.contains('RMST') || notesLower.contains('silo: rmst') || notesLower.contains('rmst')) {
+          rmstDeducted += milkInBatch;
+        } else if (silo == 'PMST' || silo.contains('PMST') || notesLower.contains('silo: pmst') || notesLower.contains('pmst')) {
+          pmstDeducted += milkInBatch;
+        } else {
+          // If not explicitly marked: standardized batches & raw milk take from RMST, others from PMST
+          if (batch.batchNumber.startsWith('STD-') ||
+              notesLower.contains('standardized') ||
+              productLower.contains('raw milk')) {
+            rmstDeducted += milkInBatch;
+          } else {
+            pmstDeducted += milkInBatch;
+          }
+        }
+      }
+    }
+
+    // Also deduct any standalone standardization records not yet synced into batches
+    for (final std in stdRecords) {
+      if (std.createdAt.isAfter(entryTime) || std.createdAt.isAtSameMomentAs(entryTime)) {
+        final alreadyInBatches = batches.any((b) =>
+            b.id.contains(std.recordId) ||
+            (b.notes != null && b.notes!.contains(std.recordId)) ||
+            b.batchNumber == 'STD-${std.recordId}');
+        if (!alreadyInBatches) {
+          final silo = (std.siloId ?? '').toUpperCase();
+          if (silo.contains('PMST')) {
+            pmstDeducted += std.inputMilkQuantity;
+          } else {
+            rmstDeducted += std.inputMilkQuantity;
+          }
+        }
+      }
+    }
+
+    double currentPmst = basePmst - pmstDeducted;
+    double currentRmst = baseRmst - rmstDeducted;
+
+    if (currentPmst < 0) {
+      currentPmst = 0.0;
+    }
+    if (currentRmst < 0) {
+      currentRmst = 0.0;
+    }
+
+    final totalStock = currentPmst + currentRmst;
+
+    String description;
+    if (currentPmst > 0 && currentRmst > 0) {
+      description = 'Both PMST & RMST';
+    } else if (currentPmst > 0) {
+      description = 'PMST Tank';
+    } else if (currentRmst > 0) {
+      description = 'RMST Tank';
+    } else {
+      description = 'No Active Tank Stock';
+    }
+
+    // Synchronize SiloModel current stock in storage
+    try {
+      final silos = await getSilos();
+      final updatedSilos = silos.map((s) {
+        final id = s.id.toUpperCase();
+        if (id.contains('PMST')) {
+          return s.copyWith(currentStockLitres: currentPmst, lastStockUpdated: DateTime.now());
+        } else if (id.contains('RMST')) {
+          return s.copyWith(currentStockLitres: currentRmst, lastStockUpdated: DateTime.now());
+        }
+        return s;
+      }).toList();
+      await saveSilos(updatedSilos);
+    } catch (_) {}
+
+    return {
+      'pmstStock': currentPmst,
+      'rmstStock': currentRmst,
+      'totalMilkStock': totalStock,
+      'tanksDescription': description,
+      'lastRecordedAt': entryTime,
+      'basePmst': basePmst,
+      'baseRmst': baseRmst,
+      'pmstDeducted': pmstDeducted,
+      'rmstDeducted': rmstDeducted,
+    };
   }
 
   // ===========================================================================
@@ -930,7 +1142,7 @@ class LocalStorageService {
         snfPercentage: 8.31,
         labUserId: 'LAB-01',
         labUserName: 'Lab User',
-        remarks: 'Reception raw milk reception composite sample',
+        remarks: 'Raw milk composite sample',
         createdAt: now.subtract(const Duration(hours: 1)),
         updatedAt: now.subtract(const Duration(hours: 1)),
       ),

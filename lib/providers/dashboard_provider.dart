@@ -9,6 +9,7 @@ import 'dispatch_provider.dart';
 import 'production_provider.dart';
 import 'dg_hsd_provider.dart';
 import 'batch_records_provider.dart';
+import 'lab_provider.dart';
 
 class PlantActivity {
   final String time;
@@ -55,6 +56,10 @@ class DashboardState {
   final double currentStockLitres;
   final double todayBoilerConsumptionLitres;
   final int todayStandardizationBatches;
+  final double todayMilkStockLitres;
+  final double pmstStockLitres;
+  final double rmstStockLitres;
+  final String milkStockTanksDescription;
   final List<PlantActivity> recentActivities;
 
   // Cumulative / All-Time Totals across all recorded dates
@@ -72,6 +77,10 @@ class DashboardState {
     this.currentStockLitres = 42800.0,
     this.todayBoilerConsumptionLitres = 900.0,
     this.todayStandardizationBatches = 2,
+    this.todayMilkStockLitres = 20700.0,
+    this.pmstStockLitres = 8200.0,
+    this.rmstStockLitres = 12500.0,
+    this.milkStockTanksDescription = 'Both PMST & RMST',
     this.recentActivities = const [],
     this.totalProductionLitres = 0.0,
     this.totalSmpUsedKg = 0.0,
@@ -91,6 +100,7 @@ final dashboardProvider = Provider<DashboardState>((ref) {
   final productionState = ref.watch(productionProvider);
   final dgHsdState = ref.watch(dgHsdProvider);
   final batchRecordsState = ref.watch(batchRecordsProvider);
+  final labState = ref.watch(labProvider);
 
   final todayIso = Formatters.formatIsoDate(DateTime.now());
 
@@ -307,6 +317,10 @@ final dashboardProvider = Provider<DashboardState>((ref) {
     currentStockLitres: 42800.0,
     todayBoilerConsumptionLitres: todayBoiler > 0 ? todayBoiler : 900.0,
     todayStandardizationBatches: stdCount > 0 ? stdCount : 1,
+    todayMilkStockLitres: labState.totalMilkStockLitres,
+    pmstStockLitres: labState.pmstStockLitres,
+    rmstStockLitres: labState.rmstStockLitres,
+    milkStockTanksDescription: labState.milkStockTanksDescription,
     recentActivities: activities,
     totalProductionLitres: totalMilkProduction,
     totalSmpUsedKg: totalSmp,

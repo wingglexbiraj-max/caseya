@@ -122,7 +122,7 @@ class StatusBadge extends StatelessWidget {
             text,
             style: TextStyle(
               fontSize: fontSize,
-              fontWeight: FontWeight.w600,
+              fontWeight: AppFontWeights.semiBold,
               color: textColor ?? AppColors.primaryDark,
             ),
           ),

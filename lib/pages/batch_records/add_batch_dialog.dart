@@ -5,8 +5,10 @@ import '../../core/constants/app_colors.dart';
 import '../../core/constants/app_constants.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/widgets/app_text_field.dart';
+import '../../core/widgets/confirmation_dialog.dart';
 import '../../models/batch_record_model.dart';
 import '../../providers/batch_records_provider.dart';
+import '../../providers/lab_provider.dart';
 import '../../services/batch_recipe_service.dart';
 
 class AddBatchDialog extends ConsumerStatefulWidget {
@@ -49,6 +51,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
 
   String _selectedProduct = 'Lassi';
   String _selectedUnit = 'L';
+  String _selectedSilo = 'RMST';
   late String _selectedShift;
 
   final List<_IngredientRowController> _ingredientRows = [];
@@ -65,6 +68,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
       _selectedProduct = b.productName;
       _selectedUnit = b.batchUnit;
       _selectedShift = b.shift ?? AppConstants.determineShift(DateTime.now());
+      _selectedSilo = b.siloId ?? (b.notes?.toUpperCase().contains('PMST') == true ? 'PMST' : 'RMST');
       _batchNumberController = TextEditingController(text: b.batchNumber);
       _quantityController =
           TextEditingController(text: Formatters.formatSmart(b.batchQuantity));
@@ -240,6 +244,37 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
       return;
     }
 
+    // DUPLICATE BATCH CHECK:
+    // If a batch for the same product and date already exists, ask the user to confirm
+    if (!isEditMode) {
+      final existingBatches = ref.read(batchRecordsProvider).batches.where(
+        (b) => b.productionDate == dateStr &&
+               b.productName.trim().toLowerCase() == _selectedProduct.trim().toLowerCase(),
+      ).toList();
+
+      if (existingBatches.isNotEmpty) {
+        final existing = existingBatches.first;
+        final isStd = existing.notes != null &&
+            (existing.notes!.contains('Standardized') || existing.batchNumber.startsWith('STD-'));
+        final sourceDesc = isStd ? ' (from Milk Standardization)' : '';
+
+        final confirmDuplicate = await ConfirmationDialog.show(
+          context: context,
+          title: 'Batch Already Recorded for Today',
+          message:
+              'A batch for "$_selectedProduct" has already been recorded on $dateStr:\n'
+              '• Batch #${existing.batchNumber} (${Formatters.formatSmart(existing.batchQuantity)} ${existing.batchUnit}$sourceDesc)\n\n'
+              'Are you sure you want to add this batch again?',
+          confirmLabel: 'Yes, Add Again',
+          cancelLabel: 'Cancel',
+        );
+
+        if (!confirmDuplicate) {
+          return;
+        }
+      }
+    }
+
     final now = DateTime.now();
     final effectiveCreatedAt = isEditMode
         ? widget.existingBatch!.createdAt
@@ -258,7 +293,10 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
       batchUnit: _selectedUnit,
       shift: _selectedShift,
       operatorName: _operatorController.text.trim(),
-      notes: _notesController.text.trim(),
+      notes: _notesController.text.trim().isNotEmpty
+          ? '${_notesController.text.trim()} [Silo: $_selectedSilo]'
+          : '[Silo: $_selectedSilo]',
+      siloId: _selectedSilo,
       ingredients: ingredients,
       createdAt: effectiveCreatedAt,
       updatedAt: DateTime.now(),
@@ -276,6 +314,8 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
     }
 
     if (success && mounted) {
+      // Refresh real-time Silo Milk Stock in Lab page & Dashboard
+      ref.read(labProvider.notifier).refreshSiloStock();
       Navigator.of(context).pop(true);
     }
   }
@@ -283,6 +323,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
   @override
   Widget build(BuildContext context) {
     final products = BatchRecipeService.getSupportedProducts();
+    final labState = ref.watch(labProvider);
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -314,7 +355,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: AppTextSizes.subheading,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: AppFontWeights.bold,
                           ),
                         ),
                         Text(
@@ -362,7 +403,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                             'BATCH SPECIFICATIONS',
                             style: TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w800,
+                              fontWeight: AppFontWeights.bold,
                               letterSpacing: 1.0,
                               color: AppColors.textSecondary,
                             ),
@@ -388,7 +429,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                                 ),
                                 child: Text(
                                   Formatters.formatIsoDate(_selectedDate),
-                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                                 ),
                               ),
                             ),
@@ -407,7 +448,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               items: products
                                   .map((p) => DropdownMenuItem(
                                         value: p,
-                                        child: Text(p, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                        child: Text(p, style: const TextStyle(fontWeight: AppFontWeights.bold)),
                                       ))
                                   .toList(),
                               onChanged: (val) {
@@ -477,7 +518,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               items: BatchRecipeService.batchUnits
                                   .map((u) => DropdownMenuItem(
                                         value: u,
-                                        child: Text(u, style: const TextStyle(fontWeight: FontWeight.w700)),
+                                        child: Text(u, style: const TextStyle(fontWeight: AppFontWeights.bold)),
                                       ))
                                   .toList(),
                               onChanged: (val) {
@@ -526,6 +567,39 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 14),
+
+                      // Row: Source Milk Silo (RMST / PMST - Deducted from Stock)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _selectedSilo,
+                              decoration: InputDecoration(
+                                labelText: 'Source Silo / Tank (Deducts Milk From Stock) *',
+                                suffixIcon: const Icon(Icons.storage_rounded, size: 18),
+                                helperText: _selectedSilo == 'RMST'
+                                    ? 'Current RMST Stock: ${Formatters.formatSmart(labState.rmstStockLitres)} L'
+                                    : 'Current PMST Stock: ${Formatters.formatSmart(labState.pmstStockLitres)} L',
+                                helperStyle: const TextStyle(fontWeight: AppFontWeights.bold, color: AppColors.primary),
+                              ),
+                              items: [
+                                DropdownMenuItem(
+                                  value: 'RMST',
+                                  child: Text('RMST (Raw Milk Storage Tank - ${Formatters.formatSmart(labState.rmstStockLitres)} L)'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'PMST',
+                                  child: Text('PMST (Pasteurized Milk Tank - ${Formatters.formatSmart(labState.pmstStockLitres)} L)'),
+                                ),
+                              ],
+                              onChanged: (val) {
+                                if (val != null) setState(() => _selectedSilo = val);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
                       const SizedBox(height: 24),
 
                       // Section: Dynamic Ingredients Rows
@@ -547,7 +621,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                                 'INGREDIENTS / RAW MATERIALS USED *',
                                 style: TextStyle(
                                   fontSize: AppTextSizes.caption,
-                                  fontWeight: FontWeight.w800,
+                                  fontWeight: AppFontWeights.bold,
                                   letterSpacing: 1.0,
                                   color: AppColors.textSecondary,
                                 ),
@@ -581,7 +655,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               flex: 5,
                               child: Text(
                                 'Ingredient Name',
-                                style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                                style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.textSecondary),
                               ),
                             ),
                             SizedBox(width: 10),
@@ -589,7 +663,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               flex: 3,
                               child: Text(
                                 'Quantity',
-                                style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                                style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.textSecondary),
                               ),
                             ),
                             SizedBox(width: 10),
@@ -597,7 +671,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                               flex: 2,
                               child: Text(
                                 'Unit',
-                                style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
+                                style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.textSecondary),
                               ),
                             ),
                             SizedBox(width: 40),
@@ -642,7 +716,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                                     return TextFormField(
                                       controller: controller,
                                       focusNode: focusNode,
-                                      style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600),
+                                      style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.semiBold),
                                       decoration: InputDecoration(
                                         hintText: 'e.g. Milk, Water, SMP, Sugar',
                                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -661,7 +735,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                                 child: TextFormField(
                                   controller: row.qtyController,
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                  style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                                  style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold),
                                   decoration: const InputDecoration(
                                     hintText: 'e.g. 300',
                                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
@@ -689,7 +763,7 @@ class _AddBatchDialogState extends ConsumerState<AddBatchDialog> {
                                   items: BatchRecipeService.ingredientUnits
                                       .map((u) => DropdownMenuItem(
                                             value: u,
-                                            child: Text(u, style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700)),
+                                            child: Text(u, style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold)),
                                           ))
                                       .toList(),
                                   onChanged: (val) {

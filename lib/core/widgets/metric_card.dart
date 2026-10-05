@@ -9,7 +9,11 @@ class MetricCard extends StatefulWidget {
   final IconData icon;
   final Color? iconColor;
   final Color? iconBgColor;
+  final Color? cardBgColor;
+  final Color? borderColor;
+  final bool showBorder;
   final VoidCallback? onTap;
+  final EdgeInsetsGeometry? padding;
 
   const MetricCard({
     super.key,
@@ -20,7 +24,11 @@ class MetricCard extends StatefulWidget {
     required this.icon,
     this.iconColor,
     this.iconBgColor,
+    this.cardBgColor,
+    this.borderColor,
+    this.showBorder = true,
     this.onTap,
+    this.padding,
   });
 
   @override
@@ -32,6 +40,9 @@ class _MetricCardState extends State<MetricCard> {
 
   @override
   Widget build(BuildContext context) {
+    final effectivePadding = widget.padding ??
+        const EdgeInsets.symmetric(horizontal: 16, vertical: 14);
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -39,21 +50,25 @@ class _MetricCardState extends State<MetricCard> {
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOutCubic,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: widget.cardBgColor ?? Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: _isHovered
-                ? (widget.iconColor ?? AppColors.primary).withValues(alpha: 0.4)
-                : AppColors.cardBorder,
-            width: _isHovered ? 1.4 : 1.1,
-          ),
+          border: widget.showBorder
+              ? Border.all(
+                  color: _isHovered
+                      ? (widget.borderColor != null
+                          ? widget.borderColor!.withValues(alpha: 0.25)
+                          : const Color(0x33000000))
+                      : (widget.borderColor ?? AppColors.cardBorder),
+                  width: _isHovered ? 1.4 : 1.1,
+                )
+              : null,
           boxShadow: [
             BoxShadow(
               color: _isHovered
-                  ? (widget.iconColor ?? AppColors.primary).withValues(alpha: 0.12)
+                  ? const Color(0x140F172A)
                   : const Color(0x060F172A),
-              blurRadius: _isHovered ? 18 : 10,
-              offset: const Offset(0, 4),
+              blurRadius: _isHovered ? 14 : 8,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -65,13 +80,13 @@ class _MetricCardState extends State<MetricCard> {
                   borderRadius: BorderRadius.circular(12),
                   onTap: widget.onTap,
                   child: Padding(
-                    padding: const EdgeInsets.all(20), // Golden ratio spacing
+                    padding: effectivePadding,
                     child: _buildCardContent(),
                   ),
                 )
               : SelectionArea(
                   child: Padding(
-                    padding: const EdgeInsets.all(20), // Golden ratio spacing
+                    padding: effectivePadding,
                     child: _buildCardContent(),
                   ),
                 ),
@@ -81,9 +96,18 @@ class _MetricCardState extends State<MetricCard> {
   }
 
   Widget _buildCardContent() {
+    final effectiveIconBgColor = widget.iconBgColor ??
+        (widget.cardBgColor != null
+            ? Colors.black.withValues(alpha: 0.06)
+            : AppColors.primaryContainer);
+    final effectiveIconColor = widget.iconColor ??
+        (widget.cardBgColor != null
+            ? Colors.black.withValues(alpha: 0.60)
+            : AppColors.primary);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -91,37 +115,32 @@ class _MetricCardState extends State<MetricCard> {
             Expanded(
               child: Text(
                 widget.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: AppTextSizes.caption,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: AppFontWeights.semiBold,
                   color: AppColors.textSecondary,
                   letterSpacing: 0.1,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
+            const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.all(9),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: widget.iconBgColor ?? AppColors.primaryContainer,
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: [
-                  BoxShadow(
-                    color: (widget.iconColor ?? AppColors.primary).withValues(alpha: 0.15),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+                color: effectiveIconBgColor,
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 widget.icon,
-                size: 20,
-                color: widget.iconColor ?? AppColors.primary,
+                size: 18,
+                color: effectiveIconColor,
               ),
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         Row(
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
@@ -129,22 +148,25 @@ class _MetricCardState extends State<MetricCard> {
             Flexible(
               child: Text(
                 widget.value,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: AppTextSizes.heading, // Golden ratio metric display
-                  fontWeight: FontWeight.w900,
+                  fontWeight: AppFontWeights.bold,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.8,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
             if (widget.unit != null) ...[
-              const SizedBox(width: 6),
+              const SizedBox(width: 4),
               Text(
                 widget.unit!,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: AppTextSizes.body,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: AppFontWeights.bold,
                   color: AppColors.textSecondary,
                 ),
               ),
@@ -152,15 +174,16 @@ class _MetricCardState extends State<MetricCard> {
           ],
         ),
         if (widget.subtitle != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             widget.subtitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               fontSize: AppTextSizes.caption,
-              fontWeight: FontWeight.w500,
+              fontWeight: AppFontWeights.medium,
               color: AppColors.textMuted,
             ),
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ],

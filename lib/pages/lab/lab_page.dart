@@ -13,6 +13,7 @@ import '../../core/widgets/confirmation_dialog.dart';
 import '../../providers/lab_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/lab_milk_test.dart';
+import '../../models/silo_model.dart';
 
 class LabPage extends ConsumerStatefulWidget {
   const LabPage({super.key});
@@ -41,7 +42,7 @@ class _LabPageState extends ConsumerState<LabPage> {
   final TextEditingController _snfController = TextEditingController();
   final TextEditingController _analystController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _siloStockController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _historyExpanded = false;
 
@@ -72,13 +73,248 @@ class _LabPageState extends ConsumerState<LabPage> {
     _snfController.dispose();
     _analystController.dispose();
     _remarksController.dispose();
-    _searchController.dispose();
+    _siloStockController.dispose();
     super.dispose();
   }
 
+  void _showQuickEditStockDialog(dynamic silo, double currentStock) {
+    final controller = TextEditingController(
+      text: Formatters.formatSmart(currentStock).replaceAll(',', ''),
+    );
+    final formKey = GlobalKey<FormState>();
+    final isPMST = (silo.id as String).toUpperCase().contains('PMST');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isPMST
+                      ? const Color(0xFF0284C7).withValues(alpha: 0.12)
+                      : const Color(0xFFD97706).withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.water_drop_rounded,
+                  color: isPMST ? const Color(0xFF0284C7) : const Color(0xFFD97706),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Edit ${silo.name} Stock',
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.subheading,
+                        fontWeight: AppFontWeights.bold,
+                      ),
+                    ),
+                    Text(
+                      _getSiloFullName(silo),
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        color: AppColors.textSecondary,
+                        fontWeight: AppFontWeights.medium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Enter current milk stock in Litres:',
+                  style: TextStyle(
+                    fontSize: AppTextSizes.body,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: controller,
+                  autofocus: true,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: InputDecoration(
+                    labelText: '${silo.name} Stock (Litres)',
+                    hintText: 'e.g. 8500',
+                    suffixText: 'Litres',
+                    prefixIcon: const Icon(Icons.storage_rounded, size: 18),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                  validator: (val) {
+                    if (val == null || val.trim().isEmpty) return 'Enter quantity in Litres';
+                    final n = Formatters.parseDouble(val);
+                    if (n < 0) return 'Must be 0 or more';
+                    return null;
+                  },
+                  onFieldSubmitted: (_) async {
+                    if (formKey.currentState?.validate() ?? false) {
+                      final newVal = Formatters.parseDouble(controller.text);
+                      Navigator.of(ctx).pop();
+                      final user = ref.read(authProvider);
+                      final labState = ref.read(labProvider);
+                      await ref.read(labProvider.notifier).updateMilkStock(
+                        pmstLitres: isPMST ? newVal : labState.pmstStockLitres,
+                        rmstLitres: !isPMST ? newVal : labState.rmstStockLitres,
+                        notes: 'Quick edit ${silo.name} by ${user.name}',
+                      );
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('✓ ${silo.name} stock updated to ${Formatters.formatSmart(newVal)} Litres'),
+                            backgroundColor: const Color(0xFF16A34A),
+                            behavior: SnackBarBehavior.floating,
+                            duration: const Duration(seconds: 3),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isPMST ? const Color(0xFF0284C7) : const Color(0xFFD97706),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () async {
+                if (formKey.currentState?.validate() ?? false) {
+                  final newVal = Formatters.parseDouble(controller.text);
+                  Navigator.of(ctx).pop();
+                  final user = ref.read(authProvider);
+                  final labState = ref.read(labProvider);
+                  await ref.read(labProvider.notifier).updateMilkStock(
+                    pmstLitres: isPMST ? newVal : labState.pmstStockLitres,
+                    rmstLitres: !isPMST ? newVal : labState.rmstStockLitres,
+                    notes: 'Quick edit ${silo.name} by ${user.name}',
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('✓ ${silo.name} stock updated to ${Formatters.formatSmart(newVal)} Litres'),
+                        backgroundColor: const Color(0xFF16A34A),
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text('Save Stock', style: TextStyle(fontWeight: AppFontWeights.bold)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _promptSelectSiloFirst() {
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Row(
+          children: [
+            Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Select tank silo first',
+                style: TextStyle(
+                  fontWeight: AppFontWeights.bold,
+                  fontSize: AppTextSizes.body,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFD97706),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   void _onSave() async {
+    final fatText = _fatController.text.trim();
+    final snfText = _snfController.text.trim();
+    final stockText = _siloStockController.text.trim();
+    final user = ref.read(authProvider);
+    final labState = ref.read(labProvider);
+    final siloId = labState.selectedSiloId;
+
+    if (siloId == null || siloId.isEmpty) {
+      _promptSelectSiloFirst();
+      return;
+    }
+
+    final isPMST = siloId.toUpperCase().contains('PMST');
+
+    // Case 1: User enters only milk stock in this section
+    if (stockText.isNotEmpty && fatText.isEmpty && snfText.isEmpty) {
+      final stockVal = Formatters.parseDouble(stockText);
+      if (stockVal < 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Milk stock must be 0 or more Litres')),
+        );
+        return;
+      }
+
+      await ref.read(labProvider.notifier).updateMilkStock(
+        pmstLitres: isPMST ? stockVal : labState.pmstStockLitres,
+        rmstLitres: !isPMST ? stockVal : labState.rmstStockLitres,
+        notes: 'Stock updated for $siloId by ${user.name}',
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('✓ $siloId Milk Stock updated to ${Formatters.formatSmart(stockVal)} Litres'),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF16A34A),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        setState(() {
+          _siloStockController.clear();
+        });
+      }
+      return;
+    }
+
+    // Case 2: Full quality test entry (Fat & SNF required)
     if (_formKey.currentState?.validate() ?? false) {
-      final user = ref.read(authProvider);
       final analystName = _analystController.text.trim().isNotEmpty
           ? _analystController.text.trim()
           : user.name;
@@ -95,17 +331,32 @@ class _LabPageState extends ConsumerState<LabPage> {
           .read(labProvider.notifier)
           .saveReading(userId: user.employeeCode, userName: analystName);
 
+      // If user also entered milk stock alongside the test
+      if (stockText.isNotEmpty) {
+        final stockVal = Formatters.parseDouble(stockText);
+        await ref.read(labProvider.notifier).updateMilkStock(
+          pmstLitres: isPMST ? stockVal : labState.pmstStockLitres,
+          rmstLitres: !isPMST ? stockVal : labState.rmstStockLitres,
+          notes: 'Updated alongside lab reading for $siloId',
+        );
+      }
+
       if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              ref.read(labProvider).successMessage ??
-                  '✓ Lab reading saved successfully.',
+              stockText.isNotEmpty
+                  ? '✓ Lab test and $siloId stock (${Formatters.formatSmart(Formatters.parseDouble(stockText))} L) recorded successfully.'
+                  : (ref.read(labProvider).successMessage ??
+                      '✓ Lab reading recorded successfully.'),
             ),
             backgroundColor: AppColors.primary,
             duration: const Duration(seconds: 3),
           ),
         );
+        setState(() {
+          _siloStockController.clear();
+        });
         _onClear();
       }
     }
@@ -179,10 +430,10 @@ class _LabPageState extends ConsumerState<LabPage> {
       label: 'Lab Analyst (Person) *',
       hint: 'Type name or select from list',
       controller: _analystController,
-      prefixIcon: const Icon(
+      prefixIcon: Icon(
         Icons.person_rounded,
         size: 18,
-        color: AppColors.primary,
+        color: Colors.black.withValues(alpha: 0.60),
       ),
       suffixIcon: PopupMenuButton<String>(
         tooltip: 'Select analyst from list',
@@ -218,7 +469,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                   name,
                   style: TextStyle(
                     fontSize: AppTextSizes.body,
-                    fontWeight: isOther ? FontWeight.w700 : FontWeight.w600,
+                    fontWeight: isOther ? AppFontWeights.bold : AppFontWeights.semiBold,
                     color: isOther ? AppColors.primary : AppColors.textPrimary,
                   ),
                 ),
@@ -233,6 +484,84 @@ class _LabPageState extends ConsumerState<LabPage> {
         }
         return null;
       },
+    );
+  }
+
+  Widget _buildSiloSelectorDropdown(LabState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Tank / Silo *',
+          style: TextStyle(
+            fontSize: AppTextSizes.body,
+            fontWeight: AppFontWeights.semiBold,
+            color: AppColors.textPrimary,
+            letterSpacing: 0.2,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(9),
+            border: Border.all(
+              color: Colors.black.withValues(alpha: 0.08),
+              width: 1.2,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.storage_rounded,
+                size: 18,
+                color: Colors.black.withValues(alpha: 0.60),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: state.selectedSiloId,
+                    hint: const Text(
+                      'Select Silo',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.body,
+                        color: AppColors.textMuted,
+                        fontWeight: AppFontWeights.semiBold,
+                      ),
+                    ),
+                    isExpanded: true,
+                    items: state.silos.map((s) {
+                      return DropdownMenuItem(
+                        value: s.id,
+                        child: Text(
+                          '${s.name} (${s.description})',
+                          style: const TextStyle(
+                            fontSize: AppTextSizes.body,
+                            fontWeight: AppFontWeights.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      );
+                    }).toList(),
+                    onChanged: (newSiloId) {
+                      if (newSiloId != null) {
+                        ref
+                            .read(labProvider.notifier)
+                            .setSiloId(newSiloId);
+                      }
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -298,7 +627,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                           style: const TextStyle(
                             color: AppColors.danger,
                             fontSize: AppTextSizes.body,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                           ),
                         ),
                       ),
@@ -322,13 +651,13 @@ class _LabPageState extends ConsumerState<LabPage> {
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.black.withValues(alpha: 0.06),
+                      shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.biotech_rounded,
                       size: 20,
-                      color: AppColors.primary,
+                      color: Colors.black.withValues(alpha: 0.60),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -336,7 +665,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                     'RECORD MILK QUALITY TEST',
                     style: TextStyle(
                       fontSize: AppTextSizes.subheading,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: AppFontWeights.bold,
                       letterSpacing: 0.6,
                       color: AppColors.textPrimary,
                     ),
@@ -345,12 +674,12 @@ class _LabPageState extends ConsumerState<LabPage> {
               ),
               const SizedBox(height: 12),
               AppCard(
-                topBorderColor: AppColors.primary,
-                topBorderHeight: 4,
+                backgroundColor: const Color(0xFFF5F3FF),
+                borderColor: Colors.black.withValues(alpha: 0.08),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Row 1: Date, Time, and Tank/Silo (3 chips in one row)
+                    // Row 1: Date, Time, and Lab Analyst (3 chips in one row)
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 700;
@@ -368,7 +697,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       'Date',
                                       style: TextStyle(
                                         fontSize: AppTextSizes.body,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: AppFontWeights.semiBold,
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 0.2,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -376,9 +707,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       onTap: _selectDate,
                                       borderRadius: BorderRadius.circular(9),
                                       child: Container(
+                                        height: 48,
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 14,
-                                          vertical: 14,
                                         ),
                                         decoration: BoxDecoration(
                                           color: Colors.white,
@@ -386,16 +717,16 @@ class _LabPageState extends ConsumerState<LabPage> {
                                             9,
                                           ),
                                           border: Border.all(
-                                            color: AppColors.cardBorder,
+                                            color: Colors.black.withValues(alpha: 0.08),
                                             width: 1.2,
                                           ),
                                         ),
                                         child: Row(
                                           children: [
-                                            const Icon(
+                                            Icon(
                                               Icons.calendar_today_rounded,
                                               size: 17,
-                                              color: AppColors.primary,
+                                              color: Colors.black.withValues(alpha: 0.60),
                                             ),
                                             const SizedBox(width: 10),
                                             Expanded(
@@ -404,7 +735,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                                   state.selectedDate,
                                                 ),
                                                 style: const TextStyle(
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight: AppFontWeights.bold,
                                                   fontSize: AppTextSizes.body,
                                                 ),
                                               ),
@@ -427,7 +758,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       'Time',
                                       style: TextStyle(
                                         fontSize: AppTextSizes.body,
-                                        fontWeight: FontWeight.w700,
+                                        fontWeight: AppFontWeights.semiBold,
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 0.2,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
@@ -440,84 +773,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                               ),
                               const SizedBox(width: 12),
 
-                              // 3. Tank / Silo Dropdown
+                              // 3. Lab Analyst (Person)
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Tank / Silo',
-                                      style: TextStyle(
-                                        fontSize: AppTextSizes.body,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(9),
-                                        border: Border.all(
-                                          color: AppColors.cardBorder,
-                                          width: 1.2,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          const Icon(
-                                            Icons.storage_rounded,
-                                            size: 17,
-                                            color: AppColors.primary,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: DropdownButtonHideUnderline(
-                                              child: DropdownButton<String>(
-                                                value: state.selectedSiloId,
-                                                hint: const Text(
-                                                  'Select Silo',
-                                                  style: TextStyle(
-                                                    fontSize: AppTextSizes.body,
-                                                    color: AppColors.textMuted,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                isExpanded: true,
-                                                items: state.silos.map((s) {
-                                                  return DropdownMenuItem(
-                                                    value: s.id,
-                                                    child: Text(
-                                                      '${s.name} (${s.description})',
-                                                      style: const TextStyle(
-                                                        fontSize: AppTextSizes.body,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                      overflow:
-                                                          TextOverflow.ellipsis,
-                                                    ),
-                                                  );
-                                                }).toList(),
-                                                onChanged: (newSiloId) {
-                                                  if (newSiloId != null) {
-                                                    ref
-                                                        .read(
-                                                          labProvider.notifier,
-                                                        )
-                                                        .setSiloId(newSiloId);
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                child: _buildAnalystSelector(),
                               ),
                             ],
                           );
@@ -532,8 +790,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       child: Container(
                                         padding: const EdgeInsets.all(12),
                                         decoration: BoxDecoration(
+                                          color: Colors.white,
                                           border: Border.all(
-                                            color: AppColors.cardBorder,
+                                            color: Colors.black.withValues(alpha: 0.08),
                                           ),
                                           borderRadius: BorderRadius.circular(
                                             8,
@@ -541,10 +800,10 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         ),
                                         child: Row(
                                           children: [
-                                            const Icon(
+                                            Icon(
                                               Icons.calendar_today_rounded,
                                               size: 16,
-                                              color: AppColors.primary,
+                                              color: Colors.black.withValues(alpha: 0.60),
                                             ),
                                             const SizedBox(width: 8),
                                             Expanded(
@@ -553,7 +812,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                                   state.selectedDate,
                                                 ),
                                                 style: const TextStyle(
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight: AppFontWeights.bold,
                                                 ),
                                               ),
                                             ),
@@ -572,65 +831,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 ],
                               ),
                               const SizedBox(height: 12),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(9),
-                                  border: Border.all(
-                                    color: AppColors.cardBorder,
-                                    width: 1.2,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.storage_rounded,
-                                      size: 16,
-                                      color: AppColors.primary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          value: state.selectedSiloId,
-                                          hint: const Text(
-                                            'Select Silo',
-                                            style: TextStyle(
-                                              fontSize: AppTextSizes.body,
-                                              color: AppColors.textMuted,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          isExpanded: true,
-                                          items: state.silos.map((s) {
-                                            return DropdownMenuItem(
-                                              value: s.id,
-                                              child: Text(
-                                                '${s.name} (${s.description})',
-                                                style: const TextStyle(
-                                                  fontSize: AppTextSizes.body,
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            );
-                                          }).toList(),
-                                          onChanged: (newSiloId) {
-                                            if (newSiloId != null) {
-                                              ref
-                                                  .read(labProvider.notifier)
-                                                  .setSiloId(newSiloId);
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                              _buildAnalystSelector(),
                             ],
                           );
                         }
@@ -638,7 +839,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Row 2: Milk Fat (%), Milk SNF (%), and Lab Analyst (Person) - 3 in a row
+                    // Row 2: Milk Fat (%), Milk SNF (%), and Tank / Silo - 3 in a row
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 700;
@@ -652,10 +853,11 @@ class _LabPageState extends ConsumerState<LabPage> {
                                   label: 'Milk Fat (%)',
                                   hint: 'e.g., 4.30',
                                   controller: _fatController,
-                                  prefixIcon: const Icon(
+                                  onChanged: (_) => setState(() {}),
+                                  prefixIcon: Icon(
                                     Icons.opacity_rounded,
                                     size: 18,
-                                    color: AppColors.primary,
+                                    color: Colors.black.withValues(alpha: 0.60),
                                   ),
                                   suffixText: '%',
                                   keyboardType:
@@ -663,6 +865,10 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         decimal: true,
                                       ),
                                   validator: (val) {
+                                    if (_siloStockController.text.trim().isNotEmpty &&
+                                        (val == null || val.trim().isEmpty)) {
+                                      return null;
+                                    }
                                     if (val == null || val.trim().isEmpty) {
                                       return 'Milk Fat is required';
                                     }
@@ -681,10 +887,11 @@ class _LabPageState extends ConsumerState<LabPage> {
                                   label: 'Milk SNF (%)',
                                   hint: 'e.g., 8.33',
                                   controller: _snfController,
-                                  prefixIcon: const Icon(
+                                  onChanged: (_) => setState(() {}),
+                                  prefixIcon: Icon(
                                     Icons.biotech_rounded,
                                     size: 18,
-                                    color: AppColors.primary,
+                                    color: Colors.black.withValues(alpha: 0.60),
                                   ),
                                   suffixText: '%',
                                   keyboardType:
@@ -692,6 +899,10 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         decimal: true,
                                       ),
                                   validator: (val) {
+                                    if (_siloStockController.text.trim().isNotEmpty &&
+                                        (val == null || val.trim().isEmpty)) {
+                                      return null;
+                                    }
                                     if (val == null || val.trim().isEmpty) {
                                       return 'Milk SNF is required';
                                     }
@@ -705,7 +916,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 ),
                               ),
                               const SizedBox(width: 12),
-                              Expanded(child: _buildAnalystSelector()),
+                              Expanded(child: _buildSiloSelectorDropdown(state)),
                             ],
                           );
                         } else {
@@ -716,10 +927,11 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 label: 'Milk Fat (%)',
                                 hint: 'e.g., 4.30',
                                 controller: _fatController,
-                                prefixIcon: const Icon(
+                                onChanged: (_) => setState(() {}),
+                                prefixIcon: Icon(
                                   Icons.opacity_rounded,
                                   size: 18,
-                                  color: AppColors.primary,
+                                  color: Colors.black.withValues(alpha: 0.60),
                                 ),
                                 suffixText: '%',
                                 keyboardType:
@@ -727,6 +939,10 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       decimal: true,
                                     ),
                                 validator: (val) {
+                                  if (_siloStockController.text.trim().isNotEmpty &&
+                                      (val == null || val.trim().isEmpty)) {
+                                    return null;
+                                  }
                                   if (val == null || val.trim().isEmpty) {
                                     return 'Fat required';
                                   }
@@ -740,10 +956,11 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 label: 'Milk SNF (%)',
                                 hint: 'e.g., 8.33',
                                 controller: _snfController,
-                                prefixIcon: const Icon(
+                                onChanged: (_) => setState(() {}),
+                                prefixIcon: Icon(
                                   Icons.biotech_rounded,
                                   size: 18,
-                                  color: AppColors.primary,
+                                  color: Colors.black.withValues(alpha: 0.60),
                                 ),
                                 suffixText: '%',
                                 keyboardType:
@@ -751,6 +968,10 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       decimal: true,
                                     ),
                                 validator: (val) {
+                                  if (_siloStockController.text.trim().isNotEmpty &&
+                                      (val == null || val.trim().isEmpty)) {
+                                    return null;
+                                  }
                                   if (val == null || val.trim().isEmpty) {
                                     return 'SNF required';
                                   }
@@ -760,7 +981,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 },
                               ),
                               const SizedBox(height: 12),
-                              _buildAnalystSelector(),
+                              _buildSiloSelectorDropdown(state),
                             ],
                           );
                         }
@@ -768,20 +989,95 @@ class _LabPageState extends ConsumerState<LabPage> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Row 3: Optional Remarks (full-width)
-                    AppTextField(
-                      label: 'Optional Remarks (Note)',
-                      hint: 'e.g., Tanker composite sample approved for processing',
-                      controller: _remarksController,
-                      prefixIcon: const Icon(
-                        Icons.edit_note_rounded,
-                        size: 18,
-                        color: AppColors.textSecondary,
-                      ),
+                    // Row 3: Optional Remarks & Stock of Milk (in one line, two chips/fields)
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final isWide = constraints.maxWidth >= 650;
+                        final hasSilo = state.selectedSiloId != null &&
+                            state.selectedSiloId!.isNotEmpty;
+                        final selectedSilo = hasSilo
+                            ? state.silos.firstWhere(
+                                (s) => s.id == state.selectedSiloId,
+                                orElse: () => SiloModel(
+                                  id: state.selectedSiloId!,
+                                  name: state.selectedSiloId!,
+                                  description: '',
+                                ),
+                              )
+                            : null;
+                        final siloDisplayName = selectedSilo != null
+                            ? (selectedSilo.name.toUpperCase().contains('PMST')
+                                ? 'PMST'
+                                : (selectedSilo.name.toUpperCase().contains('RMST')
+                                    ? 'RMST'
+                                    : selectedSilo.name))
+                            : 'Select Silo';
+                        final isPMST = selectedSilo != null &&
+                            (selectedSilo.id.toUpperCase().contains('PMST') ||
+                                selectedSilo.name.toUpperCase().contains('PMST'));
+                        final currentStock = selectedSilo != null
+                            ? (isPMST ? state.pmstStockLitres : state.rmstStockLitres)
+                            : null;
+
+                        final remarksField = AppTextField(
+                          label: 'Optional Remarks (Note)',
+                          hint: 'e.g., Tanker composite sample approved',
+                          controller: _remarksController,
+                          prefixIcon: Icon(
+                            Icons.edit_note_rounded,
+                            size: 18,
+                            color: Colors.black.withValues(alpha: 0.60),
+                          ),
+                        );
+
+                        final stockField = GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: !hasSilo ? _promptSelectSiloFirst : null,
+                          child: AppTextField(
+                            label: hasSilo
+                                ? 'Stock of Milk ($siloDisplayName)'
+                                : 'Stock of Milk (Select Silo)',
+                            hint: hasSilo
+                                ? 'Current: ${Formatters.formatSmart(currentStock ?? 0)} L'
+                                : 'Select tank silo first',
+                            controller: _siloStockController,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            readOnly: !hasSilo,
+                            onTap: !hasSilo ? _promptSelectSiloFirst : null,
+                            prefixIcon: Icon(
+                              Icons.water_drop_rounded,
+                              size: 18,
+                              color: Colors.black.withValues(alpha: 0.60),
+                            ),
+                            suffixText: hasSilo ? 'Litres' : null,
+                            onChanged: (_) => setState(() {}),
+                          ),
+                        );
+
+                        if (isWide) {
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 5, child: remarksField),
+                              const SizedBox(width: 12),
+                              Expanded(flex: 5, child: stockField),
+                            ],
+                          );
+                        } else {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              remarksField,
+                              const SizedBox(height: 12),
+                              stockField,
+                            ],
+                          );
+                        }
+                      },
                     ),
                     const SizedBox(height: 20),
 
-                    // Action Buttons (Save Reading & Clear)
+                    // Action Buttons (Record Reading & Clear)
                     Row(
                       children: [
                         Expanded(
@@ -805,10 +1101,16 @@ class _LabPageState extends ConsumerState<LabPage> {
                             label: Text(
                               state.editingTest != null
                                   ? 'Update Lab Reading'
-                                  : 'Save Reading',
+                                  : (_siloStockController.text.trim().isNotEmpty &&
+                                          _fatController.text.trim().isEmpty &&
+                                          _snfController.text.trim().isEmpty
+                                      ? 'Update Milk Stock Only'
+                                      : (_siloStockController.text.trim().isNotEmpty
+                                          ? 'Record Reading & Stock'
+                                          : 'Record Reading')),
                               style: const TextStyle(
                                 fontSize: AppTextSizes.body,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: AppFontWeights.bold,
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -836,7 +1138,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                               'Clear',
                               style: TextStyle(
                                 fontSize: AppTextSizes.body,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: AppFontWeights.bold,
                               ),
                             ),
                           ),
@@ -874,13 +1176,13 @@ class _LabPageState extends ConsumerState<LabPage> {
                 Container(
                   padding: const EdgeInsets.all(7),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    color: Colors.black.withValues(alpha: 0.06),
+                    shape: BoxShape.circle,
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.analytics_rounded,
                     size: 20,
-                    color: AppColors.primary,
+                    color: Colors.black.withValues(alpha: 0.60),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -888,7 +1190,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                   'LATEST READINGS DASHBOARD (TODAY)',
                   style: TextStyle(
                     fontSize: AppTextSizes.subheading,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: AppFontWeights.bold,
                     letterSpacing: 0.6,
                     color: AppColors.textPrimary,
                   ),
@@ -900,7 +1202,7 @@ class _LabPageState extends ConsumerState<LabPage> {
               style: TextStyle(
                 fontSize: AppTextSizes.caption,
                 color: AppColors.textSecondary,
-                fontWeight: FontWeight.w600,
+                fontWeight: AppFontWeights.semiBold,
               ),
             ),
           ],
@@ -929,13 +1231,13 @@ class _LabPageState extends ConsumerState<LabPage> {
                 crossAxisCount: crossAxisCount,
                 crossAxisSpacing: 14,
                 mainAxisSpacing: 14,
-                mainAxisExtent: 182,
+                mainAxisExtent: 188,
               ),
               itemBuilder: (context, index) {
                 final silo = visibleSilos[index];
                 final reading = state.todayLatestBySilo[silo.id];
 
-                return _buildSiloReadingCard(silo, reading);
+                return _buildSiloReadingCard(silo, reading, state);
               },
             );
           },
@@ -956,302 +1258,12 @@ class _LabPageState extends ConsumerState<LabPage> {
     return (desc != null && desc.isNotEmpty) ? desc : 'Milk Storage Tank';
   }
 
-  Widget _buildSiloReadingCard(dynamic silo, LabMilkTest? reading) {
-    final hasReading = reading != null;
-    final isPMST = (silo.id as String).toUpperCase().contains('PMST');
-
-    // Distinct low-opacity palette for PMST (Sky/Cyan) vs RMST (Warm Amber/Gold)
-    final themeColor = isPMST
-        ? const Color(0xFF0284C7)
-        : const Color(0xFFD97706);
-    final cardBg = isPMST ? const Color(0xFFF0F9FF) : const Color(0xFFFFFBEB);
-    final borderColor = Colors.black.withValues(alpha: 0.12);
-    final shadowColor = Colors.black.withValues(alpha: 0.04);
-    final valueColor = isPMST
-        ? const Color(0xFF0284C7)
-        : const Color(0xFFD97706);
-    final titleColor = isPMST
-        ? const Color(0xFF0C4A6E)
-        : const Color(0xFF78350F);
-
-    final testDateFormatted = () {
-      if (reading != null && reading.testDate.isNotEmpty) {
-        final parsed = DateTime.tryParse(reading.testDate);
-        if (parsed != null) return Formatters.formatDate(parsed);
-      }
-      return Formatters.formatDate(DateTime.now());
-    }();
-
-    return Container(
-      decoration: BoxDecoration(
-        color: cardBg,
-        gradient: LinearGradient(
-          colors: [cardBg, Colors.white],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor, width: 1.1),
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Column(
-          children: [
-            Container(
-              height: 3.5,
-              color: isPMST ? const Color(0xFF0284C7) : AppColors.primary,
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Silo Name + Status Indicator
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(7),
-                                decoration: BoxDecoration(
-                                  color: themeColor.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: themeColor.withValues(alpha: 0.25),
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.storage_rounded,
-                                  color: themeColor,
-                                  size: 17,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      silo.name,
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: AppTextSizes.body,
-                                        color: titleColor,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 1.5),
-                                    Text(
-                                      _getSiloFullName(silo),
-                                      style: const TextStyle(
-                                        fontSize: AppTextSizes.caption,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColors.textSecondary,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        if (hasReading)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF16A34A)
-                                  .withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: const Color(0xFF16A34A)
-                                    .withValues(alpha: 0.25),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.check_circle_rounded,
-                                  color: Color(0xFF16A34A),
-                                  size: 11,
-                                ),
-                                SizedBox(width: 3),
-                                Text(
-                                  'Fresh Reading',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF15803D),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.danger.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: AppColors.danger.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.warning_amber_rounded,
-                                  color: AppColors.danger,
-                                  size: 11,
-                                ),
-                                SizedBox(width: 3),
-                                Text(
-                                  'No reading today',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.danger,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-
-                    // Fat & SNF Values
-                    if (hasReading)
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'FAT',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                Text(
-                                  '${reading.fatPercentage.toStringAsFixed(2)}%',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.subheading,
-                                    fontWeight: FontWeight.w900,
-                                    color: valueColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(width: 1, height: 26, color: borderColor),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  'SNF',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                                Text(
-                                  '${reading.snfPercentage.toStringAsFixed(2)}%',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.subheading,
-                                    fontWeight: FontWeight.w900,
-                                    color: valueColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      )
-                    else
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8),
-                        child: Text(
-                          'Awaiting today\'s laboratory test. Enter Fat & SNF below.',
-                          style: TextStyle(
-                            fontSize: AppTextSizes.caption,
-                            color: AppColors.textMuted,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-
-                    // Footer (Last tested date, time & analyst)
-                    Container(
-                      padding: const EdgeInsets.only(top: 6),
-                      decoration: BoxDecoration(
-                        border: Border(
-                          top: BorderSide(
-                            color: borderColor.withValues(alpha: 0.2),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            hasReading
-                                ? 'Tested: $testDateFormatted, ${reading.testTime}'
-                                : 'No sample',
-                            style: const TextStyle(
-                              fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                          Text(
-                            hasReading ? reading.labUserName : 'Pending',
-                            style: const TextStyle(
-                              fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textSecondary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+  Widget _buildSiloReadingCard(dynamic silo, LabMilkTest? reading, LabState state) {
+    return _SiloReadingCard(
+      silo: silo,
+      reading: reading,
+      state: state,
+      onEditStock: _showQuickEditStockDialog,
     );
   }
 
@@ -1275,13 +1287,13 @@ class _LabPageState extends ConsumerState<LabPage> {
                     Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black.withValues(alpha: 0.06),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.history_rounded,
                         size: 20,
-                        color: AppColors.primary,
+                        color: Colors.black.withValues(alpha: 0.60),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -1289,7 +1301,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                       'LABORATORY READING HISTORY',
                       style: TextStyle(
                         fontSize: AppTextSizes.subheading,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppFontWeights.bold,
                         letterSpacing: 0.6,
                         color: AppColors.textPrimary,
                       ),
@@ -1320,7 +1332,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                             _historyExpanded ? 'Collapse' : 'Expand',
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: AppFontWeights.bold,
                               color: AppColors.primary,
                             ),
                           ),
@@ -1367,84 +1379,15 @@ class _LabPageState extends ConsumerState<LabPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Filter Controls (Date, Silo, Search)
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isWide = constraints.maxWidth >= 750;
-
-                            if (isWide) {
-                              return Row(
-                                children: [
-                                  Expanded(
-                                    flex: 6,
-                                    child: TextField(
-                                      controller: _searchController,
-                                      decoration: const InputDecoration(
-                                        hintText:
-                                            'Search date, silo, analyst, remarks...',
-                                        prefixIcon: Icon(
-                                          Icons.search_rounded,
-                                          size: 19,
-                                        ),
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      onChanged: (val) {
-                                        ref
-                                            .read(labProvider.notifier)
-                                            .setSearchQuery(val);
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _buildSiloFilterChip(state),
-                                  const SizedBox(width: 12),
-                                  _buildDateFilterChip(state),
-                                ],
-                              );
-                            } else {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  TextField(
-                                    controller: _searchController,
-                                    decoration: const InputDecoration(
-                                      hintText:
-                                          'Search date, silo, analyst, remarks...',
-                                      prefixIcon: Icon(
-                                        Icons.search_rounded,
-                                        size: 19,
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                    onChanged: (val) {
-                                      ref
-                                          .read(labProvider.notifier)
-                                          .setSearchQuery(val);
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      _buildSiloFilterChip(state),
-                                      _buildDateFilterChip(state),
-                                    ],
-                                  ),
-                                ],
-                              );
-                            }
-                          },
+                        // Filter Controls (Silo, Date)
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _buildSiloFilterChip(state),
+                            _buildDateFilterChip(state),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
@@ -1473,7 +1416,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 'No lab readings matching current filter.',
                                 style: TextStyle(
                                   color: AppColors.alert,
-                                  fontWeight: FontWeight.w700,
+                                  fontWeight: AppFontWeights.bold,
                                 ),
                               ),
                             ],
@@ -1515,7 +1458,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                             Text(
                                               item.testDate,
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.w800,
+                                                fontWeight: AppFontWeights.bold,
                                                 fontSize: AppTextSizes.body,
                                               ),
                                             ),
@@ -1523,7 +1466,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                             Text(
                                               item.testTime,
                                               style: const TextStyle(
-                                                fontWeight: FontWeight.w600,
+                                                fontWeight: AppFontWeights.semiBold,
                                                 fontSize: AppTextSizes.caption,
                                                 color: AppColors.textSecondary,
                                               ),
@@ -1575,7 +1518,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                                     style: const TextStyle(
                                                       fontSize: AppTextSizes.caption,
                                                       fontWeight:
-                                                          FontWeight.w700,
+                                                          AppFontWeights.bold,
                                                       color: AppColors.danger,
                                                     ),
                                                   ),
@@ -1595,7 +1538,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         'Fat: ${item.fatPercentage.toStringAsFixed(2)}%',
                                         style: const TextStyle(
                                           fontSize: AppTextSizes.body,
-                                          fontWeight: FontWeight.w900,
+                                          fontWeight: AppFontWeights.bold,
                                           color: AppColors.primaryDark,
                                         ),
                                       ),
@@ -1603,7 +1546,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         'SNF: ${item.snfPercentage.toStringAsFixed(2)}%',
                                         style: const TextStyle(
                                           fontSize: AppTextSizes.body,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: AppFontWeights.bold,
                                           color: AppColors.textPrimary,
                                         ),
                                       ),
@@ -1717,7 +1660,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                           : Formatters.formatDate(state.filterDate!))
                       : 'Select Date',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: AppFontWeights.bold,
                     fontSize: AppTextSizes.body,
                     color: AppColors.textPrimary,
                   ),
@@ -1762,7 +1705,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                     'Today',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                       color: AppColors.primary,
                     ),
                   ),
@@ -1803,7 +1746,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                 color: AppColors.textSecondary,
               ),
               style: const TextStyle(
-                fontWeight: FontWeight.w700,
+                fontWeight: AppFontWeights.bold,
                 fontSize: AppTextSizes.body,
                 color: AppColors.textPrimary,
               ),
@@ -1920,7 +1863,7 @@ class _LiveTimeSelectorChipState extends ConsumerState<_LiveTimeSelectorChip> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: AppFontWeights.bold,
                   fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
                   color: isLive ? const Color(0xFF0F2448) : AppColors.primaryDark,
                   fontFeatures: const [FontFeature.tabularFigures()],
@@ -1951,7 +1894,7 @@ class _LiveTimeSelectorChipState extends ConsumerState<_LiveTimeSelectorChip> {
                       'LIVE',
                       style: TextStyle(
                         fontSize: 9.5,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppFontWeights.bold,
                         color: Color(0xFF16A34A),
                         letterSpacing: 0.5,
                       ),
@@ -1983,7 +1926,7 @@ class _LiveTimeSelectorChipState extends ConsumerState<_LiveTimeSelectorChip> {
                           'RESET',
                           style: TextStyle(
                             fontSize: 9.5,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: AppFontWeights.bold,
                             color: AppColors.primaryDark,
                           ),
                         ),
@@ -1993,6 +1936,363 @@ class _LiveTimeSelectorChipState extends ConsumerState<_LiveTimeSelectorChip> {
                 ),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SiloReadingCard extends StatefulWidget {
+  final dynamic silo;
+  final LabMilkTest? reading;
+  final LabState state;
+  final void Function(dynamic silo, double currentStock) onEditStock;
+
+  const _SiloReadingCard({
+    required this.silo,
+    required this.reading,
+    required this.state,
+    required this.onEditStock,
+  });
+
+  @override
+  State<_SiloReadingCard> createState() => _SiloReadingCardState();
+}
+
+class _SiloReadingCardState extends State<_SiloReadingCard> {
+  bool _isHovered = false;
+
+  String _getSiloFullName(dynamic silo) {
+    final id = (silo.id as String).toUpperCase();
+    final name = (silo.name as String).toUpperCase();
+    if (id.contains('PMST') || name.contains('PMST')) {
+      return 'Pasteurized Milk Storage Tank';
+    } else if (id.contains('RMST') || name.contains('RMST')) {
+      return 'Raw Milk Storage Tank';
+    }
+    final desc = silo.description as String?;
+    return (desc != null && desc.isNotEmpty) ? desc : 'Milk Storage Tank';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final silo = widget.silo;
+    final reading = widget.reading;
+    final hasReading = reading != null;
+    final isPMST = (silo.id as String).toUpperCase().contains('PMST');
+    final siloStock = isPMST ? widget.state.pmstStockLitres : widget.state.rmstStockLitres;
+
+    // Matching Total Metric Summary chip card colors:
+    // PMST: Soft Blue (0xFFEFF6FF)
+    // RMST: Soft Amber (0xFFFFFBEB)
+    final Color cardBg = isPMST ? const Color(0xFFEFF6FF) : const Color(0xFFFFFBEB);
+    final Color themeColor = isPMST ? const Color(0xFF0284C7) : const Color(0xFFD97706);
+    final Color valueColor = isPMST ? const Color(0xFF0284C7) : const Color(0xFFD97706);
+
+    final effectiveBg = _isHovered
+        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.60), cardBg)
+        : cardBg;
+
+    final testDateFormatted = () {
+      if (reading != null && reading.testDate.isNotEmpty) {
+        final parsed = DateTime.tryParse(reading.testDate);
+        if (parsed != null) return Formatters.formatDate(parsed);
+      }
+      return Formatters.formatDate(DateTime.now());
+    }();
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOutCubic,
+        decoration: BoxDecoration(
+          color: effectiveBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: _isHovered
+                ? themeColor.withValues(alpha: 0.55)
+                : Colors.black.withValues(alpha: 0.08),
+            width: _isHovered ? 1.4 : 1.1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: _isHovered
+                  ? themeColor.withValues(alpha: 0.16)
+                  : Colors.black.withValues(alpha: 0.02),
+              blurRadius: _isHovered ? 10 : 4,
+              offset: _isHovered ? const Offset(0, 3) : const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Silo Header: Low-opacity black circular icon + Silo Name + Status Pill
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.storage_rounded,
+                            color: Colors.black.withValues(alpha: 0.60),
+                            size: 19,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                silo.name,
+                                style: const TextStyle(
+                                  fontWeight: AppFontWeights.bold,
+                                  fontSize: AppTextSizes.body,
+                                  color: AppColors.textPrimary,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 1.5),
+                              Text(
+                                _getSiloFullName(silo),
+                                style: const TextStyle(
+                                  fontSize: AppTextSizes.caption,
+                                  fontWeight: AppFontWeights.semiBold,
+                                  color: AppColors.textSecondary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  if (hasReading)
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16A34A).withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: const Color(0xFF16A34A).withValues(alpha: 0.20),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.check_circle_rounded,
+                            color: Color(0xFF16A34A),
+                            size: 11,
+                          ),
+                          SizedBox(width: 3.5),
+                          Text(
+                            'Fresh Reading',
+                            style: TextStyle(
+                              fontSize: AppTextSizes.caption,
+                              fontWeight: AppFontWeights.bold,
+                              color: Color(0xFF15803D),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3.5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.danger.withValues(alpha: 0.20),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.warning_amber_rounded,
+                            color: AppColors.danger,
+                            size: 11,
+                          ),
+                          SizedBox(width: 3.5),
+                          Text(
+                            'No reading today',
+                            style: TextStyle(
+                              fontSize: AppTextSizes.caption,
+                              fontWeight: AppFontWeights.bold,
+                              color: AppColors.danger,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+
+              // Fat, SNF & Current Stock Values (All in same line)
+              Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'FAT',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          hasReading ? '${reading.fatPercentage.toStringAsFixed(2)}%' : '--',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.subheading,
+                            fontWeight: AppFontWeights.bold,
+                            color: hasReading ? valueColor : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(width: 1, height: 26, color: Colors.black.withValues(alpha: 0.07)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'SNF',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          hasReading ? '${reading.snfPercentage.toStringAsFixed(2)}%' : '--',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.subheading,
+                            fontWeight: AppFontWeights.bold,
+                            color: hasReading ? valueColor : AppColors.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(width: 1, height: 26, color: Colors.black.withValues(alpha: 0.07)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 5,
+                    child: InkWell(
+                      onTap: () => widget.onEditStock(silo, siloStock),
+                      borderRadius: BorderRadius.circular(6),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'CURRENT STOCK',
+                              style: TextStyle(
+                                fontSize: AppTextSizes.caption,
+                                fontWeight: AppFontWeights.bold,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  '${Formatters.formatSmart(siloStock)} L',
+                                  style: TextStyle(
+                                    fontSize: AppTextSizes.subheading,
+                                    fontWeight: AppFontWeights.bold,
+                                    color: valueColor,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.edit_rounded,
+                                  size: 13,
+                                  color: valueColor.withValues(alpha: 0.85),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Footer (Last tested date, time & analyst)
+              Container(
+                padding: const EdgeInsets.only(top: 6),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      width: 1,
+                    ),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      hasReading
+                          ? 'Tested: $testDateFormatted, ${reading.testTime}'
+                          : 'No sample',
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: AppFontWeights.semiBold,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      hasReading ? reading.labUserName : 'Pending',
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: AppFontWeights.semiBold,
+                        color: AppColors.textSecondary,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

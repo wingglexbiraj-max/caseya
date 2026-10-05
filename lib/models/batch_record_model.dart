@@ -64,6 +64,7 @@ class BatchRecordModel {
   final String? shift;
   final String? operatorName;
   final String? notes;
+  final String? siloId; // 'RMST' | 'PMST' | ...
   final List<BatchIngredientModel> ingredients;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -79,6 +80,7 @@ class BatchRecordModel {
     this.shift,
     this.operatorName,
     this.notes,
+    this.siloId,
     required this.ingredients,
     required this.createdAt,
     required this.updatedAt,
@@ -95,6 +97,7 @@ class BatchRecordModel {
         'shift': shift,
         'operator_name': operatorName,
         'notes': notes,
+        'silo_id': siloId,
         'ingredients': ingredients.map((e) => e.toJson()).toList(),
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
@@ -119,6 +122,7 @@ class BatchRecordModel {
       shift: shift,
       operatorName: json['operator_name']?.toString(),
       notes: json['notes']?.toString(),
+      siloId: json['silo_id']?.toString(),
       ingredients: (json['ingredients'] as List<dynamic>?)
               ?.map((e) =>
                   BatchIngredientModel.fromJson(e as Map<String, dynamic>))
@@ -141,6 +145,7 @@ class BatchRecordModel {
     String? shift,
     String? operatorName,
     String? notes,
+    String? siloId,
     List<BatchIngredientModel>? ingredients,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -156,6 +161,7 @@ class BatchRecordModel {
         shift: shift ?? this.shift,
         operatorName: operatorName ?? this.operatorName,
         notes: notes ?? this.notes,
+        siloId: siloId ?? this.siloId,
         ingredients: ingredients ?? this.ingredients,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,

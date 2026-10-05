@@ -77,7 +77,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             title: Text(
               product == null ? 'Add Product Master' : 'Edit ${product.productName}',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.subheading),
+              style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.subheading),
             ),
             content: SizedBox(
               width: 500,
@@ -168,7 +168,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                       const SizedBox(height: 16),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: const Text('Allowed Input Modes:', style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600)),
+                        child: const Text('Allowed Input Modes:', style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.semiBold)),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -290,7 +290,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                                 children: [
                                   Text(
                                     p.productName,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
+                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                                   ),
                                   const SizedBox(width: 8),
                                   StatusBadge.neutral(p.category, fontSize: AppTextSizes.caption),
@@ -307,7 +307,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                                         'Code: ${p.productCode}',
                                         style: const TextStyle(
                                           fontSize: AppTextSizes.caption,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: AppFontWeights.bold,
                                           color: AppColors.primaryDark,
                                         ),
                                       ),
@@ -323,7 +323,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                               const SizedBox(height: 2),
                               Text(
                                 'Base Unit: ${p.baseUnitLabel}${p.targetFat != null ? '  •  Target FAT: ${Formatters.formatPercent(p.targetFat!)}' : ''}${p.targetSnf != null ? '  •  Target SNF: ${Formatters.formatPercent(p.targetSnf!)}' : ''}  •  Allowed: ${p.allowedInputModes.join(', ')}',
-                                style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.primary, fontWeight: AppFontWeights.semiBold),
                               ),
                             ],
                           ),

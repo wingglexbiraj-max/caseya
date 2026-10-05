@@ -59,7 +59,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                             : 'Select ${widget.label.trim()}',
                         style: const TextStyle(
                           fontSize: AppTextSizes.subheading,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: AppFontWeights.bold,
                           color: AppColors.textPrimary,
                         ),
                       ),
@@ -112,7 +112,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                             title: Text(
                               widget.itemLabel(item),
                               style: TextStyle(
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontWeight: isSelected ? AppFontWeights.bold : AppFontWeights.medium,
                                 color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
                               ),
                             ),
@@ -154,7 +154,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               widget.label,
               style: const TextStyle(
                 fontSize: AppTextSizes.body,
-                fontWeight: FontWeight.w600,
+                fontWeight: AppFontWeights.semiBold,
                 color: AppColors.textPrimary,
                 letterSpacing: 0.2,
               ),
@@ -162,7 +162,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             if (widget.isRequired)
               const Text(
                 ' *',
-                style: TextStyle(color: AppColors.danger, fontWeight: FontWeight.bold),
+                style: TextStyle(color: AppColors.danger, fontWeight: AppFontWeights.bold),
               ),
           ],
         ),
@@ -194,7 +194,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                           widget.itemLabel(widget.selectedItem as T),
                           style: const TextStyle(
                             color: AppColors.textPrimary,
-                            fontWeight: FontWeight.w600,
+                            fontWeight: AppFontWeights.semiBold,
                             fontSize: AppTextSizes.body,
                           ),
                           overflow: TextOverflow.ellipsis,

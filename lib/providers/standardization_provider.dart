@@ -33,6 +33,7 @@ class StandardizationState {
   final bool isReverseMode; // Standard formulation vs Reverse calculation
   final double desiredFinalFat; // Reverse calculation target fat
   final double desiredTargetSnf; // Reverse calculation target SNF
+  final String selectedSiloId; // 'RMST' | 'PMST' (Source silo for standardization)
   final LabRecord? fetchedLabRecord;
   final bool hasFetchedLabData;
   final String? labDataFetchStatus;
@@ -63,6 +64,7 @@ class StandardizationState {
     this.isReverseMode = false,
     this.desiredFinalFat = 3.5,
     this.desiredTargetSnf = 8.5,
+    this.selectedSiloId = 'RMST',
     this.fetchedLabRecord,
     this.hasFetchedLabData = false,
     this.labDataFetchStatus,
@@ -92,6 +94,7 @@ class StandardizationState {
     bool? isReverseMode,
     double? desiredFinalFat,
     double? desiredTargetSnf,
+    String? selectedSiloId,
     LabRecord? fetchedLabRecord,
     bool? hasFetchedLabData,
     String? labDataFetchStatus,
@@ -122,6 +125,7 @@ class StandardizationState {
       isReverseMode: isReverseMode ?? this.isReverseMode,
       desiredFinalFat: desiredFinalFat ?? this.desiredFinalFat,
       desiredTargetSnf: desiredTargetSnf ?? this.desiredTargetSnf,
+      selectedSiloId: selectedSiloId ?? this.selectedSiloId,
       fetchedLabRecord: fetchedLabRecord ?? this.fetchedLabRecord,
       hasFetchedLabData: hasFetchedLabData ?? this.hasFetchedLabData,
       labDataFetchStatus: labDataFetchStatus ?? this.labDataFetchStatus,
@@ -317,13 +321,21 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     });
   }
 
+  void setSiloId(String siloId) {
+    state = state.copyWith(selectedSiloId: siloId);
+  }
+
   void applyLabReading({
     required String siloName,
     required String testTime,
     required double fat,
     required double snf,
+    String? siloId,
   }) {
+    final resolvedSiloId = siloId ??
+        (siloName.toUpperCase().contains('PMST') ? 'PMST' : 'RMST');
     state = state.copyWith(
+      selectedSiloId: resolvedSiloId,
       milkFat: fat,
       milkSnf: snf,
       hasFetchedLabData: true,
@@ -439,6 +451,7 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     required String employeeId,
     required String employeeName,
     String notes = '',
+    String? testedBy,
   }) async {
     // 1. Ensure target product is assigned
     if (state.selectedTargetProduct == null) {
@@ -494,7 +507,9 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
       finalSnf: res.finalSnf,
       smpFactor: res.smpFactor,
       calculationFormulaVersion: res.formulaVersion,
+      siloId: state.selectedSiloId,
       notes: notes,
+      testedBy: (testedBy != null && testedBy.trim().isNotEmpty) ? testedBy.trim() : employeeName,
       createdAt: now,
     );
 
@@ -506,7 +521,7 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
       BatchIngredientModel(
         id: const Uuid().v4(),
         batchId: batchId,
-        ingredientName: 'Raw Milk (${Formatters.formatPercent(res.presentFat)} F, ${Formatters.formatPercent(res.presentSnf)} SNF)',
+        ingredientName: '${state.selectedSiloId} Milk (${Formatters.formatPercent(res.presentFat)} F, ${Formatters.formatPercent(res.presentSnf)} SNF)',
         quantity: res.milkTaken,
         unit: 'L',
       ),
@@ -546,9 +561,10 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
       batchUnit: 'L',
       shift: 'General',
       operatorName: employeeName,
+      siloId: state.selectedSiloId,
       notes: notes.isNotEmpty
-          ? notes
-          : 'Standardized Batch: Raw Milk ${Formatters.formatPercent(res.presentFat)} F, ${Formatters.formatPercent(res.presentSnf)} SNF → Target Batch: ${Formatters.formatSmart(res.totalBatch)} L (Final Fat ${Formatters.formatPercent(res.finalFat)}, Final SNF ${Formatters.formatPercent(res.finalSnf)}). SMP: ${Formatters.formatDecimal(res.smpRequired)} kg, Water: ${Formatters.formatDecimal(res.waterRequired)} L.',
+          ? '$notes [Silo: ${state.selectedSiloId}]'
+          : 'Standardized Batch: ${state.selectedSiloId} Milk ${Formatters.formatPercent(res.presentFat)} F, ${Formatters.formatPercent(res.presentSnf)} SNF → Target Batch: ${Formatters.formatSmart(res.totalBatch)} L (Final Fat ${Formatters.formatPercent(res.finalFat)}, Final SNF ${Formatters.formatPercent(res.finalSnf)}). SMP: ${Formatters.formatDecimal(res.smpRequired)} kg, Water: ${Formatters.formatDecimal(res.waterRequired)} L. [Silo: ${state.selectedSiloId}]',
       ingredients: batchIngredients,
       createdAt: now,
       updatedAt: now,

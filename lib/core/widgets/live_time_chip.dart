@@ -103,7 +103,7 @@ class _LiveTimeChipState extends State<LiveTimeChip> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  fontWeight: FontWeight.w800,
+                  fontWeight: AppFontWeights.bold,
                   fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
                   color: isLive ? const Color(0xFF0F2448) : AppColors.primaryDark,
                   fontFeatures: const [FontFeature.tabularFigures()],
@@ -134,7 +134,7 @@ class _LiveTimeChipState extends State<LiveTimeChip> {
                       'LIVE',
                       style: TextStyle(
                         fontSize: 9.5,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppFontWeights.bold,
                         color: Color(0xFF16A34A),
                         letterSpacing: 0.5,
                       ),
@@ -164,7 +164,7 @@ class _LiveTimeChipState extends State<LiveTimeChip> {
                         'RESET',
                         style: TextStyle(
                           fontSize: 9.5,
-                          fontWeight: FontWeight.w900,
+                          fontWeight: AppFontWeights.bold,
                           color: AppColors.primary,
                           letterSpacing: 0.5,
                         ),

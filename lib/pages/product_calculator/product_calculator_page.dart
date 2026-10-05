@@ -7,7 +7,7 @@ import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/searchable_dropdown.dart';
-import '../../core/widgets/result_card.dart';
+import '../../core/widgets/metric_card.dart';
 import '../../core/widgets/calculation_breakdown.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../providers/product_calculator_provider.dart';
@@ -24,38 +24,29 @@ class ProductCalculatorPage extends ConsumerStatefulWidget {
 
 class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   final TextEditingController _quantityController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _historyExpanded = false;
   bool _metadataExpanded = false;
   DateTime? _filterDate = DateTime.now();
   String? _filterProductId;
-  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _quantityController.addListener(_onQuantityChanged);
+  }
+
+  void _onQuantityChanged() {
+    final text = _quantityController.text.trim();
+    final qty = Formatters.parseDouble(text);
+    ref.read(productCalculatorProvider.notifier).setQuantity(qty);
+  }
 
   @override
   void dispose() {
+    _quantityController.removeListener(_onQuantityChanged);
     _quantityController.dispose();
-    _searchController.dispose();
     super.dispose();
-  }
-
-  void _onCalculate() {
-    final state = ref.read(productCalculatorProvider);
-    if (state.selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a product first.'),
-          backgroundColor: AppColors.warning,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-    if (_formKey.currentState?.validate() ?? false) {
-      final qty = Formatters.parseDouble(_quantityController.text);
-      ref.read(productCalculatorProvider.notifier).setQuantity(qty);
-      ref.read(productCalculatorProvider.notifier).calculate();
-    }
   }
 
   Future<void> _onSave() async {
@@ -129,7 +120,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: AppColors.danger, fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                          style: const TextStyle(color: AppColors.danger, fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold),
                         ),
                       ),
                     ],
@@ -143,35 +134,40 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(7),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.calculate_rounded,
-                          size: 20,
-                          color: AppColors.primary,
-                        ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.calculate_rounded,
+                              size: 20,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'INPUT SPECIFICATIONS',
+                            style: TextStyle(
+                              fontSize: AppTextSizes.subheading,
+                              fontWeight: AppFontWeights.bold,
+                              letterSpacing: 0.2,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 10),
-                      const Text(
-                        'INPUT SPECIFICATIONS',
-                        style: TextStyle(
-                          fontSize: AppTextSizes.subheading,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: 0.6,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
+                      if (state.selectedProduct != null)
+                        StatusBadge.info(state.selectedProduct!.productName),
                     ],
                   ),
                   const SizedBox(height: 12),
                   AppCard(
-                    topBorderColor: AppColors.primary,
-                    topBorderHeight: 4,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -208,7 +204,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                     'Input Mode',
                                     style: TextStyle(
                                       fontSize: AppTextSizes.body,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: AppFontWeights.bold,
                                       color: AppColors.textPrimary,
                                     ),
                                   ),
@@ -218,7 +214,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                     style: const TextStyle(
                                       fontSize: AppTextSizes.caption,
                                       color: AppColors.textMuted,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: AppFontWeights.medium,
                                     ),
                                   ),
                                 ],
@@ -250,7 +246,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                     ),
                                     labelStyle: TextStyle(
                                       fontSize: AppTextSizes.body,
-                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                                      fontWeight: isSelected ? AppFontWeights.bold : AppFontWeights.medium,
                                       color: isSelected ? Colors.white : AppColors.textSecondary,
                                     ),
                                     onSelected: (selected) {
@@ -266,13 +262,17 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                           const SizedBox(height: 16),
                         ],
 
-                        // Quantity Input
+                        // Quantity Input (Auto-calculates immediately upon typing)
                         AppTextField(
                           label: 'Enter Quantity',
                           hint: 'e.g. 150',
                           controller: _quantityController,
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           suffixText: state.selectedProduct != null ? state.selectedInputMode : 'Qty',
+                          onChanged: (val) {
+                            final qty = Formatters.parseDouble(val);
+                            ref.read(productCalculatorProvider.notifier).setQuantity(qty);
+                          },
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) {
                               return 'Please enter a quantity';
@@ -282,77 +282,196 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                             return null;
                           },
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 20),
 
-                        // Calculate Button
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
+                        // Result Chip Cards (styled like Today's Metric Summary)
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.analytics_outlined,
+                                size: 16,
+                                color: Colors.black.withValues(alpha: 0.60),
+                              ),
                             ),
-                            icon: const Icon(Icons.calculate_rounded, size: 20),
-                            label: const Text('Calculate'),
-                            onPressed: _onCalculate,
-                          ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'CALCULATION METRICS',
+                              style: TextStyle(
+                                fontSize: AppTextSizes.caption,
+                                fontWeight: AppFontWeights.bold,
+                                letterSpacing: 0.6,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            if (state.result != null) ...[
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '• ${state.result!.productNameWithQuantity}',
+                                  style: const TextStyle(
+                                    fontSize: AppTextSizes.caption,
+                                    fontWeight: AppFontWeights.medium,
+                                    color: AppColors.textMuted,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
+                        const SizedBox(height: 12),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final cardPieces = MetricCard(
+                              title: 'Total Pieces Required',
+                              value: state.result != null ? Formatters.formatInt(state.result!.pieces) : '—',
+                              unit: 'Pieces',
+                              subtitle: state.selectedProduct != null ? 'Pack size: ${state.selectedProduct!.packSizeDisplay}' : 'Packaging count',
+                              icon: Icons.widgets_outlined,
+                              iconColor: Colors.black.withValues(alpha: 0.60),
+                              iconBgColor: Colors.black.withValues(alpha: 0.06),
+                              cardBgColor: const Color(0xFFEFF6FF),
+                            );
+
+                            final cardPacking = MetricCard(
+                              title: 'Packing Needed',
+                              value: state.result != null ? Formatters.formatSmart(state.result!.crates) : '—',
+                              unit: 'Crates',
+                              subtitle: state.result?.packingBreakdown ?? (state.selectedProduct != null ? '${state.selectedProduct!.piecesPerCrate} pcs / crate' : 'Crates required'),
+                              icon: Icons.all_inbox_rounded,
+                              iconColor: Colors.black.withValues(alpha: 0.60),
+                              iconBgColor: Colors.black.withValues(alpha: 0.06),
+                              cardBgColor: const Color(0xFFFFFBEB),
+                            );
+
+                            final cardQuantity = MetricCard(
+                              title: 'Total Quantity',
+                              value: state.result != null ? Formatters.formatSmart(state.result!.totalQuantity) : '—',
+                              unit: state.selectedProduct?.baseUnitLabel ?? 'kg',
+                              subtitle: state.result?.totalQuantityDisplay ?? (state.selectedProduct != null ? 'Unit: ${state.selectedProduct!.baseUnitLabel}' : 'Total volume / weight'),
+                              icon: Icons.water_drop_rounded,
+                              iconColor: Colors.black.withValues(alpha: 0.60),
+                              iconBgColor: Colors.black.withValues(alpha: 0.06),
+                              cardBgColor: const Color(0xFFECFDF5),
+                            );
+
+                            final cardPrice = MetricCard(
+                              title: 'Total Price',
+                              value: state.result != null ? state.result!.totalPriceDisplay : '—',
+                              unit: 'INR',
+                              subtitle: state.result != null ? '@ ₹${Formatters.formatSmart(state.result!.pricePerPiece)} / piece' : (state.selectedProduct != null ? 'MRP ${state.selectedProduct!.priceDisplay}' : 'Gross valuation'),
+                              icon: Icons.currency_rupee_rounded,
+                              iconColor: Colors.black.withValues(alpha: 0.60),
+                              iconBgColor: Colors.black.withValues(alpha: 0.06),
+                              cardBgColor: const Color(0xFFF5F3FF),
+                            );
+
+                            if (constraints.maxWidth >= 550) {
+                              return IntrinsicHeight(
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(child: cardPieces),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: cardPacking),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: cardQuantity),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: cardPrice),
+                                  ],
+                                ),
+                              );
+                            } else {
+                              final itemWidth = (constraints.maxWidth - 12) / 2;
+                              return Wrap(
+                                spacing: 12,
+                                runSpacing: 12,
+                                children: [
+                                  SizedBox(width: itemWidth, child: cardPieces),
+                                  SizedBox(width: itemWidth, child: cardPacking),
+                                  SizedBox(width: itemWidth, child: cardQuantity),
+                                  SizedBox(width: itemWidth, child: cardPrice),
+                                ],
+                              );
+                            }
+                          },
+                        ),
+                        if (state.result != null) ...[
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                flex: 3,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF10B981),
+                                    foregroundColor: Colors.white,
+                                    elevation: 0,
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(9),
+                                    ),
+                                  ),
+                                  icon: const Icon(Icons.check_rounded, size: 20),
+                                  label: const Text(
+                                    'Record Calculation',
+                                    style: TextStyle(
+                                      fontSize: AppTextSizes.body,
+                                      fontWeight: AppFontWeights.bold,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  onPressed: _onSave,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                flex: 1,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFEF2F2),
+                                    foregroundColor: const Color(0xFFDC2626),
+                                    side: const BorderSide(
+                                      color: Color(0xFFFCA5A5),
+                                      width: 1.2,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(9),
+                                    ),
+                                  ),
+                                  onPressed: () {
+                                    _quantityController.clear();
+                                    ref.read(productCalculatorProvider.notifier).resetForm();
+                                    setState(() => _metadataExpanded = false);
+                                  },
+                                  child: const Text(
+                                    'Reset',
+                                    style: TextStyle(
+                                      fontSize: AppTextSizes.body,
+                                      fontWeight: AppFontWeights.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ),
                 ],
               ),
 
-              // Results Section
+              // Calculation Breakdown & Formula Details (OUTSIDE the main card)
               if (state.result != null) ...[
-                const SizedBox(height: 24),
-
-                // Primary Results Card
-                ResultCard(
-                  title: 'CALCULATION RESULT',
-                  subtitle: state.result!.productNameWithQuantity,
-                  trailingAction: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    ),
-                    icon: const Icon(Icons.save_outlined, size: 16),
-                    label: const Text('Save Record', style: TextStyle(fontSize: AppTextSizes.caption)),
-                    onPressed: _onSave,
-                  ),
-                  items: [
-                    ResultItem(
-                      label: 'Total Pieces Required',
-                      value: Formatters.formatInt(state.result!.pieces),
-                      unit: 'Pieces',
-                      subtitle: 'Pack size: ${state.selectedProduct?.packSizeDisplay}',
-                      highlightColor: AppColors.primary,
-                    ),
-                    ResultItem(
-                      label: 'Packing Needed',
-                      value: Formatters.formatSmart(state.result!.crates),
-                      unit: 'Crates',
-                      subtitle: state.result!.packingBreakdown,
-                      highlightColor: AppColors.primaryDark,
-                    ),
-                    ResultItem(
-                      label: 'Total Quantity',
-                      value: Formatters.formatSmart(state.result!.totalQuantity),
-                      unit: state.selectedProduct?.baseUnitLabel ?? 'kg',
-                      subtitle: state.result!.totalQuantityDisplay,
-                      highlightColor: AppColors.accentCyanDeep,
-                    ),
-                    ResultItem(
-                      label: 'Total Price',
-                      value: state.result!.totalPriceDisplay,
-                      unit: 'INR',
-                      subtitle: '@ ₹${Formatters.formatSmart(state.result!.pricePerPiece)} / piece',
-                      highlightColor: AppColors.goldAccent,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-
-                // Collapsible Calculation Breakdown Card (Collapsed by default)
+                const SizedBox(height: 20),
                 CalculationBreakdownCard(
                   title: 'Calculation Breakdown & Formula Details',
                   steps: state.result!.breakdownSteps,
@@ -371,14 +490,54 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   }
 
   Widget _buildCollapsibleSpecifications(ProductModel? product) {
+    final isLassi = product != null &&
+        (product.category == 'Fermented' ||
+            product.shortCode.toLowerCase().contains('lassi') ||
+            product.productName.toLowerCase().contains('lassi'));
+    final isMilk = product != null &&
+        !isLassi &&
+        (product.category == 'Milk' ||
+            product.shortCode.contains('STD') ||
+            product.shortCode.contains('SM+') ||
+            product.shortCode.contains('TM') ||
+            product.shortCode.contains('DTM') ||
+            product.shortCode.contains('FC') ||
+            product.shortCode.contains('FCM'));
+
+    final Color chipBg;
+    final Color chipBorder;
+    final Color accentColor;
+
+    if (product == null) {
+      chipBg = const Color(0xFFFFFBEB); // Soft Amber (matching dashboard metric summary)
+      chipBorder = const Color(0xFFFDE68A);
+      accentColor = const Color(0xFFD97706);
+    } else if (isMilk) {
+      chipBg = const Color(0xFFEFF6FF); // Soft Blue
+      chipBorder = const Color(0xFFBFDBFE);
+      accentColor = const Color(0xFF0284C7);
+    } else if (isLassi) {
+      chipBg = const Color(0xFFF5F3FF); // Soft Purple
+      chipBorder = const Color(0xFFDDD6FE);
+      accentColor = const Color(0xFF7C3AED);
+    } else if (product.shortCode.startsWith('S')) {
+      chipBg = const Color(0xFFFFFBEB); // Soft Amber
+      chipBorder = const Color(0xFFFDE68A);
+      accentColor = const Color(0xFFD97706);
+    } else {
+      chipBg = const Color(0xFFECFDF5); // Soft Emerald
+      chipBorder = const Color(0xFFA7F3D0);
+      accentColor = const Color(0xFF059669);
+    }
+
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FBFA),
+        color: chipBg,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: _metadataExpanded
-              ? AppColors.goldAccent.withValues(alpha: 0.6)
-              : AppColors.cardBorder,
+              ? accentColor.withValues(alpha: 0.6)
+              : chipBorder,
           width: 1.1,
         ),
       ),
@@ -393,15 +552,15 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: AppColors.goldAccent.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.black.withValues(alpha: 0.06),
+                      shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.inventory_2_rounded,
                       size: 16,
-                      color: AppColors.goldAccent,
+                      color: Colors.black.withValues(alpha: 0.60),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -409,32 +568,11 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                     'PRODUCT SPECIFICATIONS',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: AppFontWeights.bold,
                       letterSpacing: 0.6,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  if (product != null) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(
-                          color: AppColors.primary.withValues(alpha: 0.2),
-                        ),
-                      ),
-                      child: Text(
-                        product.category,
-                        style: const TextStyle(
-                          fontSize: AppTextSizes.caption,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
                   const Spacer(),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -453,7 +591,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                           _metadataExpanded ? 'Collapse' : 'Expand',
                           style: const TextStyle(
                             fontSize: AppTextSizes.caption,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             color: AppColors.primary,
                           ),
                         ),
@@ -475,41 +613,75 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
           if (_metadataExpanded) ...[
             const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
             if (product != null)
-              Container(
-                margin: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.cardBorder, width: 1.1),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    _buildTabulatedRow('Item Code', product.itemCode, isEven: false),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Product Code', product.productCode, isEven: true, valueColor: AppColors.primary),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Pieces per Crate', '${product.piecesPerCrate} pcs / crate', isEven: false),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Per Crate Quantity', product.calculatedPerCrateDisplay, isEven: true),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Price per Piece', product.priceDisplay, isEven: false, valueColor: AppColors.goldAccent),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Pack Size', product.packSizeDisplay, isEven: true),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Shelf Life', product.shelfLife, isEven: false),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Base Unit', product.baseUnitLabel, isEven: true),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow(
-                      'Target FAT / SNF',
-                      'FAT: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'}   •   SNF: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
-                      isEven: false,
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 650;
+                  return Container(
+                    margin: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: chipBorder, width: 1.1),
                     ),
-                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                    _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: true),
-                  ],
-                ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        // Row 1: Pieces / Crate & Item Code (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Pieces / Crate',
+                          value1: '${product.piecesPerCrate} pcs',
+                          label2: 'Item Code',
+                          value2: product.itemCode,
+                          isEven: false,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 2: Crate Quantity & Product Code (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Crate Quantity',
+                          value1: product.calculatedPerCrateDisplay,
+                          label2: 'Product Code',
+                          value2: product.productCode,
+                          valueColor2: AppColors.primary,
+                          isEven: true,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 3: Price per Piece & Pack Size (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Price / Piece',
+                          value1: product.priceDisplay,
+                          valueColor1: AppColors.goldAccent,
+                          label2: 'Pack Size',
+                          value2: product.packSizeDisplay,
+                          isEven: false,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 4: Target FAT/SNF & Base Unit (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Target FAT/SNF',
+                          value1:
+                              'F: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'} • S: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
+                          label2: 'Base Unit',
+                          value2: product.baseUnitLabel,
+                          isEven: true,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 5: Allowed Modes & Shelf Life (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Allowed Modes',
+                          value1: product.allowedInputModes.join(' • '),
+                          label2: 'Shelf Life',
+                          value2: product.shelfLife,
+                          isEven: false,
+                          isCompact: isCompact,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               )
             else
               const Padding(
@@ -523,7 +695,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       style: TextStyle(
                         fontSize: AppTextSizes.caption,
                         color: AppColors.textSecondary,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: AppFontWeights.medium,
                       ),
                     ),
                   ],
@@ -535,54 +707,104 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
     );
   }
 
-  Widget _buildTabulatedRow(
-    String label,
-    String value, {
+  Widget _buildTwoColumnRow({
+    required String label1,
+    required String value1,
+    Color? valueColor1,
+    required String label2,
+    required String value2,
+    Color? valueColor2,
     required bool isEven,
-    Color? valueColor,
+    required bool isCompact,
   }) {
+    final labelWidth = isCompact ? 100.0 : 135.0;
+
     return Container(
       color: isEven ? const Color(0xFFFBFDFD) : Colors.white,
       child: IntrinsicHeight(
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Left Cell: Spec / Parameter Label with subtle distinct background
-            Container(
-              width: 145,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
-              color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
-              alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: AppTextSizes.caption,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF475569),
-                  letterSpacing: -0.2,
-                ),
-              ),
-            ),
-            // Vertical Divider
-            Container(
-              width: 1,
-              color: AppColors.cardBorder,
-            ),
-            // Right Cell: Technical Value
+            // Left Column
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9.5),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    value,
-                    style: TextStyle(
-                      fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w700,
-                      color: valueColor ?? AppColors.textPrimary,
+              child: Row(
+                children: [
+                  Container(
+                    width: labelWidth,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                    color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label1,
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: AppFontWeights.semiBold,
+                        color: Color(0xFF475569),
+                        letterSpacing: -0.2,
+                      ),
                     ),
                   ),
-                ),
+                  Container(width: 1, color: AppColors.cardBorder),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value1,
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: valueColor1 ?? AppColors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Vertical Divider between columns
+            Container(width: 1, color: AppColors.cardBorder),
+            // Right Column
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: labelWidth,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                    color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label2,
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: AppFontWeights.semiBold,
+                        color: Color(0xFF475569),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, color: AppColors.cardBorder),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value2,
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: valueColor2 ?? AppColors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -611,16 +833,6 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
           return false;
         }
       }
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        final matches = item.productName.toLowerCase().contains(q) ||
-            item.productNameWithQuantity.toLowerCase().contains(q) ||
-            item.employeeName.toLowerCase().contains(q) ||
-            item.packingNeeded.toLowerCase().contains(q) ||
-            item.inputMode.toLowerCase().contains(q) ||
-            item.totalPriceDisplay.toLowerCase().contains(q);
-        if (!matches) return false;
-      }
       return true;
     }).toList();
 
@@ -641,21 +853,21 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                     Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black.withValues(alpha: 0.06),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.history_rounded,
                         size: 20,
-                        color: AppColors.primary,
+                        color: Colors.black.withValues(alpha: 0.60),
                       ),
                     ),
                     const SizedBox(width: 10),
                     const Text(
-                      'RECENT PRODUCT CALCULATIONS',
+                      'PRODUCT CALCULATION HISTORY',
                       style: TextStyle(
                         fontSize: AppTextSizes.subheading,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppFontWeights.bold,
                         letterSpacing: 0.6,
                         color: AppColors.textPrimary,
                       ),
@@ -686,7 +898,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                             _historyExpanded ? 'Collapse' : 'Expand',
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: AppFontWeights.bold,
                               color: AppColors.primary,
                             ),
                           ),
@@ -733,84 +945,15 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Filter Controls (Search, Product Chip Card, Date Chip Card)
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isWide = constraints.maxWidth >= 750;
-
-                            if (isWide) {
-                              return Row(
-                                children: [
-                                  Expanded(
-                                    flex: 6,
-                                    child: TextField(
-                                      controller: _searchController,
-                                      decoration: const InputDecoration(
-                                        hintText:
-                                            'Search product, employee, crates, packaging...',
-                                        prefixIcon: Icon(
-                                          Icons.search_rounded,
-                                          size: 19,
-                                        ),
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 12,
-                                        ),
-                                      ),
-                                      onChanged: (val) {
-                                        setState(() {
-                                          _searchQuery = val;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  _buildProductFilterChip(products),
-                                  const SizedBox(width: 12),
-                                  _buildDateFilterChip(),
-                                ],
-                              );
-                            } else {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  TextField(
-                                    controller: _searchController,
-                                    decoration: const InputDecoration(
-                                      hintText:
-                                          'Search product, employee, crates, packaging...',
-                                      prefixIcon: Icon(
-                                        Icons.search_rounded,
-                                        size: 19,
-                                      ),
-                                      isDense: true,
-                                      contentPadding: EdgeInsets.symmetric(
-                                        horizontal: 14,
-                                        vertical: 12,
-                                      ),
-                                    ),
-                                    onChanged: (val) {
-                                      setState(() {
-                                        _searchQuery = val;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
-                                    crossAxisAlignment:
-                                        WrapCrossAlignment.center,
-                                    children: [
-                                      _buildProductFilterChip(products),
-                                      _buildDateFilterChip(),
-                                    ],
-                                  ),
-                                ],
-                              );
-                            }
-                          },
+                        // Filter Controls (Product, Date)
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _buildProductFilterChip(products),
+                            _buildDateFilterChip(),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
@@ -826,20 +969,20 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                 color: AppColors.alert.withValues(alpha: 0.25),
                               ),
                             ),
-                            child: Row(
+                            child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.inbox_outlined,
                                   size: 20,
                                   color: AppColors.alert,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
                                 Text(
-                                  'No product calculations found for ${_filterDate != null ? Formatters.formatDate(_filterDate!) : 'selected filter'}.',
-                                  style: const TextStyle(
+                                  'No product calculations matching current filter.',
+                                  style: TextStyle(
                                     color: AppColors.alert,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: AppFontWeights.bold,
                                   ),
                                 ),
                               ],
@@ -854,84 +997,91 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                 const Divider(height: 1),
                             itemBuilder: (context, index) {
                               final item = filteredHistory[index];
-                              final titleText = item.productNameWithQuantity
-                                      .isNotEmpty
-                                  ? item.productNameWithQuantity
-                                  : '${item.productName} — ${Formatters.formatSmart(item.inputQuantity)} ${item.inputMode}';
-
                               return Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 8,
-                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.center,
                                   children: [
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: AppColors.primary
-                                            .withValues(alpha: 0.08),
-                                        borderRadius:
-                                            BorderRadius.circular(8),
+                                        color: AppColors.primaryContainer,
+                                        borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: const Icon(
-                                        Icons.inventory_2_outlined,
-                                        size: 20,
+                                        Icons.inventory_2_rounded,
                                         color: AppColors.primary,
+                                        size: 20,
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
+                                    const SizedBox(width: 14),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
+                                          Row(
+                                            children: [
+                                              Text(
+                                                item.date,
+                                                style: const TextStyle(
+                                                  fontWeight: AppFontWeights.bold,
+                                                  fontSize: AppTextSizes.body,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                item.time,
+                                                style: const TextStyle(
+                                                  fontWeight: AppFontWeights.semiBold,
+                                                  fontSize: AppTextSizes.caption,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 10),
+                                              StatusBadge.neutral(
+                                                item.productName,
+                                                fontSize: AppTextSizes.caption,
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 4),
                                           Text(
-                                            titleText,
+                                            'Calculated by: ${item.employeeName.isNotEmpty ? item.employeeName : 'Staff'}',
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
-                                              fontSize: AppTextSizes.body,
-                                              color: AppColors.textPrimary,
+                                              fontSize: AppTextSizes.caption,
+                                              color: AppColors.textSecondary,
                                             ),
                                           ),
                                           const SizedBox(height: 3),
                                           Text(
-                                            '${item.date} • ${item.time} • ${item.employeeName}\n'
-                                            'Packing: ${item.packingNeeded.isNotEmpty ? item.packingNeeded : '${Formatters.formatSmart(item.crates)} Crates'} | '
-                                            'Quantity: ${item.totalQuantityDisplay.isNotEmpty ? item.totalQuantityDisplay : '${Formatters.formatSmart(item.volumeLitres)} L'}',
+                                            'Packing: ${item.packingNeeded.isNotEmpty ? item.packingNeeded : '${Formatters.formatSmart(item.crates)} Crates'} • '
+                                            'Volume: ${item.totalQuantityDisplay.isNotEmpty ? item.totalQuantityDisplay : '${Formatters.formatSmart(item.volumeLitres)} L'}',
                                             style: const TextStyle(
                                               fontSize: AppTextSizes.caption,
                                               color: AppColors.textSecondary,
-                                              height: 1.35,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                    const SizedBox(width: 12),
                                     Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
+                                      crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Text(
                                           '${Formatters.formatInt(item.pieces)} pcs',
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
                                             fontSize: AppTextSizes.body,
+                                            fontWeight: AppFontWeights.bold,
                                             color: AppColors.primaryDark,
                                           ),
                                         ),
-                                        if (item.totalPriceDisplay
-                                            .isNotEmpty) ...[
+                                        if (item.totalPriceDisplay.isNotEmpty) ...[
                                           const SizedBox(height: 2),
                                           Text(
                                             item.totalPriceDisplay,
                                             style: const TextStyle(
                                               fontSize: AppTextSizes.body,
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: AppFontWeights.bold,
                                               color: AppColors.goldAccent,
                                             ),
                                           ),
@@ -1015,7 +1165,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                           : Formatters.formatDate(_filterDate!))
                       : 'Select Date',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: AppFontWeights.bold,
                     fontSize: AppTextSizes.body,
                     color: AppColors.textPrimary,
                   ),
@@ -1059,7 +1209,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                     'Today',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                       color: AppColors.primary,
                     ),
                   ),
@@ -1109,7 +1259,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 color: AppColors.textSecondary,
               ),
               style: const TextStyle(
-                fontWeight: FontWeight.w700,
+                fontWeight: AppFontWeights.bold,
                 fontSize: AppTextSizes.body,
                 color: AppColors.textPrimary,
               ),

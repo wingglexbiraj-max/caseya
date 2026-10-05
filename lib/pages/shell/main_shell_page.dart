@@ -39,7 +39,7 @@ class _MainShellPageState extends State<MainShellPage> {
     'Production Register',
     'Daily Batch Making Records',
     'Dispatch Records',
-    'Cold Room Stock',
+    'Inventory Stocks',
     'Reports & Export',
     'Products & Standards Master',
     'Settings & Permissions',
@@ -55,7 +55,7 @@ class _MainShellPageState extends State<MainShellPage> {
     'Daily pasteurization and packaging floor output batches',
     'Record, track, and aggregate recipe formulations and raw material consumption date-wise',
     'Finished goods transport distribution with dynamic multi-product consolidation',
-    'Finished inventory levels, cold room crate holdings, and balance stock',
+    'Finished goods inventory, raw materials, packaging supplies, and cold room holdings',
     'Operational reports, shift filters, and clean CSV/Excel spreadsheet exports',
     'Plant product catalog, pack sizes, crate capacities, target fat & SNF standards',
     'Configure plant operational formulas, user permissions, and API backend connections',
@@ -94,7 +94,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 padding: EdgeInsets.all(12),
                 child: Text(
                   'More Plant Modules',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
+                  style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                 ),
               ),
               const Divider(height: 1),
@@ -132,7 +132,7 @@ class _MainShellPageState extends State<MainShellPage> {
               ),
               ListTile(
                 leading: const Icon(Icons.warehouse_outlined, color: AppColors.primary),
-                title: const Text('Stock & Inventory'),
+                title: const Text('Inventory Stocks'),
                 onTap: () {
                   Navigator.pop(ctx);
                   _onNavigate(9);

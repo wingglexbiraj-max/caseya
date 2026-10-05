@@ -28,7 +28,6 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
       padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 28),
       decoration: BoxDecoration(
         color: AppColors.headerBackground,
-        gradient: AppColors.headerGradient,
         border: const Border(
           bottom: BorderSide(
             color: AppColors.headerBorder,
@@ -37,9 +36,9 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0F2448).withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
@@ -54,55 +53,22 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
             const SizedBox(width: 8),
           ],
 
-          // Clean Page Title & Subtitle
+          // Prominent Golden Ratio Page Heading (No vertical bar, no description below)
           Expanded(
-            child: Row(
-              children: [
-                Container(
-                  width: 3.5,
-                  height: activeSubtitle != null && !isMobile ? 30 : 18,
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                activeTitle,
+                maxLines: 1,
+                softWrap: false,
+                style: TextStyle(
+                  fontSize: isMobile ? AppTextSizes.subheading : AppTextSizes.heading,
+                  fontWeight: AppFontWeights.bold,
+                  color: AppColors.primary,
+                  letterSpacing: -0.5,
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        activeTitle,
-                        maxLines: 1,
-                        softWrap: false,
-                        style: TextStyle(
-                          fontSize: isMobile ? AppTextSizes.body : AppTextSizes.subheading,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF0F2448),
-                          letterSpacing: -0.4,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      if (activeSubtitle != null && !isMobile) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          activeSubtitle!,
-                          maxLines: 1,
-                          softWrap: false,
-                          style: const TextStyle(
-                            fontSize: AppTextSizes.caption,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.textSecondary,
-                            letterSpacing: -0.1,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-              ],
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
 
@@ -169,7 +135,7 @@ class _LivePlantHeaderBadgeState extends State<_LivePlantHeaderBadge> {
                 'Plant Facility Active',
                 style: TextStyle(
                   fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
-                  fontWeight: FontWeight.w800,
+                  fontWeight: AppFontWeights.bold,
                   color: const Color(0xFF0F2448),
                   letterSpacing: -0.3,
                 ),
@@ -186,7 +152,7 @@ class _LivePlantHeaderBadgeState extends State<_LivePlantHeaderBadge> {
                     'LIVE',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: AppFontWeights.bold,
                       color: Color(0xFF16A34A),
                       letterSpacing: 0.5,
                     ),
@@ -200,7 +166,7 @@ class _LivePlantHeaderBadgeState extends State<_LivePlantHeaderBadge> {
             widget.isMobile ? timeStr : '$timeStr • $dateStr',
             style: TextStyle(
               fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
-              fontWeight: FontWeight.w700,
+              fontWeight: AppFontWeights.bold,
               color: const Color(0xFF1E3A8A),
               letterSpacing: -0.2,
               fontFeatures: const [FontFeature.tabularFigures()],

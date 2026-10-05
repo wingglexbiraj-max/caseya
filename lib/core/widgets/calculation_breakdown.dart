@@ -44,9 +44,9 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FBFA),
+        color: const Color(0xFFFFFBEB),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder, width: 1.1),
+        border: Border.all(color: const Color(0xFFFDE68A), width: 1.1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,15 +60,15 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(7),
+                      color: Colors.black.withValues(alpha: 0.06),
+                      shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.architecture_rounded,
                       size: 18,
-                      color: AppColors.primary,
+                      color: Colors.black.withValues(alpha: 0.60),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -77,7 +77,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                       widget.title,
                       style: const TextStyle(
                         fontSize: AppTextSizes.body,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: AppFontWeights.bold,
                         color: AppColors.primaryDark,
                         letterSpacing: -0.2,
                       ),
@@ -97,7 +97,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                           _expanded ? 'Collapse' : 'Expand',
                           style: const TextStyle(
                             fontSize: AppTextSizes.caption,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                             color: AppColors.primary,
                           ),
                         ),
@@ -153,7 +153,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                                   step.stepTitle,
                                   style: const TextStyle(
                                     fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: AppFontWeights.bold,
                                     color: AppColors.primaryDark,
                                     letterSpacing: 0.5,
                                   ),
@@ -165,7 +165,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                                   step.formula,
                                   style: const TextStyle(
                                     fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: AppFontWeights.semiBold,
                                     color: AppColors.textSecondary,
                                     fontFamily: 'monospace',
                                   ),
@@ -186,7 +186,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                               step.calculation,
                               style: const TextStyle(
                                 fontSize: AppTextSizes.body,
-                                fontWeight: FontWeight.w800,
+                                fontWeight: AppFontWeights.bold,
                                 color: AppColors.textPrimary,
                                 fontFamily: 'monospace',
                               ),

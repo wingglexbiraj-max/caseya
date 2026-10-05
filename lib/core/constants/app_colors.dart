@@ -21,20 +21,20 @@ class AppColors {
   static const Color secondary = Color(0xFF0F2448);
   static const Color secondaryLight = Color(0xFFF0F7FF);
 
-  // Left Sidebar CASEYA Brand Header (PRESERVED: Welcome Card Navy Gradient)
-  static const Color brandHeaderBackground = Color(0xFF0F2448);
-  static const Color brandHeaderBorder = Color(0xFF1E3A8A);
+  // Left Sidebar CASEYA Brand Header (Clean Porcelain White)
+  static const Color brandHeaderBackground = Color(0xFFFFFFFF);
+  static const Color brandHeaderBorder = Color(0xFFE5E7EB);
   static const LinearGradient brandHeaderGradient = LinearGradient(
-    colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // Right Page Heading Header Section (PRESERVED: Low-Opacity Precision Blue)
-  static const Color headerBackground = Color(0xFFF0F7FF);
-  static const Color headerBorder = Color(0xFFCCE2FE);
+  // Right Page Heading Header Section (Clean Porcelain White)
+  static const Color headerBackground = Color(0xFFFFFFFF);
+  static const Color headerBorder = Color(0xFFE5E7EB);
   static const LinearGradient headerGradient = LinearGradient(
-    colors: [Color(0xFFF0F7FF), Color(0xFFE2EFFF)],
+    colors: [Color(0xFFFFFFFF), Color(0xFFFFFFFF)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
@@ -82,9 +82,9 @@ class AppColors {
   ); // True Black (Maximum Legibility)
   static const Color textSecondary = Color(0xFF374151); // Dark Charcoal Black
   static const Color textMuted = Color(0xFF6B7280); // Slate Charcoal
-  static const Color cardBorder = Color(0xFFE5E7EB); // Crisp Precision Border
-  static const Color cardBorderSubtle = Color(0xFFF3F4F6);
-  static const Color divider = Color(0xFFE5E7EB); // Sharp Divider
+  static const Color cardBorder = Color(0x14000000); // Low Opacity Black (~8% Black)
+  static const Color cardBorderSubtle = Color(0x0D000000); // Ultra-low opacity black (~5% Black)
+  static const Color divider = Color(0x14000000); // Sharp Low Opacity Black Divider
 
   // Status Colors:
   static const Color info = Color(0xFF0F2448); // Midnight Navy

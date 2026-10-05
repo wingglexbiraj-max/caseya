@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'app_typography.dart';
+export 'app_typography.dart';
 
 /// Central Typography & Font Size Design System for CASEYA.
 ///
@@ -44,35 +46,40 @@ class AppTextSizes {
   static const double xl = display;     // 38.0
 
   // ===========================================================================
-  // CONVENIENCE TEXT STYLES (Utilizing the 5 Golden Ratio Sizes)
+  // CONVENIENCE TEXT STYLES (Utilizing 5 Golden Sizes + 4 Poppins Weights)
   // ===========================================================================
   static const TextStyle captionStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
     fontSize: caption,
-    fontWeight: FontWeight.w500,
+    fontWeight: AppFontWeights.medium, // 500
     letterSpacing: 0.1,
   );
 
   static const TextStyle bodyStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
     fontSize: body,
-    fontWeight: FontWeight.w400,
+    fontWeight: AppFontWeights.regular, // 400
     height: 1.45,
   );
 
   static const TextStyle subheadingStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
     fontSize: subheading,
-    fontWeight: FontWeight.w700,
+    fontWeight: AppFontWeights.semiBold, // 600
     letterSpacing: -0.2,
   );
 
   static const TextStyle headingStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
     fontSize: heading,
-    fontWeight: FontWeight.w800,
+    fontWeight: AppFontWeights.bold, // 700
     letterSpacing: -0.5,
   );
 
   static const TextStyle displayStyle = TextStyle(
+    fontFamily: AppTypography.fontFamily,
     fontSize: display,
-    fontWeight: FontWeight.w900,
+    fontWeight: AppFontWeights.bold, // 700
     letterSpacing: -1.0,
   );
 }

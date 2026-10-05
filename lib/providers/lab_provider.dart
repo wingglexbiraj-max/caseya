@@ -26,6 +26,11 @@ class LabState {
   final bool isLoading;
   final String? errorMessage;
   final String? successMessage;
+  final double pmstStockLitres;
+  final double rmstStockLitres;
+  final double totalMilkStockLitres;
+  final DateTime? lastStockUpdated;
+  final String milkStockTanksDescription;
 
   const LabState({
     required this.selectedDate,
@@ -46,6 +51,11 @@ class LabState {
     this.isLoading = false,
     this.errorMessage,
     this.successMessage,
+    this.pmstStockLitres = 8200.0,
+    this.rmstStockLitres = 12500.0,
+    this.totalMilkStockLitres = 20700.0,
+    this.lastStockUpdated,
+    this.milkStockTanksDescription = 'Both PMST & RMST',
   });
 
   LabState copyWith({
@@ -67,6 +77,11 @@ class LabState {
     bool? isLoading,
     String? errorMessage,
     String? successMessage,
+    double? pmstStockLitres,
+    double? rmstStockLitres,
+    double? totalMilkStockLitres,
+    DateTime? lastStockUpdated,
+    String? milkStockTanksDescription,
     bool clearEditing = false,
     bool clearFilterSiloId = false,
     bool clearFilterDate = false,
@@ -92,6 +107,11 @@ class LabState {
       isLoading: isLoading ?? this.isLoading,
       errorMessage: clearMessages ? null : (errorMessage ?? this.errorMessage),
       successMessage: clearMessages ? null : (successMessage ?? this.successMessage),
+      pmstStockLitres: pmstStockLitres ?? this.pmstStockLitres,
+      rmstStockLitres: rmstStockLitres ?? this.rmstStockLitres,
+      totalMilkStockLitres: totalMilkStockLitres ?? this.totalMilkStockLitres,
+      lastStockUpdated: lastStockUpdated ?? this.lastStockUpdated,
+      milkStockTanksDescription: milkStockTanksDescription ?? this.milkStockTanksDescription,
     );
   }
 }
@@ -116,15 +136,57 @@ class LabNotifier extends StateNotifier<LabState> {
     final today = DateTime.now();
     final todayStr = Formatters.formatDate(today);
     final todayMap = await _repo.getLatestReadingsBySilo(todayDateStr: todayStr);
+    final stockInfo = await _repo.calculateCurrentSiloStock();
 
     state = state.copyWith(
       silos: silos,
       allTests: tests,
       filterDate: today,
       todayLatestBySilo: todayMap,
+      pmstStockLitres: (stockInfo['pmstStock'] as num?)?.toDouble() ?? 8200.0,
+      rmstStockLitres: (stockInfo['rmstStock'] as num?)?.toDouble() ?? 12500.0,
+      totalMilkStockLitres: (stockInfo['totalMilkStock'] as num?)?.toDouble() ?? 20700.0,
+      lastStockUpdated: stockInfo['lastRecordedAt'] as DateTime?,
+      milkStockTanksDescription: stockInfo['tanksDescription'] as String? ?? 'Both PMST & RMST',
       isLoading: false,
     );
     _applyFilters();
+  }
+
+  Future<void> updateMilkStock({
+    required double pmstLitres,
+    required double rmstLitres,
+    String? notes,
+  }) async {
+    state = state.copyWith(isLoading: true, clearMessages: true);
+    await _repo.recordMilkStock(
+      pmstLitres: pmstLitres,
+      rmstLitres: rmstLitres,
+      notes: notes,
+    );
+    final stockInfo = await _repo.calculateCurrentSiloStock();
+    final updatedSilos = await _repo.getSilos();
+    state = state.copyWith(
+      silos: updatedSilos,
+      pmstStockLitres: (stockInfo['pmstStock'] as num?)?.toDouble() ?? pmstLitres,
+      rmstStockLitres: (stockInfo['rmstStock'] as num?)?.toDouble() ?? rmstLitres,
+      totalMilkStockLitres: (stockInfo['totalMilkStock'] as num?)?.toDouble() ?? (pmstLitres + rmstLitres),
+      lastStockUpdated: stockInfo['lastRecordedAt'] as DateTime?,
+      milkStockTanksDescription: stockInfo['tanksDescription'] as String? ?? 'Both PMST & RMST',
+      successMessage: '✓ Silo Milk Stock updated successfully (${Formatters.formatSmart(pmstLitres)} L PMST, ${Formatters.formatSmart(rmstLitres)} L RMST)',
+      isLoading: false,
+    );
+  }
+
+  Future<void> refreshSiloStock() async {
+    final stockInfo = await _repo.calculateCurrentSiloStock();
+    state = state.copyWith(
+      pmstStockLitres: (stockInfo['pmstStock'] as num?)?.toDouble() ?? state.pmstStockLitres,
+      rmstStockLitres: (stockInfo['rmstStock'] as num?)?.toDouble() ?? state.rmstStockLitres,
+      totalMilkStockLitres: (stockInfo['totalMilkStock'] as num?)?.toDouble() ?? state.totalMilkStockLitres,
+      lastStockUpdated: stockInfo['lastRecordedAt'] as DateTime?,
+      milkStockTanksDescription: stockInfo['tanksDescription'] as String? ?? state.milkStockTanksDescription,
+    );
   }
 
   void setDate(DateTime date) {

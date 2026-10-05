@@ -25,7 +25,9 @@ class StandardizationRecord {
   final double finalSnf;
   final double smpFactor;
   final String calculationFormulaVersion;
+  final String? siloId;
   final String notes;
+  final String testedBy;
   final DateTime createdAt;
 
   const StandardizationRecord({
@@ -55,7 +57,9 @@ class StandardizationRecord {
     required this.finalSnf,
     this.smpFactor = 95.0,
     required this.calculationFormulaVersion,
+    this.siloId = 'RMST',
     this.notes = '',
+    this.testedBy = '',
     required this.createdAt,
   });
 
@@ -87,7 +91,9 @@ class StandardizationRecord {
       'final_snf': finalSnf,
       'smp_factor': smpFactor,
       'calculation_formula_version': calculationFormulaVersion,
+      'silo_id': siloId,
       'notes': notes,
+      'tested_by': testedBy,
       'created_at': createdAt.toIso8601String(),
     };
   }
@@ -125,7 +131,9 @@ class StandardizationRecord {
       smpFactor: (json['smp_factor'] as num?)?.toDouble() ?? 95.0,
       calculationFormulaVersion:
           json['calculation_formula_version']?.toString() ?? 'v1.2-Standard-2026',
+      siloId: json['silo_id']?.toString() ?? 'RMST',
       notes: json['notes']?.toString() ?? '',
+      testedBy: json['tested_by']?.toString() ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
           : DateTime.now(),

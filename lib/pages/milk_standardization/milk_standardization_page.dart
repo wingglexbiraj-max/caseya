@@ -7,13 +7,16 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/app_text_field.dart';
 import '../../core/widgets/searchable_dropdown.dart';
 import '../../core/widgets/calculation_breakdown.dart';
+import '../../core/widgets/metric_card.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/confirmation_dialog.dart';
 import '../../providers/standardization_provider.dart';
 import '../../providers/production_provider.dart';
 import '../../providers/batch_records_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/lab_provider.dart';
 import '../../models/product_model.dart';
+import '../../models/standardization_record.dart';
 import '../../models/lab_milk_test.dart';
 import '../../services/local_storage_service.dart';
 
@@ -38,6 +41,50 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
   bool _archiveExpanded = false;
   bool _autoCalculateMilk = false;
   String? _fetchedSiloSource;
+  String? _fetchedLabTester;
+  DateTime? _filterDate = DateTime.now();
+  String? _filterProductId;
+
+  bool _matchesDate(StandardizationRecord r, DateTime filterDate) {
+    final targetIso = Formatters.formatIsoDate(filterDate);
+    if (r.date == targetIso) return true;
+    if (r.date == Formatters.formatDate(filterDate)) return true;
+    if (r.createdAt.year == filterDate.year &&
+        r.createdAt.month == filterDate.month &&
+        r.createdAt.day == filterDate.day) {
+      return true;
+    }
+    return false;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final state = ref.read(standardizationProvider);
+      if (_totalBatchController.text.isEmpty && state.totalBatchRequired > 0) {
+        _totalBatchController.text = state.totalBatchRequired.toStringAsFixed(0);
+      }
+      if (_milkTakenController.text.isEmpty && state.milkTaken != null && state.milkTaken! > 0) {
+        _milkTakenController.text = state.milkTaken!.toStringAsFixed(0);
+      }
+      if (_fatController.text.isEmpty && state.milkFat > 0) {
+        _fatController.text = state.milkFat.toStringAsFixed(2);
+      }
+      if (_snfController.text.isEmpty && state.milkSnf > 0) {
+        _snfController.text = state.milkSnf.toStringAsFixed(2);
+      }
+      if (state.selectedTargetProduct != null) {
+        if (_desiredFatController.text.isEmpty) {
+          _desiredFatController.text = (state.selectedTargetProduct!.targetFat ?? 3.5).toStringAsFixed(2);
+        }
+        if (_desiredSnfController.text.isEmpty) {
+          _desiredSnfController.text = (state.selectedTargetProduct!.targetSnf ?? 8.5).toStringAsFixed(2);
+        }
+      }
+      _onCalculate();
+    });
+  }
 
   @override
   void dispose() {
@@ -58,35 +105,46 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
       _desiredSnfController.text = (product.targetSnf ?? 8.5).toStringAsFixed(2);
     });
     ref.read(standardizationProvider.notifier).selectTargetProduct(product);
+    _onCalculate();
   }
 
-  void _onCalculate() {
-    if (_formKey.currentState?.validate() ?? false) {
-      final notifier = ref.read(standardizationProvider.notifier);
-      notifier.setTotalBatch(Formatters.parseDouble(_totalBatchController.text));
-      final bool shouldAutoMilk = _autoCalculateMilk || _milkTakenController.text.trim().isEmpty;
-      notifier.setAutoCalculateMilk(shouldAutoMilk);
-      if (!shouldAutoMilk && _milkTakenController.text.trim().isNotEmpty) {
-        notifier.setMilkTaken(Formatters.parseDouble(_milkTakenController.text));
-      } else {
-        notifier.setMilkTaken(null);
-      }
-      notifier.setMilkFat(Formatters.parseDouble(_fatController.text));
-      notifier.setMilkSnf(Formatters.parseDouble(_snfController.text));
+  void _onCalculate({bool showErrorIfInvalid = false}) {
+    final totalBatch = Formatters.parseDouble(_totalBatchController.text);
+    final fat = Formatters.parseDouble(_fatController.text);
+    final snf = Formatters.parseDouble(_snfController.text);
+    final state = ref.read(standardizationProvider);
 
-      final targetFat = Formatters.parseDouble(_desiredFatController.text);
-      final targetSnf = Formatters.parseDouble(_desiredSnfController.text);
-      if (targetFat > 0) {
-        notifier.setTargetFat(targetFat);
-        notifier.setDesiredFinalFat(targetFat);
+    if (state.selectedTargetProduct == null || totalBatch <= 0 || fat <= 0 || snf <= 0) {
+      if (showErrorIfInvalid) {
+        _formKey.currentState?.validate();
       }
-      if (targetSnf > 0) {
-        notifier.setTargetSnf(targetSnf);
-        notifier.setDesiredTargetSnf(targetSnf);
-      }
-
-      notifier.calculate();
+      return;
     }
+
+    final notifier = ref.read(standardizationProvider.notifier);
+    notifier.setTotalBatch(totalBatch);
+    final bool shouldAutoMilk = _autoCalculateMilk || _milkTakenController.text.trim().isEmpty;
+    notifier.setAutoCalculateMilk(shouldAutoMilk);
+    if (!shouldAutoMilk && _milkTakenController.text.trim().isNotEmpty) {
+      notifier.setMilkTaken(Formatters.parseDouble(_milkTakenController.text));
+    } else {
+      notifier.setMilkTaken(null);
+    }
+    notifier.setMilkFat(fat);
+    notifier.setMilkSnf(snf);
+
+    final targetFat = Formatters.parseDouble(_desiredFatController.text);
+    final targetSnf = Formatters.parseDouble(_desiredSnfController.text);
+    if (targetFat > 0) {
+      notifier.setTargetFat(targetFat);
+      notifier.setDesiredFinalFat(targetFat);
+    }
+    if (targetSnf > 0) {
+      notifier.setTargetSnf(targetSnf);
+      notifier.setDesiredTargetSnf(targetSnf);
+    }
+
+    notifier.calculate();
   }
 
   void _onClear() {
@@ -101,6 +159,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
       _autoCalculateMilk = false;
       _standardsExpanded = false;
       _fetchedSiloSource = null;
+      _fetchedLabTester = null;
     });
     ref.read(standardizationProvider.notifier).clear();
   }
@@ -127,7 +186,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                shape: BoxShape.circle,
               ),
               child: const Icon(Icons.biotech_rounded, color: AppColors.primary, size: 22),
             ),
@@ -138,12 +197,12 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 children: [
                   Text(
                     'Fetch Lab Fat & SNF',
-                    style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800),
+                    style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold),
                   ),
                   SizedBox(height: 2),
                   Text(
                     'Select a milk silo / storage tank to populate lab tested values',
-                    style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: AppFontWeights.medium),
                   ),
                 ],
               ),
@@ -178,6 +237,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                         _fatController.text = reading.fatPercentage.toStringAsFixed(2);
                         _snfController.text = reading.snfPercentage.toStringAsFixed(2);
                         _fetchedSiloSource = 'Source: ${reading.siloName} • Lab tested ${reading.testTime}';
+                        _fetchedLabTester = reading.labUserName;
                       });
 
                       ref.read(standardizationProvider.notifier).applyLabReading(
@@ -185,6 +245,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             testTime: reading.testTime,
                             fat: reading.fatPercentage,
                             snf: reading.snfPercentage,
+                            siloId: silo.id,
                           );
 
                       _onCalculate();
@@ -240,7 +301,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                   children: [
                                     Text(
                                       silo.name,
-                                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: AppTextSizes.body),
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                                     ),
                                     const SizedBox(width: 8),
                                     if (hasReading)
@@ -252,7 +313,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                         ),
                                         child: const Text(
                                           'Today',
-                                          style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, color: Color(0xFF16A34A)),
+                                          style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: Color(0xFF16A34A)),
                                         ),
                                       )
                                     else
@@ -265,7 +326,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                         ),
                                         child: const Text(
                                           'No reading today',
-                                          style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, color: AppColors.danger),
+                                          style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.danger),
                                         ),
                                       ),
                                   ],
@@ -274,7 +335,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                 if (hasReading)
                                   Text(
                                     'Fat ${reading.fatPercentage.toStringAsFixed(2)}%  •  SNF ${reading.snfPercentage.toStringAsFixed(2)}%  •  Tested ${reading.testTime}',
-                                    style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.primaryDark),
+                                    style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.primaryDark),
                                   )
                                 else
                                   Text(
@@ -352,12 +413,14 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
       employeeId: user.employeeCode,
       employeeName: user.name,
       notes: _notesController.text.trim(),
+      testedBy: _fetchedLabTester ?? 'QC Lab',
     );
 
     if (success && mounted) {
-      // Refresh Production Register and Batch Records immediately
+      // Refresh Production Register, Batch Records, and Silo Milk Stock immediately
       ref.read(productionProvider.notifier).reloadStandardizationBatches();
       ref.read(batchRecordsProvider.notifier).loadBatches();
+      ref.read(labProvider.notifier).refreshSiloStock();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -386,6 +449,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
   Widget build(BuildContext context) {
     final state = ref.watch(standardizationProvider);
     final productionState = ref.watch(productionProvider);
+    final labState = ref.watch(labProvider);
     final isMobile = ResponsiveLayout.isMobile(context);
 
     return Scaffold(
@@ -428,7 +492,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           style: TextStyle(
                             color: state.hasFetchedLabData ? AppColors.primaryDark : const Color(0xFF92400E),
                             fontSize: AppTextSizes.caption,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                           ),
                         ),
                       ),
@@ -454,7 +518,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: AppColors.danger, fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                          style: const TextStyle(color: AppColors.danger, fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold),
                         ),
                       ),
                     ],
@@ -463,23 +527,27 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 const SizedBox(height: 16),
               ],
 
-              // Section Heading OUTSIDE Card
+              // Section Heading OUTSIDE Card (matching Lab Fat SNF page)
               Row(
                 children: [
                   Container(
                     padding: const EdgeInsets.all(7),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      color: Colors.black.withValues(alpha: 0.06),
+                      shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.science_rounded, size: 20, color: AppColors.primary),
+                    child: Icon(
+                      Icons.science_rounded,
+                      size: 20,
+                      color: Colors.black.withValues(alpha: 0.60),
+                    ),
                   ),
                   const SizedBox(width: 10),
                   const Text(
                     'BATCH MAKING INPUT',
                     style: TextStyle(
                       fontSize: AppTextSizes.subheading,
-                      fontWeight: FontWeight.w900,
+                      fontWeight: AppFontWeights.bold,
                       letterSpacing: 0.6,
                       color: AppColors.textPrimary,
                     ),
@@ -488,10 +556,10 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
               ),
               const SizedBox(height: 12),
 
-              // Main Formulation Input Card with blue header
+              // Main Formulation Input Card (matching Lab Fat SNF page record card)
               AppCard(
-                topBorderColor: AppColors.primary,
-                topBorderHeight: 4,
+                backgroundColor: Colors.white,
+                borderColor: Colors.black.withValues(alpha: 0.08),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -502,7 +570,12 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     if (state.selectedTargetProduct != null)
                       _buildProductStandardCard(state.selectedTargetProduct!, state),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
+
+                    // Source Silo Selector (RMST / PMST - Deducted from Silo Stock)
+                    _buildSourceSiloSelector(state, labState),
+
+                    const SizedBox(height: 18),
 
                     // 2. Batch Volumes: Total Batch Required & Milk Taken
                     LayoutBuilder(
@@ -515,6 +588,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           controller: _totalBatchController,
                           suffixText: 'Litres',
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          onChanged: (_) => _onCalculate(),
                           validator: (val) {
                             if (val == null || val.trim().isEmpty) return 'Batch quantity required';
                             final n = Formatters.parseDouble(val);
@@ -533,6 +607,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                               suffixText: 'Litres',
                               readOnly: _autoCalculateMilk,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => _onCalculate(),
                               validator: (val) {
                                 if (_autoCalculateMilk) return null;
                                 if (val == null || val.trim().isEmpty) return 'Required';
@@ -554,6 +629,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                     _milkTakenController.text = '1400';
                                   }
                                 });
+                                _onCalculate();
                               },
                               borderRadius: BorderRadius.circular(6),
                               child: Padding(
@@ -578,6 +654,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                               _milkTakenController.text = '1400';
                                             }
                                           });
+                                          _onCalculate();
                                         },
                                       ),
                                     ),
@@ -587,7 +664,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                       style: TextStyle(
                                         fontSize: AppTextSizes.caption,
                                         color: AppColors.textSecondary,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: AppFontWeights.semiBold,
                                       ),
                                     ),
                                   ],
@@ -660,7 +737,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                       : 'Fetch Latest Lab Data',
                                   style: TextStyle(
                                     fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: AppFontWeights.bold,
                                     color: _fetchedSiloSource != null
                                         ? const Color(0xFF166534)
                                         : AppColors.primary,
@@ -702,6 +779,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             controller: _fatController,
                             suffixText: '%',
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => _onCalculate(),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Required';
                               final n = Formatters.parseDouble(val);
@@ -718,6 +796,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             controller: _snfController,
                             suffixText: '%',
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            onChanged: (_) => _onCalculate(),
                             validator: (val) {
                               if (val == null || val.trim().isEmpty) return 'Required';
                               final n = Formatters.parseDouble(val);
@@ -730,15 +809,181 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     ),
                     const SizedBox(height: 16),
 
-                    // 4. Batch Notes (Optional)
+                    // 4. Optional Remarks (Notes)
                     AppTextField(
-                      label: 'Batch Notes / Tanker Reference (Optional)',
+                      label: 'Optional Remarks (Notes)',
                       hint: 'e.g. Silo 03, Evening incubation batch, Tanker 04...',
                       controller: _notesController,
                     ),
+                    const SizedBox(height: 20),
+
+                    // Result Chip Cards (styled like Today's Metric Summary / Product Calculator Page)
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.analytics_outlined,
+                            size: 16,
+                            color: Colors.black.withValues(alpha: 0.60),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'STANDARDIZATION METRICS',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            letterSpacing: 0.6,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (state.result != null) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '• ${state.selectedTargetProduct?.productName ?? 'Standardized Batch'}',
+                              style: const TextStyle(
+                                fontSize: AppTextSizes.caption,
+                                fontWeight: AppFontWeights.medium,
+                                color: AppColors.textMuted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final cardMilk = MetricCard(
+                          title: 'Milk Taken',
+                          value: state.result != null ? Formatters.formatDecimal(state.result!.milkTaken) : '—',
+                          unit: 'Litres',
+                          subtitle: state.result != null
+                              ? (state.result!.isAutoCalculatedMilk ? 'Auto-Derived' : 'Allocated Milk')
+                              : 'Raw milk allocation',
+                          icon: Icons.local_drink_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFEFF6FF),
+                        );
+
+                        final cardSmp = MetricCard(
+                          title: 'SMP Required',
+                          value: state.result != null ? Formatters.formatDecimal(state.result!.smpRequired) : '—',
+                          unit: 'kg',
+                          subtitle: state.result != null
+                              ? '${state.result!.smpFactor.toStringAsFixed(0)}% SNF Factor'
+                              : 'Deficit correction',
+                          icon: Icons.grain_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFFFFBEB),
+                        );
+
+                        final cardWater = MetricCard(
+                          title: 'Water Required',
+                          value: state.result != null ? Formatters.formatDecimal(state.result!.waterRequired) : '—',
+                          unit: 'Litres',
+                          subtitle: state.result != null
+                              ? (state.result!.reserveVolume > 0
+                                  ? 'Blending (-${Formatters.formatDecimal(state.result!.reserveVolume)}L Reserve)'
+                                  : 'Process blending water')
+                              : 'Dilution water',
+                          icon: Icons.water_drop_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFECFDF5),
+                        );
+
+                        final cardSugar = MetricCard(
+                          title: 'Sugar (Extra)',
+                          value: state.result != null ? Formatters.formatDecimal(state.result!.sugarRequired) : '—',
+                          unit: 'kg',
+                          subtitle: state.result != null
+                              ? (state.result!.sugarRequired > 0
+                                  ? '${state.result!.sugarPercent.toStringAsFixed(1)}% Added Extra'
+                                  : 'Unsweetened')
+                              : 'Added sugar',
+                          icon: Icons.cookie_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFF5F3FF),
+                        );
+
+                        if (constraints.maxWidth >= 550) {
+                          return IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: cardMilk),
+                                const SizedBox(width: 12),
+                                Expanded(child: cardSmp),
+                                const SizedBox(width: 12),
+                                Expanded(child: cardWater),
+                                const SizedBox(width: 12),
+                                Expanded(child: cardSugar),
+                              ],
+                            ),
+                          );
+                        } else {
+                          final itemWidth = (constraints.maxWidth - 12) / 2;
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              SizedBox(width: itemWidth, child: cardMilk),
+                              SizedBox(width: itemWidth, child: cardSmp),
+                              SizedBox(width: itemWidth, child: cardWater),
+                              SizedBox(width: itemWidth, child: cardSugar),
+                            ],
+                          );
+                        }
+                      },
+                    ),
+
+                    if (state.result != null && state.result!.warnings.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.warningLight,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: state.result!.warnings.map((w) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      w,
+                                      style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.semiBold, color: Color(0xFF92400E)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+
                     const SizedBox(height: 22),
 
-                    // Action Buttons: Record Batch Standardization, Calculate, and Clear
+                    // Action Buttons: Record Batch Standardization (Green) and Clear (Red)
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final isWide = constraints.maxWidth >= 640;
@@ -754,25 +999,9 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           icon: const Icon(Icons.check_circle_outline_rounded, size: 20),
                           label: const Text(
                             'Record Batch Standardization',
-                            style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w800, letterSpacing: 0.3),
+                            style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold, letterSpacing: 0.3),
                           ),
                           onPressed: _onSaveRecord,
-                        );
-
-                        final calculateBtn = ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                          ),
-                          icon: const Icon(Icons.calculate_rounded, size: 20),
-                          label: const Text(
-                            'Calculate',
-                            style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
-                          ),
-                          onPressed: _onCalculate,
                         );
 
                         final clearBtn = OutlinedButton(
@@ -786,7 +1015,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           onPressed: _onClear,
                           child: const Text(
                             'Clear',
-                            style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                            style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold),
                           ),
                         );
 
@@ -794,8 +1023,6 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           return Row(
                             children: [
                               Expanded(flex: 3, child: recordBtn),
-                              const SizedBox(width: 10),
-                              Expanded(flex: 2, child: calculateBtn),
                               const SizedBox(width: 10),
                               Expanded(flex: 1, child: clearBtn),
                             ],
@@ -806,13 +1033,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             children: [
                               recordBtn,
                               const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  Expanded(flex: 2, child: calculateBtn),
-                                  const SizedBox(width: 10),
-                                  Expanded(flex: 1, child: clearBtn),
-                                ],
-                              ),
+                              clearBtn,
                             ],
                           );
                         }
@@ -822,72 +1043,19 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                 ),
               ),
 
-              // Standardization Result Card Section
+              // Step-by-Step Calculation Breakdown (OUTSIDE the main card)
               if (state.result != null) ...[
-                const SizedBox(height: 24),
-
-                // Result Heading OUTSIDE Card
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(7),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(Icons.analytics_rounded, size: 20, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
-                      'STANDARDIZATION RESULT',
-                      style: TextStyle(
-                        fontSize: AppTextSizes.subheading,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.6,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    StatusBadge.info(
-                      state.selectedTargetProduct?.productName ?? 'Standardized Batch',
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildStandardizationResultCard(state),
-
-                // Save Record Button below result
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                    ),
-                    icon: const Icon(Icons.save_rounded, size: 19),
-                    label: const Text(
-                      'Record Batch Standardization',
-                      style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w800),
-                    ),
-                    onPressed: _onSaveRecord,
-                  ),
-                ),
-                const SizedBox(height: 16),
-
-                // Step-by-Step Calculation Breakdown
+                const SizedBox(height: 20),
                 CalculationBreakdownCard(
-                  title: 'Step-by-Step Mathematical Calculation Breakdown',
+                  title: 'Calculation Breakdown & Formula Details',
                   steps: state.result!.breakdownSteps,
+                  initiallyExpanded: false,
                 ),
               ],
 
               // Historical Standardization Records Section
               const SizedBox(height: 32),
-              _buildHistorySection(state.history, productionState),
+              _buildHistorySection(state.history, productionState, state.targetProducts, labState),
             ],
           ),
         ),
@@ -952,14 +1120,20 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           children: [
                             Text(
                               '${p.productName.toUpperCase()} FORMULATION STANDARD',
-                              style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
+                              style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.primaryDark),
                             ),
                           ],
                         ),
                         const SizedBox(height: 3),
-                        Text(
-                          'Target Fat: ${_desiredFatController.text.isNotEmpty ? _desiredFatController.text : (p.targetFat ?? 3.5)}%  •  Target SNF: ${_desiredSnfController.text.isNotEmpty ? _desiredSnfController.text : (p.targetSnf ?? 8.5)}%${p.targetSugar != null && p.targetSugar! > 0 ? '  •  Sugar: ${p.targetSugar}%' : ''}',
-                          style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                        Row(
+                          children: [
+                            Text(
+                              'Target Fat: ${_desiredFatController.text.isNotEmpty ? _desiredFatController.text : (p.targetFat ?? 3.5)}%  •  Target SNF: ${_desiredSnfController.text.isNotEmpty ? _desiredSnfController.text : (p.targetSnf ?? 8.5)}%${p.targetSugar != null && p.targetSugar! > 0 ? '  •  Sugar: ${p.targetSugar}%' : ''}',
+                              style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.semiBold, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.edit_outlined, size: 13, color: AppColors.primary),
+                          ],
                         ),
                       ],
                     ),
@@ -976,7 +1150,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                       children: [
                         Text(
                           _standardsExpanded ? 'Collapse' : 'Customize Target',
-                          style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.primary),
+                          style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.primary),
                         ),
                         const SizedBox(width: 4),
                         Icon(
@@ -1003,7 +1177,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                     children: [
                       const Text(
                         'Customize Target Fat & SNF Standards for This Batch',
-                        style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold, color: AppColors.textPrimary),
                       ),
                       if (isCustomized)
                         TextButton.icon(
@@ -1013,12 +1187,13 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           ),
                           icon: const Icon(Icons.restore_rounded, size: 14, color: AppColors.primary),
-                          label: const Text('Reset to Standard', style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700)),
+                          label: const Text('Reset to Standard', style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.bold)),
                           onPressed: () {
                             setState(() {
                               _desiredFatController.text = (p.targetFat ?? 3.5).toStringAsFixed(2);
                               _desiredSnfController.text = (p.targetSnf ?? 8.5).toStringAsFixed(2);
                             });
+                            _onCalculate();
                           },
                         ),
                     ],
@@ -1033,7 +1208,10 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           controller: _desiredFatController,
                           suffixText: '%',
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => setState(() {}),
+                          onChanged: (_) {
+                            setState(() {});
+                            _onCalculate();
+                          },
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -1044,15 +1222,13 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           controller: _desiredSnfController,
                           suffixText: '%',
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          onChanged: (_) => setState(() {}),
+                          onChanged: (_) {
+                            setState(() {});
+                            _onCalculate();
+                          },
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Target Fat and SNF will be used directly to calculate exact SMP, Water, and Milk allocation for this batch.',
-                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted, fontStyle: FontStyle.italic),
                   ),
                 ],
               ),
@@ -1063,472 +1239,805 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
     );
   }
 
-  Widget _buildStandardizationResultCard(StandardizationState state) {
-    final res = state.result!;
+  void _editRecord(StandardizationRecord item, List<ProductModel> targetProducts) {
+    final p = targetProducts.where((prod) => prod.productId == item.targetProductId || prod.productName.toLowerCase() == item.targetProductName.toLowerCase()).firstOrNull;
+    if (p != null) {
+      _selectProduct(p);
+    }
+    setState(() {
+      _totalBatchController.text = item.totalBatchRequired > 0
+          ? Formatters.formatSmart(item.totalBatchRequired)
+          : Formatters.formatSmart(item.finalQuantity);
+      _milkTakenController.text = Formatters.formatSmart(item.inputMilkQuantity);
+      _fatController.text = item.inputFat.toStringAsFixed(2);
+      _snfController.text = item.inputSnf.toStringAsFixed(2);
+      _desiredFatController.text = item.targetFat.toStringAsFixed(2);
+      _desiredSnfController.text = item.targetSnf.toStringAsFixed(2);
+      _notesController.text = item.notes;
+      _autoCalculateMilk = false;
+      _fetchedSiloSource = item.siloId != null ? 'Source: ${item.siloId}' : null;
+      _fetchedLabTester = item.testedBy.isNotEmpty ? item.testedBy : null;
+    });
+    ref.read(standardizationProvider.notifier).setTotalBatch(item.totalBatchRequired > 0 ? item.totalBatchRequired : item.finalQuantity);
+    ref.read(standardizationProvider.notifier).setMilkTaken(item.inputMilkQuantity);
+    ref.read(standardizationProvider.notifier).setMilkFat(item.inputFat);
+    ref.read(standardizationProvider.notifier).setMilkSnf(item.inputSnf);
+    ref.read(standardizationProvider.notifier).setTargetFat(item.targetFat);
+    ref.read(standardizationProvider.notifier).setTargetSnf(item.targetSnf);
+    if (item.siloId != null) {
+      ref.read(standardizationProvider.notifier).setSiloId(item.siloId!);
+    }
+    _onCalculate();
 
-    return AppCard(
-      topBorderColor: AppColors.primary,
-      topBorderHeight: 4,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Subtitle
-          Text(
-            'Target Batch: ${Formatters.formatSmart(res.totalBatch)} L • Milk Taken: ${Formatters.formatDecimal(res.milkTaken)} L',
-            style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
-          ),
-          const SizedBox(height: 18),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✓ Loaded "${item.targetProductName}" into batch input form for editing.'),
+        backgroundColor: AppColors.primary,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
 
-          // Primary Formulation Highlights Banner (SMP, Water, Sugar, Total Formulated)
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.primary.withValues(alpha: 0.05),
-                  AppColors.coolIceLight.withValues(alpha: 0.5),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.headerBorder),
-            ),
+  String _getTesterName(StandardizationRecord item, LabState labState) {
+    if (item.testedBy.trim().isNotEmpty && item.testedBy.toLowerCase() != 'qc lab') {
+      return item.testedBy.trim();
+    }
+    // Match by silo and date or fat/snf in lab tests
+    final match = labState.allTests.where((t) {
+      final matchSilo = item.siloId != null && (t.siloId == item.siloId || t.siloName == item.siloId);
+      final matchDate = t.testDate == item.date;
+      return matchSilo && (matchDate || (t.fatPercentage - item.inputFat).abs() < 0.05);
+    }).firstOrNull;
+
+    if (match != null && match.labUserName.trim().isNotEmpty) {
+      return match.labUserName.trim();
+    }
+
+    final matchAnyFatSnf = labState.allTests.where((t) {
+      return (t.fatPercentage - item.inputFat).abs() < 0.05 && (t.snfPercentage - item.inputSnf).abs() < 0.05;
+    }).firstOrNull;
+
+    if (matchAnyFatSnf != null && matchAnyFatSnf.labUserName.trim().isNotEmpty) {
+      return matchAnyFatSnf.labUserName.trim();
+    }
+
+    return item.employeeName.trim().isNotEmpty ? item.employeeName.trim() : 'Lab Analyst';
+  }
+
+  Widget _buildHistorySection(
+    List<StandardizationRecord> allHistory,
+    ProductionState productionState,
+    List<ProductModel> targetProducts,
+    LabState labState,
+  ) {
+    final filteredHistory = allHistory.where((item) {
+      if (_filterDate != null) {
+        if (!_matchesDate(item, _filterDate!)) return false;
+      }
+      if (_filterProductId != null && _filterProductId!.isNotEmpty) {
+        final sel = targetProducts.where((p) => p.productId == _filterProductId).firstOrNull;
+        final matchId = item.targetProductId == _filterProductId;
+        final matchName = item.targetProductName.toLowerCase() == _filterProductId!.toLowerCase();
+        final matchSel = sel != null && (
+          item.targetProductName.toLowerCase().contains(sel.productName.toLowerCase()) ||
+          item.targetProductName.toLowerCase().contains(sel.shortCode.toLowerCase()) ||
+          item.targetProductId == sel.productId
+        );
+        if (!matchId && !matchName && !matchSel) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Heading OUTSIDE of card (matching Product Calculation History style)
+        InkWell(
+          onTap: () => setState(() => _archiveExpanded = !_archiveExpanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _buildHighlightMetric(
-                  label: 'Milk Taken',
-                  value: '${Formatters.formatDecimal(res.milkTaken)} L',
-                  sub: res.isAutoCalculatedMilk ? 'Auto-Derived' : 'Allocated Milk',
-                  color: AppColors.primaryDark,
-                  icon: Icons.local_drink_rounded,
-                ),
-                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
-                _buildHighlightMetric(
-                  label: 'SMP Required',
-                  value: '${Formatters.formatDecimal(res.smpRequired)} kg',
-                  sub: '${res.smpFactor.toStringAsFixed(0)}% SNF Factor',
-                  color: AppColors.goldAccent,
-                  icon: Icons.grain_rounded,
-                ),
-                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
-                _buildHighlightMetric(
-                  label: 'Water Required',
-                  value: '${Formatters.formatDecimal(res.waterRequired)} L',
-                  sub: res.reserveVolume > 0 ? 'Blending (-${Formatters.formatDecimal(res.reserveVolume)}L Reserve)' : 'Process blending water',
-                  color: AppColors.primary,
-                  icon: Icons.water_drop_rounded,
-                ),
-                Container(width: 1.2, height: 48, color: AppColors.headerBorder),
-                _buildHighlightMetric(
-                  label: 'Sugar (Extra)',
-                  value: '${Formatters.formatDecimal(res.sugarRequired)} kg',
-                  sub: res.sugarRequired > 0 ? '${res.sugarPercent.toStringAsFixed(1)}% Added Extra' : 'Unsweetened',
-                  color: AppColors.coolIce,
-                  icon: Icons.cookie_rounded,
-                ),
-              ],
-            ),
-          ),
-
-
-          // Any calculation warnings
-          if (res.warnings.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.warningLight,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: res.warnings.map((w) {
-                  return Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            w,
-                            style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600, color: Color(0xFF92400E)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHighlightMetric({
-    required String label,
-    required String value,
-    required String sub,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 16, color: color),
-                const SizedBox(width: 6),
-                Text(
-                  label,
-                  style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w700, color: AppColors.textSecondary),
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: AppTextSizes.subheading,
-                fontWeight: FontWeight.w900,
-                color: color,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              sub,
-              style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted, fontWeight: FontWeight.w500),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-
-
-  Widget _buildHistorySection(List history, ProductionState productionState) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.cardBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _archiveExpanded = !_archiveExpanded),
-            borderRadius: BorderRadius.circular(12),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary.withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.15)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 3.5,
-                              height: 13,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 7),
-                            const Text(
-                              'STANDARDIZATION & BATCH ARCHIVE',
-                              style: TextStyle(
-                                fontSize: AppTextSizes.caption,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 1.1,
-                                color: AppColors.primaryDark,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        history.isEmpty ? '0 Batches' : '${history.length} Batches Recorded',
-                        style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: history.isNotEmpty ? AppColors.primaryContainer : AppColors.cardBorderSubtle,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          _archiveExpanded ? 'Hide Archive' : 'View Archive',
-                          style: TextStyle(
-                            fontSize: AppTextSizes.caption,
-                            fontWeight: FontWeight.w700,
-                            color: history.isNotEmpty ? AppColors.primary : AppColors.textMuted,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        _archiveExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.textSecondary,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          if (_archiveExpanded) ...[
-            const Divider(height: 1),
-            if (history.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(24),
-                alignment: Alignment.center,
-                child: const Column(
+                Row(
                   children: [
-                    Icon(Icons.inbox_outlined, size: 36, color: AppColors.alert),
-                    SizedBox(height: 8),
-                    Text(
-                      'No previous standardization records found.',
-                      style: TextStyle(color: AppColors.alert, fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                    Container(
+                      padding: const EdgeInsets.all(7),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.history_rounded,
+                        size: 20,
+                        color: Colors.black.withValues(alpha: 0.60),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'MILK STANDARDIZATION HISTORY',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.subheading,
+                        fontWeight: AppFontWeights.bold,
+                        letterSpacing: 0.6,
+                        color: AppColors.textPrimary,
+                      ),
                     ),
                   ],
                 ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: history.length.clamp(0, 10),
-                separatorBuilder: (_, index) => const Divider(height: 1),
-                itemBuilder: (context, index) {
-                  final item = history[index];
-                  final isPrepared = productionState.isStandardizationBatchPrepared(item);
-                  final linkedProd = productionState.findProductionRecordForStandardizationBatch(item);
-
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                    title: Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text(
-                          '${item.targetProductName} (${Formatters.formatSmart(item.finalQuantity)} L)',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
-                        ),
-                        if (isPrepared)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(color: const Color(0xFF10B981), width: 1.1),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.check_circle_rounded, size: 12, color: Color(0xFF059669)),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Already Prepared',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF059669),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        else
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2.5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(color: const Color(0xFFD1D5DB), width: 1.1),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.hourglass_empty_rounded, size: 12, color: Color(0xFF6B7280)),
-                                SizedBox(width: 4),
-                                Text(
-                                  'Not Prepared Yet',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF4B5563),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: AppColors.primaryContainer,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '#${item.recordId}',
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    StatusBadge.info(
+                      '${filteredHistory.length} Saved Records',
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 5,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: AppColors.cardBorderSubtle),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _archiveExpanded ? 'Collapse' : 'Expand',
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: AppFontWeights.bold,
                               color: AppColors.primary,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          Icon(
+                            _archiveExpanded
+                                ? Icons.keyboard_arrow_up_rounded
+                                : Icons.keyboard_arrow_down_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                        ],
+                      ),
                     ),
-                    subtitle: Column(
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_archiveExpanded) ...[
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(height: 4, color: AppColors.primary),
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 4),
-                        Text(
-                          '${item.date} • ${item.time} • Operator: ${item.employeeName}',
-                          style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
+                        // Filter Controls (Product, Date)
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _buildProductFilterChip(targetProducts),
+                            _buildDateFilterChip(),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          'Raw: ${Formatters.formatSmart(item.inputMilkQuantity)} L (${item.inputFat}% F, ${item.inputSnf}% SNF) → SMP: ${Formatters.formatDecimal(item.smpRequired)} kg, Water: ${Formatters.formatDecimal(item.waterRequired)} L, Sugar: ${Formatters.formatDecimal(item.sugarRequired)} kg',
-                          style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, height: 1.3),
-                        ),
-                        if (linkedProd != null) ...[
-                          const SizedBox(height: 6),
+                        const SizedBox(height: 16),
+
+                        if (filteredHistory.isEmpty) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.all(24),
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              color: const Color(0xFFECFDF5),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFF86EFAC), width: 1.1),
+                              color: AppColors.alertLight,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: AppColors.alert.withValues(alpha: 0.25),
+                              ),
                             ),
-                            child: Row(
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.inventory_2_outlined, size: 14, color: Color(0xFF059669)),
-                                const SizedBox(width: 7),
-                                Expanded(
-                                  child: Text(
-                                    'Linked in Production: ${linkedProd.productName} • ${Formatters.formatSmart(linkedProd.cratesProduced)} Crates (${Formatters.formatInt(linkedProd.piecesProduced)} pcs) • Batch: ${linkedProd.batchNo} • Logged by: ${linkedProd.employeeName}',
-                                    style: const TextStyle(
-                                      fontSize: AppTextSizes.caption,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF065F46),
-                                    ),
+                                Icon(
+                                  Icons.inbox_outlined,
+                                  size: 20,
+                                  color: AppColors.alert,
+                                ),
+                                SizedBox(width: 8),
+                                Text(
+                                  'No standardization records matching current filter.',
+                                  style: TextStyle(
+                                    color: AppColors.alert,
+                                    fontWeight: AppFontWeights.bold,
                                   ),
                                 ),
                               ],
                             ),
                           ),
                         ] else ...[
-                          const SizedBox(height: 5),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.blue.withValues(alpha: 0.06),
-                              borderRadius: BorderRadius.circular(5),
-                              border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
-                            ),
-                            child: const Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.info_outline_rounded, size: 12, color: Color(0xFF2563EB)),
-                                SizedBox(width: 5),
-                                Text(
-                                  'Ready for packaging • Available in Production Register fetch list',
-                                  style: TextStyle(
-                                    fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w600,
-                                    color: Color(0xFF1D4ED8),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                        if (item.notes.trim().isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.danger.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
-                                const SizedBox(width: 6),
-                                Flexible(
-                                  child: Text(
-                                    'Batch Note: ${item.notes.trim()}',
-                                    style: const TextStyle(
-                                      fontSize: AppTextSizes.caption,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.danger,
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: filteredHistory.length,
+                            separatorBuilder: (_, index) =>
+                                const Divider(height: 1),
+                            itemBuilder: (context, index) {
+                              final item = filteredHistory[index];
+                              final linkedProd = productionState.findProductionRecordForStandardizationBatch(item);
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Container(
+                                      width: 32,
+                                      height: 32,
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.primary.withValues(alpha: 0.08),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: AppColors.primary.withValues(alpha: 0.20),
+                                          width: 1.1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        '${index + 1}',
+                                        style: const TextStyle(
+                                          fontWeight: AppFontWeights.bold,
+                                          fontSize: AppTextSizes.caption,
+                                          color: AppColors.primary,
+                                        ),
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          // 1. Above: Batch Product Name
+                                          Text(
+                                            item.targetProductName,
+                                            style: const TextStyle(
+                                              fontWeight: AppFontWeights.bold,
+                                              fontSize: AppTextSizes.body,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 4),
+
+                                          // 2. Below it: Milk SMP Sugar Water used and then dot total quantity
+                                          Text(
+                                            'Milk: ${Formatters.formatSmart(item.inputMilkQuantity)} L • SMP: ${Formatters.formatDecimal(item.smpRequired)} kg • Water: ${Formatters.formatDecimal(item.waterRequired)} L • Sugar: ${Formatters.formatDecimal(item.sugarRequired)} kg • Total: ${Formatters.formatSmart(item.finalQuantity > 0 ? item.finalQuantity : item.totalBatchRequired)} L',
+                                            style: const TextStyle(
+                                              fontSize: AppTextSizes.caption,
+                                              fontWeight: AppFontWeights.medium,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+
+                                          // 3. Below it: FAT SNF for that batch and dot tested by whom
+                                          Text(
+                                            'FAT: ${Formatters.formatDecimal(item.targetFat)}% • SNF: ${Formatters.formatDecimal(item.targetSnf)}% • Tested by: ${_getTesterName(item, labState)}',
+                                            style: const TextStyle(
+                                              fontSize: AppTextSizes.caption,
+                                              fontWeight: AppFontWeights.medium,
+                                              color: AppColors.textSecondary,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 3),
+
+                                          // 4. Below it: Time and Date and dot standardized by whom
+                                          Text(
+                                            '${item.time} • ${item.date} • Standardized by: ${item.employeeName.isNotEmpty ? item.employeeName : 'Dairy Technologist'}',
+                                            style: const TextStyle(
+                                              fontSize: AppTextSizes.caption,
+                                              fontWeight: AppFontWeights.medium,
+                                              color: AppColors.textMuted,
+                                            ),
+                                          ),
+                                          if (linkedProd != null) ...[
+                                            const SizedBox(height: 5),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFECFDF5),
+                                                borderRadius: BorderRadius.circular(5),
+                                                border: Border.all(color: const Color(0xFF86EFAC), width: 1.1),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.inventory_2_outlined, size: 12, color: Color(0xFF059669)),
+                                                  const SizedBox(width: 5),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Linked in Production: ${linkedProd.productName} • ${Formatters.formatSmart(linkedProd.cratesProduced)} Crates (${Formatters.formatInt(linkedProd.piecesProduced)} pcs) • Batch: ${linkedProd.batchNo} • Logged by: ${linkedProd.employeeName}',
+                                                      style: const TextStyle(
+                                                        fontSize: AppTextSizes.caption,
+                                                        fontWeight: AppFontWeights.bold,
+                                                        color: Color(0xFF065F46),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ] else ...[
+                                            const SizedBox(height: 5),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: Colors.blue.withValues(alpha: 0.06),
+                                                borderRadius: BorderRadius.circular(5),
+                                                border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                                              ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(Icons.info_outline_rounded, size: 12, color: Color(0xFF2563EB)),
+                                                  SizedBox(width: 5),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Ready for packaging • Available in Production Register fetch list',
+                                                      style: TextStyle(
+                                                        fontSize: AppTextSizes.caption,
+                                                        fontWeight: AppFontWeights.medium,
+                                                        color: Color(0xFF1D4ED8),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                          if (item.notes.trim().isNotEmpty) ...[
+                                            const SizedBox(height: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.danger.withValues(alpha: 0.08),
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: AppColors.danger.withValues(alpha: 0.25)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.sticky_note_2_rounded, size: 14, color: AppColors.danger),
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                    child: Text(
+                                                      'Batch Note: ${item.notes.trim()}',
+                                                      style: const TextStyle(
+                                                        fontSize: AppTextSizes.caption,
+                                                        fontWeight: AppFontWeights.bold,
+                                                        color: AppColors.danger,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      icon: const Icon(Icons.more_vert_rounded, size: 20, color: AppColors.textSecondary),
+                                      tooltip: 'Actions',
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      onSelected: (val) async {
+                                        if (val == 'edit') {
+                                          _editRecord(item, targetProducts);
+                                        } else if (val == 'delete') {
+                                          final confirm = await ConfirmationDialog.show(
+                                            context: context,
+                                            title: 'Delete Standardization Record',
+                                            message: 'Are you sure you want to delete ${item.targetProductName} record? This action cannot be undone.',
+                                            isDestructive: true,
+                                          );
+                                          if (confirm) {
+                                            ref.read(standardizationProvider.notifier).deleteRecord(item.recordId);
+                                          }
+                                        }
+                                      },
+                                      itemBuilder: (context) => [
+                                        const PopupMenuItem<String>(
+                                          value: 'edit',
+                                          height: 38,
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.edit_outlined, size: 16, color: AppColors.primary),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Edit Entry',
+                                                style: TextStyle(
+                                                  fontSize: AppTextSizes.caption,
+                                                  fontWeight: AppFontWeights.bold,
+                                                  color: AppColors.textPrimary,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuDivider(height: 1),
+                                        const PopupMenuItem<String>(
+                                          value: 'delete',
+                                          height: 38,
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.danger),
+                                              SizedBox(width: 8),
+                                              Text(
+                                                'Delete Entry',
+                                                style: TextStyle(
+                                                  fontSize: AppTextSizes.caption,
+                                                  fontWeight: AppFontWeights.bold,
+                                                  color: AppColors.danger,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              );
+                            },
                           ),
                         ],
                       ],
                     ),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, size: 19, color: AppColors.textMuted),
-                      onPressed: () async {
-                        final confirm = await ConfirmationDialog.show(
-                          context: context,
-                          title: 'Delete Standardization Record',
-                          message: 'Are you sure you want to delete batch ${item.recordId}? This action cannot be undone.',
-                          isDestructive: true,
-                        );
-                        if (confirm) {
-                          ref.read(standardizationProvider.notifier).deleteRecord(item.recordId);
-                        }
-                      },
-                    ),
-                  );
-                },
+                  ),
+                ],
               ),
-          ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDateFilterChip() {
+    final isToday = _filterDate == null ||
+        Formatters.formatDate(_filterDate!) ==
+            Formatters.formatDate(DateTime.now());
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        InkWell(
+          onTap: () async {
+            final picked = await showDatePicker(
+              context: context,
+              initialDate: _filterDate ?? DateTime.now(),
+              firstDate: DateTime(2020),
+              lastDate: DateTime(2035),
+            );
+            if (picked != null) {
+              setState(() {
+                _filterDate = picked;
+              });
+            }
+          },
+          borderRadius: BorderRadius.circular(9),
+          child: Container(
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(9),
+              border: Border.all(color: AppColors.cardBorder, width: 1.2),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.calendar_today_rounded,
+                  size: 16,
+                  color: AppColors.primary,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _filterDate != null
+                      ? (isToday
+                          ? 'Today (${Formatters.formatDate(_filterDate!)})'
+                          : Formatters.formatDate(_filterDate!))
+                      : 'Select Date',
+                  style: const TextStyle(
+                    fontWeight: AppFontWeights.bold,
+                    fontSize: AppTextSizes.body,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                const Icon(
+                  Icons.arrow_drop_down_rounded,
+                  size: 20,
+                  color: AppColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (!isToday) ...[
+          const SizedBox(width: 6),
+          InkWell(
+            onTap: () => setState(() => _filterDate = DateTime.now()),
+            borderRadius: BorderRadius.circular(9),
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(9),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.3),
+                  width: 1.2,
+                ),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.replay_rounded,
+                    size: 15,
+                    color: AppColors.primary,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    'Today',
+                    style: TextStyle(
+                      fontSize: AppTextSizes.caption,
+                      fontWeight: AppFontWeights.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildProductFilterChip(List<ProductModel> products) {
+    final validProducts = products
+        .where((p) =>
+            p.productName.trim() != '2' &&
+            p.productId.trim() != '2' &&
+            p.productName.trim().isNotEmpty)
+        .toList();
+    final isSelectedValid = _filterProductId != null &&
+        validProducts.any((p) => p.productId == _filterProductId || p.productName == _filterProductId);
+
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(9),
+        border: Border.all(color: AppColors.cardBorder, width: 1.2),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.inventory_2_rounded,
+            size: 17,
+            color: AppColors.primary,
+          ),
+          const SizedBox(width: 8),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: isSelectedValid ? _filterProductId : '',
+              isDense: true,
+              icon: const Icon(
+                Icons.arrow_drop_down_rounded,
+                size: 20,
+                color: AppColors.textSecondary,
+              ),
+              style: const TextStyle(
+                fontWeight: AppFontWeights.bold,
+                fontSize: AppTextSizes.body,
+                color: AppColors.textPrimary,
+              ),
+              items: [
+                const DropdownMenuItem(
+                  value: '',
+                  child: Text('All Products'),
+                ),
+                ...validProducts.map(
+                  (p) => DropdownMenuItem(
+                    value: p.productId,
+                    child: Text(p.productName),
+                  ),
+                ),
+              ],
+              onChanged: (val) {
+                setState(() {
+                  _filterProductId = (val == null || val.isEmpty) ? null : val;
+                });
+              },
+            ),
+          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSourceSiloSelector(StandardizationState state, LabState labState) {
+    final silos = labState.silos.where((s) {
+      final id = s.id.toUpperCase();
+      return id == 'RMST' || id == 'PMST' || (!id.contains('SILO_1') && !id.contains('SILO_2'));
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'SOURCE SILO / TANK',
+          style: TextStyle(
+            fontSize: AppTextSizes.caption,
+            fontWeight: AppFontWeights.bold,
+            letterSpacing: 0.8,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth >= 500;
+            final children = silos.map((silo) {
+              final isSelected = state.selectedSiloId == silo.id;
+              final isPmst = silo.id.toUpperCase().contains('PMST');
+              final currentStock = isPmst ? labState.pmstStockLitres : labState.rmstStockLitres;
+              final hasMilk = currentStock > 0.001;
+
+              final borderColor = Colors.black.withValues(alpha: isSelected ? 0.24 : 0.08);
+              final Color bgColor;
+              final Color iconColor;
+              final Color textColor;
+              final Color stockColor;
+
+              if (hasMilk) {
+                // Low opacity navy blue
+                bgColor = isSelected
+                    ? const Color(0xFFE2EDFB) // Richer low opacity navy
+                    : const Color(0xFFF0F7FF); // Soft low opacity navy
+                iconColor = isSelected
+                    ? AppColors.primary
+                    : AppColors.primaryLight;
+                textColor = isSelected
+                    ? AppColors.primaryDark
+                    : AppColors.textPrimary;
+                stockColor = isSelected
+                    ? AppColors.primary
+                    : AppColors.primaryLight;
+              } else {
+                // Low opacity black
+                bgColor = Colors.black.withValues(alpha: isSelected ? 0.08 : 0.04);
+                iconColor = Colors.black.withValues(alpha: isSelected ? 0.60 : 0.35);
+                textColor = Colors.black.withValues(alpha: isSelected ? 0.75 : 0.50);
+                stockColor = Colors.black.withValues(alpha: 0.45);
+              }
+
+              return InkWell(
+                onTap: () {
+                  ref.read(standardizationProvider.notifier).setSiloId(silo.id);
+                },
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: bgColor,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: borderColor,
+                      width: isSelected ? 1.4 : 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: hasMilk
+                              ? AppColors.primary.withValues(alpha: isSelected ? 0.12 : 0.06)
+                              : Colors.black.withValues(alpha: isSelected ? 0.08 : 0.04),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          isSelected ? Icons.check_circle_rounded : Icons.storage_rounded,
+                          color: iconColor,
+                          size: 18,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${silo.name} (${isPmst ? "Pasteurized Tank" : "Raw Tank"})',
+                              style: TextStyle(
+                                fontWeight: AppFontWeights.bold,
+                                fontSize: AppTextSizes.body,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Current Stock: ${Formatters.formatSmart(currentStock)} L${hasMilk ? "" : " (Empty)"}',
+                              style: TextStyle(
+                                fontSize: AppTextSizes.caption,
+                                fontWeight: isSelected ? AppFontWeights.bold : AppFontWeights.medium,
+                                color: stockColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList();
+
+            if (isWide) {
+              return Row(
+                children: children
+                    .map((w) => Expanded(
+                          child: Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: w,
+                          ),
+                        ))
+                    .toList(),
+              );
+            } else {
+              return Column(
+                children: children
+                    .map((w) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: w,
+                        ))
+                    .toList(),
+              );
+            }
+          },
+        ),
+      ],
     );
   }
 }

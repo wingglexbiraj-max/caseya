@@ -9,6 +9,7 @@ import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/searchable_dropdown.dart';
 import '../../core/widgets/confirmation_dialog.dart';
 import '../../core/widgets/live_time_chip.dart';
+import '../../core/widgets/metric_card.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/production_provider.dart';
@@ -26,11 +27,11 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
   final TextEditingController _piecesController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _customPersonController = TextEditingController();
-  final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   bool _isSyncing = false;
   bool _historyExpanded = false;
+  bool _metadataExpanded = false;
 
   @override
   void initState() {
@@ -57,7 +58,6 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
     _piecesController.dispose();
     _remarksController.dispose();
     _customPersonController.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -226,7 +226,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                           style: const TextStyle(
                             color: AppColors.danger,
                             fontSize: AppTextSizes.body,
-                            fontWeight: FontWeight.w700,
+                            fontWeight: AppFontWeights.bold,
                           ),
                         ),
                       ),
@@ -240,29 +240,36 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
               // 1. DATA ENTRY HEADING (Outside the Card, styled like Boiler page)
               // -------------------------------------------------------------
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(7),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Icon(
-                      Icons.precision_manufacturing_rounded,
-                      size: 20,
-                      color: AppColors.primary,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.precision_manufacturing_rounded,
+                          size: 20,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        'NEW PRODUCTION ENTRY',
+                        style: TextStyle(
+                          fontSize: AppTextSizes.subheading,
+                          fontWeight: AppFontWeights.bold,
+                          letterSpacing: 0.2,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 10),
-                  const Text(
-                    'NEW PRODUCTION ENTRY',
-                    style: TextStyle(
-                      fontSize: AppTextSizes.subheading,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 0.6,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                  if (selectedProduct != null)
+                    StatusBadge.info(selectedProduct.productName),
                 ],
               ),
               const SizedBox(height: 12),
@@ -288,7 +295,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                               'Fetch from Milk Standardization',
                               style: TextStyle(
                                 fontSize: AppTextSizes.body,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: AppFontWeights.bold,
                                 color: AppColors.textPrimary,
                               ),
                             ),
@@ -309,7 +316,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                         'Clear Selection',
                                         style: TextStyle(
                                           fontSize: AppTextSizes.caption,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: AppFontWeights.bold,
                                           color: AppColors.danger,
                                         ),
                                       ),
@@ -352,7 +359,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                     '-- Select Standardization Batch (Optional) --',
                                     style: TextStyle(
                                       fontSize: AppTextSizes.body,
-                                      fontWeight: FontWeight.w500,
+                                      fontWeight: AppFontWeights.medium,
                                       color: AppColors.textSecondary,
                                     ),
                                   ),
@@ -367,7 +374,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                       label,
                                       style: const TextStyle(
                                         fontSize: AppTextSizes.body,
-                                        fontWeight: FontWeight.w600,
+                                        fontWeight: AppFontWeights.semiBold,
                                         color: AppColors.textPrimary,
                                       ),
                                       overflow: TextOverflow.ellipsis,
@@ -434,7 +441,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                           children: [
                             const Text(
                               'Logged By',
-                              style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
+                              style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold),
                             ),
                             const SizedBox(height: 6),
                             Container(
@@ -453,7 +460,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                       value: person,
                                       child: Text(
                                         person,
-                                        style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600),
+                                        style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.semiBold),
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     );
@@ -501,37 +508,11 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                         }
                       },
                     ),
-                    // Active Product Packaging Standard Banner (Directly below Product Name & Authorised Person)
-                    if (selectedProduct != null) ...[
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryContainer.withValues(alpha: 0.5),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 18),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Packaging Standard:  1 Crate = ${selectedProduct.piecesPerCrate} pcs (${Formatters.formatSmart(selectedProduct.piecesPerCrate * selectedProduct.packSizeInBaseUnit)} $unitLabel)  •  Pack Size: ${selectedProduct.packSizeDisplay}',
-                                style: const TextStyle(
-                                  fontSize: AppTextSizes.caption,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.primaryDark,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                    ] else ...[
-                      const SizedBox(height: 16),
-                    ],
+                    const SizedBox(height: 12),
+
+                    // Collapsible PRODUCT SPECIFICATIONS directly below Product Selection (Product Calculator style)
+                    _buildCollapsibleSpecifications(selectedProduct),
+                    const SizedBox(height: 18),
 
                     // ROW 2: Date and Time
                     LayoutBuilder(
@@ -541,7 +522,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                         final dateWidget = Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Date', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
+                            const Text('Date', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold)),
                             const SizedBox(height: 6),
                             InkWell(
                               onTap: _selectDate,
@@ -558,7 +539,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                   children: [
                                     Text(
                                       Formatters.formatDate(state.selectedDate),
-                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                                     ),
                                     const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
                                   ],
@@ -571,7 +552,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                         final timeWidget = Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Time', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
+                            const Text('Time', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: AppFontWeights.bold)),
                             const SizedBox(height: 6),
                             LiveTimeChip(
                               selectedTime: state.selectedTime,
@@ -676,6 +657,135 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                       controller: _remarksController,
                       onChanged: (val) => ref.read(productionProvider.notifier).setRemarks(val),
                     ),
+                    const SizedBox(height: 20),
+
+                    // CALCULATION METRICS Section Header (Product Calculator style)
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.analytics_outlined,
+                            size: 16,
+                            color: Colors.black.withValues(alpha: 0.60),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'CALCULATION METRICS',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            letterSpacing: 0.6,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (selectedProduct != null) ...[
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              '• ${selectedProduct.productName}',
+                              style: const TextStyle(
+                                fontSize: AppTextSizes.caption,
+                                fontWeight: AppFontWeights.medium,
+                                color: AppColors.textMuted,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // 4 MetricCard tiles: Total Pieces, Packing (Crates), Total Quantity, Estimated Valuation
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final pcs = state.pieces;
+                        final crates = state.crates;
+                        final qty = state.quantity;
+                        final totalPrice = (selectedProduct != null && pcs > 0)
+                            ? (pcs * selectedProduct.pricePerPiece)
+                            : 0.0;
+
+                        final cardPieces = MetricCard(
+                          title: 'Total Pieces',
+                          value: pcs > 0 ? Formatters.formatInt(pcs) : '—',
+                          unit: 'Pieces',
+                          subtitle: selectedProduct != null ? 'Pack size: ${selectedProduct.packSizeDisplay}' : 'Packaging count',
+                          icon: Icons.widgets_outlined,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFEFF6FF),
+                        );
+
+                        final cardPacking = MetricCard(
+                          title: 'Packing (Crates)',
+                          value: crates > 0 ? Formatters.formatSmart(crates) : '—',
+                          unit: 'Crates',
+                          subtitle: selectedProduct != null ? '${selectedProduct.piecesPerCrate} pcs / crate' : 'Crates produced',
+                          icon: Icons.all_inbox_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFFFFBEB),
+                        );
+
+                        final cardQuantity = MetricCard(
+                          title: 'Total Quantity',
+                          value: qty > 0 ? Formatters.formatSmart(qty) : '—',
+                          unit: selectedProduct?.baseUnitLabel ?? 'kg',
+                          subtitle: selectedProduct != null ? 'Unit: ${selectedProduct.baseUnitLabel}' : 'Total volume / weight',
+                          icon: Icons.water_drop_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFECFDF5),
+                        );
+
+                        final cardPrice = MetricCard(
+                          title: 'Estimated Valuation',
+                          value: totalPrice > 0 ? '₹${Formatters.formatSmart(totalPrice)}' : '—',
+                          unit: 'INR',
+                          subtitle: selectedProduct != null ? '@ ₹${Formatters.formatSmart(selectedProduct.pricePerPiece)} / piece' : 'Gross valuation',
+                          icon: Icons.currency_rupee_rounded,
+                          iconColor: Colors.black.withValues(alpha: 0.60),
+                          iconBgColor: Colors.black.withValues(alpha: 0.06),
+                          cardBgColor: const Color(0xFFF5F3FF),
+                        );
+
+                        if (constraints.maxWidth >= 700) {
+                          return IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: cardPieces),
+                                const SizedBox(width: 12),
+                                Expanded(child: cardPacking),
+                                const SizedBox(width: 12),
+                                Expanded(child: cardQuantity),
+                                const SizedBox(width: 12),
+                                Expanded(child: cardPrice),
+                              ],
+                            ),
+                          );
+                        } else {
+                          final itemWidth = (constraints.maxWidth - 12) / 2;
+                          return Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: [
+                              SizedBox(width: itemWidth, child: cardPieces),
+                              SizedBox(width: itemWidth, child: cardPacking),
+                              SizedBox(width: itemWidth, child: cardQuantity),
+                              SizedBox(width: itemWidth, child: cardPrice),
+                            ],
+                          );
+                        }
+                      },
+                    ),
                     const SizedBox(height: 22),
 
                     // ACTION BUTTONS (Boiler-Style: Green Record Button & Red Clear Button)
@@ -701,7 +811,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                               'Record Production Entry',
                               style: TextStyle(
                                 fontSize: AppTextSizes.body,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: AppFontWeights.bold,
                                 letterSpacing: 0.3,
                               ),
                             ),
@@ -729,7 +839,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                               'Clear',
                               style: TextStyle(
                                 fontSize: AppTextSizes.body,
-                                fontWeight: FontWeight.w700,
+                                fontWeight: AppFontWeights.bold,
                               ),
                             ),
                           ),
@@ -778,13 +888,13 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                     Container(
                       padding: const EdgeInsets.all(7),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black.withValues(alpha: 0.06),
+                        shape: BoxShape.circle,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.history_rounded,
                         size: 20,
-                        color: AppColors.primary,
+                        color: Colors.black.withValues(alpha: 0.60),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -792,7 +902,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                       'PRODUCTION HISTORY',
                       style: TextStyle(
                         fontSize: AppTextSizes.subheading,
-                        fontWeight: FontWeight.w900,
+                        fontWeight: AppFontWeights.bold,
                         letterSpacing: 0.6,
                         color: AppColors.textPrimary,
                       ),
@@ -817,7 +927,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                             _historyExpanded ? 'Collapse' : 'Expand',
                             style: const TextStyle(
                               fontSize: AppTextSizes.caption,
-                              fontWeight: FontWeight.w700,
+                              fontWeight: AppFontWeights.bold,
                               color: AppColors.primary,
                             ),
                           ),
@@ -865,56 +975,15 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Filter Controls: Search, Product Filter, Date Filter
-                        LayoutBuilder(
-                          builder: (context, constraints) {
-                            final isWide = constraints.maxWidth >= 780;
-
-                            final searchField = TextField(
-                              controller: _searchController,
-                              decoration: const InputDecoration(
-                                hintText: 'Search batch, product, person, note...',
-                                prefixIcon: Icon(Icons.search_rounded, size: 19),
-                                isDense: true,
-                                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              ),
-                              onChanged: (val) {
-                                ref.read(productionProvider.notifier).setSearchQuery(val);
-                              },
-                            );
-
-                            final productFilter = _buildProductFilterChip(state);
-                            final dateFilter = _buildDateFilterChip(state);
-
-                            if (isWide) {
-                              return Row(
-                                children: [
-                                  Expanded(flex: 5, child: searchField),
-                                  const SizedBox(width: 12),
-                                  productFilter,
-                                  const SizedBox(width: 12),
-                                  dateFilter,
-                                ],
-                              );
-                            } else {
-                              return Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  searchField,
-                                  const SizedBox(height: 10),
-                                  Wrap(
-                                    spacing: 10,
-                                    runSpacing: 10,
-                                    crossAxisAlignment: WrapCrossAlignment.center,
-                                    children: [
-                                      productFilter,
-                                      dateFilter,
-                                    ],
-                                  ),
-                                ],
-                              );
-                            }
-                          },
+                        // Filter Controls: Product Filter, Date Filter (No search bar)
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 10,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            _buildProductFilterChip(state),
+                            _buildDateFilterChip(state),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
@@ -943,7 +1012,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                   'No production entries matching current filter.',
                                   style: TextStyle(
                                     color: AppColors.alert,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: AppFontWeights.bold,
                                   ),
                                 ),
                               ],
@@ -981,7 +1050,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                           Text(
                                             item.productName,
                                             style: const TextStyle(
-                                              fontWeight: FontWeight.w800,
+                                              fontWeight: AppFontWeights.bold,
                                               fontSize: AppTextSizes.body,
                                               color: AppColors.textPrimary,
                                             ),
@@ -1008,7 +1077,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                 style: const TextStyle(
                                                   fontSize: AppTextSizes.caption,
                                                   color: AppColors.textSecondary,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: AppFontWeights.semiBold,
                                                 ),
                                               ),
                                               const Text(
@@ -1016,7 +1085,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                 style: TextStyle(
                                                   fontSize: AppTextSizes.caption,
                                                   color: AppColors.textSecondary,
-                                                  fontWeight: FontWeight.w700,
+                                                  fontWeight: AppFontWeights.bold,
                                                 ),
                                               ),
                                               Text(
@@ -1024,7 +1093,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                 style: const TextStyle(
                                                   fontSize: AppTextSizes.caption,
                                                   color: AppColors.textSecondary,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: AppFontWeights.semiBold,
                                                 ),
                                               ),
                                             ],
@@ -1054,7 +1123,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                       'Note: ${item.remarks.trim()}',
                                                       style: const TextStyle(
                                                         fontSize: AppTextSizes.caption,
-                                                        fontWeight: FontWeight.w700,
+                                                        fontWeight: AppFontWeights.bold,
                                                         color: Colors.blue,
                                                       ),
                                                     ),
@@ -1074,7 +1143,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                           '${Formatters.formatSmart(item.quantityProduced)} ${item.unit}',
                                           style: const TextStyle(
                                             fontSize: AppTextSizes.body,
-                                            fontWeight: FontWeight.w900,
+                                            fontWeight: AppFontWeights.bold,
                                             color: AppColors.primaryDark,
                                           ),
                                         ),
@@ -1092,7 +1161,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                 '${Formatters.formatSmart(item.cratesProduced)} Crates',
                                                 style: const TextStyle(
                                                   fontSize: AppTextSizes.caption,
-                                                  fontWeight: FontWeight.w800,
+                                                  fontWeight: AppFontWeights.bold,
                                                   color: Color(0xFF059669),
                                                 ),
                                               ),
@@ -1103,7 +1172,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                 '(${Formatters.formatInt(item.piecesProduced)} pcs)',
                                                 style: const TextStyle(
                                                   fontSize: AppTextSizes.caption,
-                                                  fontWeight: FontWeight.w600,
+                                                  fontWeight: AppFontWeights.semiBold,
                                                   color: AppColors.textSecondary,
                                                 ),
                                               ),
@@ -1195,7 +1264,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                           : Formatters.formatDate(state.filterDate!))
                       : 'All Dates',
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
+                    fontWeight: AppFontWeights.bold,
                     fontSize: AppTextSizes.body,
                     color: AppColors.textPrimary,
                   ),
@@ -1239,7 +1308,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                     'Today',
                     style: TextStyle(
                       fontSize: AppTextSizes.caption,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: AppFontWeights.bold,
                       color: AppColors.primary,
                     ),
                   ),
@@ -1278,7 +1347,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                 state.filterDate == null ? '✓ All Dates' : 'All',
                 style: TextStyle(
                   fontSize: AppTextSizes.caption,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: AppFontWeights.bold,
                   color: state.filterDate == null ? AppColors.primaryDark : AppColors.textSecondary,
                 ),
               ),
@@ -1328,7 +1397,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                 color: AppColors.textSecondary,
               ),
               style: const TextStyle(
-                fontWeight: FontWeight.w700,
+                fontWeight: AppFontWeights.bold,
                 fontSize: AppTextSizes.body,
                 color: AppColors.textPrimary,
               ),
@@ -1355,4 +1424,329 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       ),
     );
   }
+
+  Widget _buildCollapsibleSpecifications(ProductModel? product) {
+    final isLassi = product != null &&
+        (product.category == 'Fermented' ||
+            product.shortCode.toLowerCase().contains('lassi') ||
+            product.productName.toLowerCase().contains('lassi'));
+    final isMilk = product != null &&
+        !isLassi &&
+        (product.category == 'Milk' ||
+            product.shortCode.contains('STD') ||
+            product.shortCode.contains('SM+') ||
+            product.shortCode.contains('TM') ||
+            product.shortCode.contains('DTM') ||
+            product.shortCode.contains('FC') ||
+            product.shortCode.contains('FCM'));
+
+    final Color chipBg;
+    final Color chipBorder;
+    final Color accentColor;
+
+    if (product == null) {
+      chipBg = const Color(0xFFFFFBEB);
+      chipBorder = const Color(0xFFFDE68A);
+      accentColor = const Color(0xFFD97706);
+    } else if (isMilk) {
+      chipBg = const Color(0xFFEFF6FF);
+      chipBorder = const Color(0xFFBFDBFE);
+      accentColor = const Color(0xFF0284C7);
+    } else if (isLassi) {
+      chipBg = const Color(0xFFF5F3FF);
+      chipBorder = const Color(0xFFDDD6FE);
+      accentColor = const Color(0xFF7C3AED);
+    } else if (product.shortCode.startsWith('S')) {
+      chipBg = const Color(0xFFFFFBEB);
+      chipBorder = const Color(0xFFFDE68A);
+      accentColor = const Color(0xFFD97706);
+    } else {
+      chipBg = const Color(0xFFECFDF5);
+      chipBorder = const Color(0xFFA7F3D0);
+      accentColor = const Color(0xFF059669);
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        color: chipBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _metadataExpanded
+              ? accentColor.withValues(alpha: 0.6)
+              : chipBorder,
+          width: 1.1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.06),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.inventory_2_rounded,
+                      size: 16,
+                      color: Colors.black.withValues(alpha: 0.60),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'PRODUCT SPECIFICATIONS',
+                    style: TextStyle(
+                      fontSize: AppTextSizes.caption,
+                      fontWeight: AppFontWeights.bold,
+                      letterSpacing: 0.6,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.cardBorderSubtle),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _metadataExpanded ? 'Collapse' : 'Expand',
+                          style: const TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          _metadataExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (_metadataExpanded) ...[
+            const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+            if (product != null)
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 650;
+                  return Container(
+                    margin: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: chipBorder, width: 1.1),
+                    ),
+                    clipBehavior: Clip.antiAlias,
+                    child: Column(
+                      children: [
+                        // Row 1: Pieces / Crate & Item Code (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Pieces / Crate',
+                          value1: '${product.piecesPerCrate} pcs',
+                          label2: 'Item Code',
+                          value2: product.itemCode,
+                          isEven: false,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 2: Crate Quantity & Product Code (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Crate Quantity',
+                          value1: product.calculatedPerCrateDisplay,
+                          label2: 'Product Code',
+                          value2: product.productCode,
+                          valueColor2: AppColors.primary,
+                          isEven: true,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 3: Price per Piece & Pack Size (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Price / Piece',
+                          value1: product.priceDisplay,
+                          valueColor1: AppColors.goldAccent,
+                          label2: 'Pack Size',
+                          value2: product.packSizeDisplay,
+                          isEven: false,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 4: Target FAT/SNF & Base Unit (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Target FAT/SNF',
+                          value1:
+                              'F: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'} • S: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
+                          label2: 'Base Unit',
+                          value2: product.baseUnitLabel,
+                          isEven: true,
+                          isCompact: isCompact,
+                        ),
+                        const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                        // Row 5: Allowed Modes & Shelf Life (Right)
+                        _buildTwoColumnRow(
+                          label1: 'Allowed Modes',
+                          value1: product.allowedInputModes.join(' • '),
+                          label2: 'Shelf Life',
+                          value2: product.shelfLife,
+                          isEven: false,
+                          isCompact: isCompact,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 18, color: AppColors.textMuted),
+                    SizedBox(width: 8),
+                    Text(
+                      'Select a product above to inspect specifications & packaging standards.',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        color: AppColors.textSecondary,
+                        fontWeight: AppFontWeights.medium,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTwoColumnRow({
+    required String label1,
+    required String value1,
+    Color? valueColor1,
+    required String label2,
+    required String value2,
+    Color? valueColor2,
+    required bool isEven,
+    required bool isCompact,
+  }) {
+    final labelWidth = isCompact ? 100.0 : 135.0;
+
+    return Container(
+      color: isEven ? const Color(0xFFFBFDFD) : Colors.white,
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Left Column
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: labelWidth,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                    color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label1,
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: AppFontWeights.semiBold,
+                        color: Color(0xFF475569),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, color: AppColors.cardBorder),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value1,
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: valueColor1 ?? AppColors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Vertical Divider between columns
+            Container(width: 1, color: AppColors.cardBorder),
+            // Right Column
+            Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: labelWidth,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                    color: isEven ? const Color(0xFFF1F5F9) : const Color(0xFFF8FAFC),
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      label2,
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: AppFontWeights.semiBold,
+                        color: Color(0xFF475569),
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ),
+                  Container(width: 1, color: AppColors.cardBorder),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          value2,
+                          style: TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: AppFontWeights.bold,
+                            color: valueColor2 ?? AppColors.textPrimary,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+

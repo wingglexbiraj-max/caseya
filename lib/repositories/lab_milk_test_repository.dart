@@ -34,4 +34,22 @@ class LabMilkTestRepository {
   Future<Map<String, LabMilkTest>> getLatestReadingsBySilo({String? todayDateStr}) async {
     return LocalStorageService.getLatestReadingsBySilo(todayDateStr: todayDateStr);
   }
+
+  Future<Map<String, dynamic>> calculateCurrentSiloStock() async {
+    return LocalStorageService.calculateCurrentSiloStock();
+  }
+
+  Future<void> recordMilkStock({
+    required double pmstLitres,
+    required double rmstLitres,
+    String? notes,
+    String? recordedBy,
+  }) async {
+    await LocalStorageService.recordMilkStock(
+      pmstLitres: pmstLitres,
+      rmstLitres: rmstLitres,
+      notes: notes,
+      recordedBy: recordedBy,
+    );
+  }
 }

@@ -42,7 +42,7 @@ class AppSidebar extends StatelessWidget {
     SidebarItem(index: 6, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
     SidebarItem(index: 7, title: 'Daily Batch Making', icon: Icons.blender_rounded),
     SidebarItem(index: 8, title: 'Dispatch Records', icon: Icons.local_shipping_rounded),
-    SidebarItem(index: 9, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
+    SidebarItem(index: 9, title: 'Inventory Stocks', icon: Icons.warehouse_rounded),
     SidebarItem(index: 10, title: 'Reports & Export', icon: Icons.insights_rounded),
   ];
 
@@ -63,7 +63,7 @@ class AppSidebar extends StatelessWidget {
       ),
       child: Column(
         children: [
-          // Brand Header with Deep Welcome Card Navy Blue Background
+          // Brand Header with Clean Porcelain White Background
           Container(
             height: 66,
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -72,11 +72,11 @@ class AppSidebar extends StatelessWidget {
               gradient: AppColors.brandHeaderGradient,
               border: Border(
                 bottom: BorderSide(
-                  color: Color(0xFF1E3A8A),
+                  color: AppColors.cardBorder,
                   width: 1.2,
                 ),
                 right: BorderSide(
-                  color: Color(0xFF1E3A8A),
+                  color: AppColors.cardBorder,
                   width: 1.2,
                 ),
               ),
@@ -84,18 +84,28 @@ class AppSidebar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'assets/caseya-logo.png',
-                    width: 36,
-                    height: 36,
-                    fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => Image.asset(
-                      'lib/assets/caseya-logo.png',
-                      width: 36,
-                      height: 36,
-                      fit: BoxFit.contain,
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: AppColors.cardBorder,
+                      width: 1.2,
+                    ),
+                  ),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/caseya-logo.png',
+                      width: 38,
+                      height: 38,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Image.asset(
+                        'lib/assets/caseya-logo.png',
+                        width: 38,
+                        height: 38,
+                        fit: BoxFit.cover,
+                      ),
                     ),
                   ),
                 ),
@@ -104,23 +114,23 @@ class AppSidebar extends StatelessWidget {
                   AppConstants.appName,
                   style: TextStyle(
                     fontSize: AppTextSizes.heading,
-                    fontWeight: FontWeight.w900,
+                    fontWeight: AppFontWeights.bold,
                     letterSpacing: 1.5,
-                    color: Colors.white,
+                    color: AppColors.primary,
                   ),
                 ),
               ],
             ),
           ),
 
-          // Menu Navigation List with divider line below each item
+          // Menu Navigation List (No divider lines below pages)
           Expanded(
             child: ListView(
               padding: EdgeInsets.zero,
               children: [
-                ...primaryItems.map((item) => _buildNavItemWithDivider(item)),
-                ...operationsItems.map((item) => _buildNavItemWithDivider(item)),
-                ...adminItems.map((item) => _buildNavItemWithDivider(item)),
+                ...primaryItems.map((item) => _buildNavItem(item)),
+                ...operationsItems.map((item) => _buildNavItem(item)),
+                ...adminItems.map((item) => _buildNavItem(item)),
               ],
             ),
           ),
@@ -129,20 +139,6 @@ class AppSidebar extends StatelessWidget {
           const _UserSidebarProfileTile(),
         ],
       ),
-    );
-  }
-
-  Widget _buildNavItemWithDivider(SidebarItem item) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _buildNavItem(item),
-        const Divider(
-          height: 1,
-          thickness: 0.8,
-          color: AppColors.cardBorder,
-        ),
-      ],
     );
   }
 
@@ -186,7 +182,7 @@ class AppSidebar extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: AppTextSizes.body,
-                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                    fontWeight: isSelected ? AppFontWeights.bold : AppFontWeights.medium,
                     color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
                   ),
                 ),
@@ -230,7 +226,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                 children: [
                   Text(
                     isLoggedIn ? 'Operator Session' : 'Operator Sign In',
-                    style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold),
                   ),
                   const SizedBox(height: 2),
                   Text(
@@ -263,7 +259,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                       backgroundColor: AppColors.primary,
                       child: Text(
                         user.name.isNotEmpty ? user.name[0] : 'U',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: const TextStyle(color: Colors.white, fontWeight: AppFontWeights.bold),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -273,11 +269,11 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                         children: [
                           Text(
                             user.name,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
+                            style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: AppTextSizes.body),
                           ),
                           Text(
                             '${user.role}  •  ${user.employeeCode}',
-                            style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                            style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: AppFontWeights.semiBold),
                           ),
                         ],
                       ),
@@ -376,18 +372,18 @@ class _UserSidebarProfileTile extends ConsumerWidget {
             gradient: AppColors.brandHeaderGradient,
             border: Border(
               top: BorderSide(
-                color: Color(0xFF1E3A8A),
+                color: AppColors.cardBorder,
                 width: 1.2,
               ),
               right: BorderSide(
-                color: Color(0xFF1E3A8A),
+                color: AppColors.cardBorder,
                 width: 1.2,
               ),
             ),
           ),
           child: Row(
             children: [
-              // Avatar DP (No green dot)
+              // Avatar DP
               Container(
                 width: 36,
                 height: 36,
@@ -395,23 +391,16 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                   gradient: AppColors.cyanGradient,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.35),
+                    color: AppColors.cardBorder,
                     width: 1.2,
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.2),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ],
                 ),
                 child: Center(
                   child: Text(
                     isLoggedIn && user.name.isNotEmpty ? user.name[0] : (isLoggedIn ? 'U' : '?'),
                     style: const TextStyle(
                       color: Colors.white,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: AppFontWeights.bold,
                       fontSize: AppTextSizes.body,
                     ),
                   ),
@@ -430,8 +419,8 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         fontSize: AppTextSizes.body,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        fontWeight: AppFontWeights.bold,
+                        color: AppColors.primary,
                         letterSpacing: -0.2,
                       ),
                     ),
@@ -443,8 +432,8 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: AppTextSizes.caption,
-                        color: isLoggedIn ? Colors.white.withValues(alpha: 0.75) : AppColors.goldAccent,
-                        fontWeight: FontWeight.w600,
+                        color: isLoggedIn ? AppColors.textSecondary : AppColors.goldAccent,
+                        fontWeight: AppFontWeights.semiBold,
                       ),
                     ),
                   ],
@@ -452,7 +441,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
               ),
               Icon(
                 isLoggedIn ? Icons.logout_rounded : Icons.login_rounded,
-                color: isLoggedIn ? Colors.white.withValues(alpha: 0.8) : AppColors.goldAccent,
+                color: isLoggedIn ? AppColors.textSecondary : AppColors.goldAccent,
                 size: 20,
               ),
             ],

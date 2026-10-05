@@ -17,6 +17,11 @@ class AppConstants {
   static const double boilerMultiplier = 900.0;
   static const double boilerDivisor = 70.0;
 
+  // DG Fuel Tank Constants
+  // ignore: constant_identifier_names
+  static const double DG_TANK_CAPACITY = 380.0;
+  static const double dgTankCapacity = DG_TANK_CAPACITY;
+
   // Standard Shift Names
   static const List<String> shifts = [
     'Shift A (06:00 - 14:00)',
@@ -139,6 +144,7 @@ class AppConstants {
   static const String storageKeyDgHsdRecords = 'caseya_dg_hsd_records';
   static const String storageKeyLabMilkTests = 'caseya_lab_milk_tests';
   static const String storageKeySilos = 'caseya_silos_master';
+  static const String storageKeyMilkStock = 'caseya_milk_stock_entries';
   static const String storageKeySettings = 'caseya_system_settings';
   static const String storageKeyApiUrl = 'caseya_api_url';
 }

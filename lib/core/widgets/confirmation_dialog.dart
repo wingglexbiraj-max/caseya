@@ -54,7 +54,7 @@ class ConfirmationDialog extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold),
             ),
           ),
         ],

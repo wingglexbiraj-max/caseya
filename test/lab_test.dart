@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:caseya/models/lab_milk_test.dart';
 import 'package:caseya/models/silo_model.dart';
+import 'package:caseya/models/batch_record_model.dart';
+import 'package:caseya/models/standardization_record.dart';
 import 'package:caseya/services/local_storage_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -207,4 +209,165 @@ void main() {
       expect(updatedSilos.any((s) => s.name == 'Silo 3'), isTrue);
     });
   });
+
+  group('Milk Stock Storage and Real-time Auto-Deductions', () {
+    setUp(() {
+      LocalStorageService.resetForTesting();
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    test('recordMilkStock saves entry and updates silo baseline', () async {
+      
+      final entry = await LocalStorageService.recordMilkStock(
+        pmstLitres: 9500,
+        rmstLitres: 14000,
+        notes: 'Morning reception reading',
+        recordedBy: 'Biraj Lab Chemist',
+      );
+
+      expect(entry.pmstStockLitres, 9500);
+      expect(entry.rmstStockLitres, 14000);
+      expect(entry.totalStockLitres, 23500);
+
+      final latest = await LocalStorageService.getLatestMilkStockEntry();
+      expect(latest, isNotNull);
+      expect(latest!.pmstStockLitres, 9500);
+      expect(latest.rmstStockLitres, 14000);
+
+      final stockInfo = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stockInfo['pmstStock'], 9500.0);
+      expect(stockInfo['rmstStock'], 14000.0);
+      expect(stockInfo['totalMilkStock'], 23500.0);
+      expect(stockInfo['tanksDescription'], 'Both PMST & RMST');
+    });
+
+    test('tanksDescription correctly flags single or both tanks', () async {
+      // Only PMST
+      await LocalStorageService.recordMilkStock(pmstLitres: 5000, rmstLitres: 0);
+      var stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['tanksDescription'], 'PMST Tank');
+
+      // Only RMST
+      await LocalStorageService.recordMilkStock(pmstLitres: 0, rmstLitres: 7500);
+      stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['tanksDescription'], 'RMST Tank');
+
+      // Both
+      await LocalStorageService.recordMilkStock(pmstLitres: 5000, rmstLitres: 7500);
+      stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['tanksDescription'], 'Both PMST & RMST');
+
+      // Neither
+      await LocalStorageService.recordMilkStock(pmstLitres: 0, rmstLitres: 0);
+      stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['tanksDescription'], 'No Active Tank Stock');
+    });
+
+    test('deducts milk quantity from selected silo (RMST or PMST) when batch is recorded', () async {
+      await LocalStorageService.recordMilkStock(
+        pmstLitres: 10000,
+        rmstLitres: 15000,
+        notes: 'Baseline opening stock',
+      );
+
+      // Create a batch drawn specifically from RMST (e.g. 2,000 L milk)
+      final batchRmst = BatchRecordModel(
+        id: 'BATCH-TEST-RMST',
+        productionDate: '2026-10-03',
+        productId: 'LASSI',
+        productName: 'Lassi',
+        batchNumber: 'BT-001',
+        batchQuantity: 2000,
+        batchUnit: 'L',
+        siloId: 'RMST',
+        ingredients: [
+          const BatchIngredientModel(
+            id: 'ING-1',
+            batchId: 'BT-001',
+            ingredientName: 'Raw Milk',
+            quantity: 2000,
+            unit: 'L',
+          ),
+        ],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await LocalStorageService.addBatchRecord(batchRmst);
+
+      var stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['rmstStock'], 13000.0); // 15,000 - 2,000
+      expect(stock['pmstStock'], 10000.0); // unchanged
+      expect(stock['totalMilkStock'], 23000.0);
+
+      // Create a batch drawn specifically from PMST (e.g. 3,500 L milk)
+      final batchPmst = BatchRecordModel(
+        id: 'BATCH-TEST-PMST',
+        productionDate: '2026-10-03',
+        productId: 'TONED_MILK',
+        productName: 'Toned Milk',
+        batchNumber: 'BT-002',
+        batchQuantity: 3500,
+        batchUnit: 'L',
+        siloId: 'PMST',
+        ingredients: [
+          const BatchIngredientModel(
+            id: 'ING-2',
+            batchId: 'BT-002',
+            ingredientName: 'Pasteurized Milk',
+            quantity: 3500,
+            unit: 'L',
+          ),
+        ],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+      await LocalStorageService.addBatchRecord(batchPmst);
+
+      stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['rmstStock'], 13000.0);
+      expect(stock['pmstStock'], 6500.0); // 10,000 - 3,500
+      expect(stock['totalMilkStock'], 19500.0);
+    });
+
+    test('deducts milk quantity from respective silo when standardization is recorded', () async {
+      await LocalStorageService.recordMilkStock(
+        pmstLitres: 8000,
+        rmstLitres: 12000,
+        notes: 'Baseline opening stock',
+      );
+
+      // Record a standardization batch taking 1,400 L from RMST
+      final stdRecord = StandardizationRecord(
+        recordId: 'STD-TEST-01',
+        date: '2026-10-03',
+        time: '09:00 AM',
+        employeeId: 'EMP01',
+        employeeName: 'Analyst',
+        inputMilkQuantity: 1400,
+        inputFat: 4.5,
+        inputSnf: 8.5,
+        targetProductId: 'SWEET_CURD',
+        targetProductName: 'Sweet Curd',
+        targetFat: 3.0,
+        targetSnf: 14.0,
+        waterRequired: 100,
+        smpRequired: 50,
+        sugarRequired: 150,
+        finalQuantity: 1700,
+        finalFat: 3.0,
+        finalSnf: 14.0,
+        calculationFormulaVersion: 'v1.2',
+        siloId: 'RMST',
+        createdAt: DateTime.now(),
+      );
+      await LocalStorageService.addStandardizationRecord(stdRecord);
+
+      final stock = await LocalStorageService.calculateCurrentSiloStock();
+      expect(stock['rmstStock'], 10600.0); // 12,000 - 1,400
+      expect(stock['pmstStock'], 8000.0);  // unchanged
+      expect(stock['totalMilkStock'], 18600.0);
+    });
+  });
 }
+
+

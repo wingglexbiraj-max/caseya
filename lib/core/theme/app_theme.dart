@@ -1,18 +1,84 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
+export 'app_typography.dart';
 export 'app_text_sizes.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {
-    final baseTextTheme = GoogleFonts.interTextTheme();
+    const textTheme = TextTheme(
+      displayLarge: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textPrimary,
+        fontWeight: AppFontWeights.bold, // 700
+        fontSize: AppTextSizes.display,
+        letterSpacing: -1.0,
+      ),
+      headlineLarge: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textPrimary,
+        fontWeight: AppFontWeights.bold, // 700
+        fontSize: AppTextSizes.heading,
+        letterSpacing: -0.6,
+      ),
+      headlineMedium: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textPrimary,
+        fontWeight: AppFontWeights.semiBold, // 600
+        fontSize: AppTextSizes.subheading,
+        letterSpacing: -0.3,
+      ),
+      titleLarge: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textPrimary,
+        fontWeight: AppFontWeights.semiBold, // 600
+        fontSize: AppTextSizes.subheading,
+      ),
+      titleMedium: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textPrimary,
+        fontWeight: AppFontWeights.semiBold, // 600
+        fontSize: AppTextSizes.body,
+      ),
+      bodyLarge: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textPrimary,
+        fontSize: AppTextSizes.body,
+        fontWeight: AppFontWeights.regular, // 400
+        height: 1.5,
+      ),
+      bodyMedium: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        color: AppColors.textSecondary,
+        fontSize: AppTextSizes.caption,
+        fontWeight: AppFontWeights.regular, // 400
+        height: 1.45,
+      ),
+      labelLarge: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        fontWeight: AppFontWeights.semiBold, // 600
+        fontSize: AppTextSizes.body,
+        letterSpacing: 0.2,
+      ),
+      labelMedium: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        fontWeight: AppFontWeights.medium, // 500
+        fontSize: AppTextSizes.caption,
+      ),
+      labelSmall: TextStyle(
+        fontFamily: AppTypography.fontFamily,
+        fontWeight: AppFontWeights.medium, // 500
+        fontSize: AppTextSizes.caption,
+      ),
+    );
 
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       primaryColor: AppColors.primary,
       scaffoldBackgroundColor: AppColors.background,
+      fontFamily: AppTypography.fontFamily,
+      textTheme: textTheme,
       colorScheme: const ColorScheme(
         brightness: Brightness.light,
         primary: AppColors.primary,
@@ -30,52 +96,6 @@ class AppTheme {
         cursorColor: AppColors.primary,
         selectionColor: AppColors.primary.withValues(alpha: 0.22),
         selectionHandleColor: AppColors.primary,
-      ),
-      fontFamily: GoogleFonts.inter().fontFamily,
-      textTheme: baseTextTheme.copyWith(
-        displayLarge: baseTextTheme.displayLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w800,
-          fontSize: AppTextSizes.display, // Golden ratio headline
-          letterSpacing: -1.0,
-        ),
-        headlineLarge: baseTextTheme.headlineLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w800,
-          fontSize: AppTextSizes.heading, // Golden ratio subheadline
-          letterSpacing: -0.6,
-        ),
-        headlineMedium: baseTextTheme.headlineMedium?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-          fontSize: AppTextSizes.subheading,
-          letterSpacing: -0.3,
-        ),
-        titleLarge: baseTextTheme.titleLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w700,
-          fontSize: AppTextSizes.subheading,
-        ),
-        titleMedium: baseTextTheme.titleMedium?.copyWith(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.w600,
-          fontSize: AppTextSizes.body,
-        ),
-        bodyLarge: baseTextTheme.bodyLarge?.copyWith(
-          color: AppColors.textPrimary,
-          fontSize: AppTextSizes.body,
-          height: 1.5,
-        ),
-        bodyMedium: baseTextTheme.bodyMedium?.copyWith(
-          color: AppColors.textSecondary,
-          fontSize: AppTextSizes.caption,
-          height: 1.45,
-        ),
-        labelLarge: baseTextTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w600,
-          fontSize: AppTextSizes.body,
-          letterSpacing: 0.2,
-        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.surface,
@@ -111,13 +131,16 @@ class AppTheme {
           borderSide: const BorderSide(color: AppColors.danger, width: 1.8),
         ),
         labelStyle: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
           color: AppColors.textSecondary,
           fontSize: AppTextSizes.body,
-          fontWeight: FontWeight.w500,
+          fontWeight: AppFontWeights.medium, // 500
         ),
         hintStyle: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
           color: AppColors.textMuted,
           fontSize: AppTextSizes.caption,
+          fontWeight: AppFontWeights.regular, // 400
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -130,8 +153,9 @@ class AppTheme {
             borderRadius: BorderRadius.circular(9),
           ),
           textStyle: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
             fontSize: AppTextSizes.body,
-            fontWeight: FontWeight.w700,
+            fontWeight: AppFontWeights.semiBold, // 600
             letterSpacing: 0.2,
           ),
         ),
@@ -145,8 +169,9 @@ class AppTheme {
             borderRadius: BorderRadius.circular(9),
           ),
           textStyle: const TextStyle(
+            fontFamily: AppTypography.fontFamily,
             fontSize: AppTextSizes.body,
-            fontWeight: FontWeight.w600,
+            fontWeight: AppFontWeights.semiBold, // 600
           ),
         ),
       ),
@@ -162,9 +187,10 @@ class AppTheme {
         scrolledUnderElevation: 0,
         centerTitle: false,
         titleTextStyle: TextStyle(
+          fontFamily: AppTypography.fontFamily,
           color: AppColors.textPrimary,
           fontSize: AppTextSizes.subheading,
-          fontWeight: FontWeight.w700,
+          fontWeight: AppFontWeights.semiBold, // 600
         ),
       ),
       chipTheme: ChipThemeData(
@@ -173,14 +199,16 @@ class AppTheme {
         secondarySelectedColor: AppColors.primary,
         checkmarkColor: Colors.white,
         labelStyle: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
           color: AppColors.textPrimary,
           fontSize: AppTextSizes.caption,
-          fontWeight: FontWeight.w500,
+          fontWeight: AppFontWeights.medium, // 500
         ),
         secondaryLabelStyle: const TextStyle(
+          fontFamily: AppTypography.fontFamily,
           color: Colors.white,
           fontSize: AppTextSizes.caption,
-          fontWeight: FontWeight.w700,
+          fontWeight: AppFontWeights.semiBold, // 600
         ),
         iconTheme: const IconThemeData(
           size: 16,

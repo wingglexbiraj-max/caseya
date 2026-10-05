@@ -16,30 +16,19 @@ class _StockPageState extends State<StockPage> {
   final TextEditingController _searchController = TextEditingController();
 
   static const List<Map<String, dynamic>> _inventoryData = [
-    // --- RAW MATERIALS ---
+    // --- CUPS ---
     {
-      'name': 'SMP (Skimmed Milk Powder)',
-      'category': 'Raw Materials',
-      'packaging': '57 Bags',
-      'totalQty': '1,425 kg',
-      'details': '25 kg / bag • Plant standardization stock',
+      'name': 'Lassi Cup (200ml)',
+      'category': 'Cups',
+      'packaging': '33 Boxes',
+      'totalQty': '82,500 pcs',
+      'details': '2,500 pcs / box',
       'status': 'Adequate',
-      'icon': Icons.grain_rounded,
+      'icon': Icons.local_drink_rounded,
     },
-    {
-      'name': 'Sugar',
-      'category': 'Raw Materials',
-      'packaging': '19 Bags',
-      'totalQty': '950 kg',
-      'details': '50 kg / bag • Sweet curd production buffer',
-      'status': 'Adequate',
-      'icon': Icons.inventory_2_rounded,
-    },
-
-    // --- CUPS & SPOONS ---
     {
       'name': 'S80 Cup (Sweet Curd 80g)',
-      'category': 'Cups & Spoons',
+      'category': 'Cups',
       'packaging': '22 Boxes',
       'totalQty': '52,800 pcs',
       'details': '2,400 pcs / box',
@@ -48,7 +37,7 @@ class _StockPageState extends State<StockPage> {
     },
     {
       'name': 'S200 Cup (Sweet Curd 200g)',
-      'category': 'Cups & Spoons',
+      'category': 'Cups',
       'packaging': '11 Boxes',
       'totalQty': '22,000 pcs',
       'details': '2,000 pcs / box',
@@ -57,7 +46,7 @@ class _StockPageState extends State<StockPage> {
     },
     {
       'name': 'S400 Cup (Sweet Curd 400g)',
-      'category': 'Cups & Spoons',
+      'category': 'Cups',
       'packaging': '40 Boxes',
       'totalQty': '4,000 pcs',
       'details': '100 pcs / box',
@@ -66,7 +55,7 @@ class _StockPageState extends State<StockPage> {
     },
     {
       'name': 'P80 Cup (Plain Curd 80g)',
-      'category': 'Cups & Spoons',
+      'category': 'Cups',
       'packaging': '16 Boxes',
       'totalQty': '38,400 pcs',
       'details': '2,400 pcs / box',
@@ -75,7 +64,7 @@ class _StockPageState extends State<StockPage> {
     },
     {
       'name': 'P200 Cup (Plain Curd 200g)',
-      'category': 'Cups & Spoons',
+      'category': 'Cups',
       'packaging': '5 Boxes',
       'totalQty': '10,000 pcs',
       'details': '2,000 pcs / box',
@@ -84,83 +73,18 @@ class _StockPageState extends State<StockPage> {
     },
     {
       'name': 'P400 Cup (Plain Curd 400g)',
-      'category': 'Cups & Spoons',
+      'category': 'Cups',
       'packaging': '47 Boxes',
       'totalQty': '47,000 pcs',
       'details': '1,000 pcs / box',
       'status': 'Adequate',
       'icon': Icons.takeout_dining_rounded,
     },
-    {
-      'name': 'Lassi Cup (200ml)',
-      'category': 'Cups & Spoons',
-      'packaging': '33 Boxes',
-      'totalQty': '82,500 pcs',
-      'details': '2,500 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.local_drink_rounded,
-    },
-    {
-      'name': 'Wooden Spoon',
-      'category': 'Cups & Spoons',
-      'packaging': '7 Boxes',
-      'totalQty': '126,000 pcs',
-      'details': '18,000 pcs / box',
-      'status': 'Adequate',
-      'icon': Icons.flatware_rounded,
-    },
 
-    // --- FOIL LIDS ---
+    // --- POLY ROLL ---
     {
-      'name': 'Foil 80gm (Pink)',
-      'category': 'Foil Lids',
-      'packaging': '22 Boxes',
-      'totalQty': '831,600 lids',
-      'details': '37,800 lids / box • Sweet curd 80g',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-    {
-      'name': 'Foil 80gm / 200ml (Blue)',
-      'category': 'Foil Lids',
-      'packaging': '69 Boxes',
-      'totalQty': '96,600 lids',
-      'details': '1,400 lids / box • Plain curd 80g & Lassi 200ml',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-    {
-      'name': 'Foil 400gm / 200gm (Pink)',
-      'category': 'Foil Lids',
-      'packaging': '12 Boxes',
-      'totalQty': '16,800 lids',
-      'details': '1,400 lids / box • Sweet curd cups',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-    {
-      'name': 'Foil 400gm / 200gm (Blue)',
-      'category': 'Foil Lids',
-      'packaging': '35 Boxes',
-      'totalQty': '49,000 lids',
-      'details': '1,400 lids / box • Plain curd cups',
-      'status': 'Adequate',
-      'icon': Icons.circle_outlined,
-    },
-
-    // --- POLY FILM ROLLS ---
-    {
-      'name': 'Poly Film 250ml (STD)',
-      'category': 'Poly Film Rolls',
-      'packaging': '42 Rolls',
-      'totalQty': '42 Rolls',
-      'details': 'Standardized milk 250 ml packaging film',
-      'status': 'Adequate',
-      'icon': Icons.album_rounded,
-    },
-    {
-      'name': 'Poly Film 500ml (STD)',
-      'category': 'Poly Film Rolls',
+      'name': 'Poly Film STD 500ml',
+      'category': 'Poly Roll',
       'packaging': '8 Rolls',
       'totalQty': '8 Rolls',
       'details': 'Standardized milk 500 ml packaging film',
@@ -168,8 +92,26 @@ class _StockPageState extends State<StockPage> {
       'icon': Icons.album_rounded,
     },
     {
-      'name': 'Poly Film 500ml (SM+)',
-      'category': 'Poly Film Rolls',
+      'name': 'Poly Film STD 250ml',
+      'category': 'Poly Roll',
+      'packaging': '42 Rolls',
+      'totalQty': '42 Rolls',
+      'details': 'Standardized milk 250 ml packaging film',
+      'status': 'Adequate',
+      'icon': Icons.album_rounded,
+    },
+    {
+      'name': 'Poly Film STD 200ml',
+      'category': 'Poly Roll',
+      'packaging': '15 Rolls',
+      'totalQty': '15 Rolls',
+      'details': 'Standardized milk 200 ml packaging film',
+      'status': 'Adequate',
+      'icon': Icons.album_rounded,
+    },
+    {
+      'name': 'Poly Film SM+ 500ml',
+      'category': 'Poly Roll',
       'packaging': '5 Rolls',
       'totalQty': '5 Rolls',
       'details': 'Smart Plus toned milk 500 ml film',
@@ -177,8 +119,26 @@ class _StockPageState extends State<StockPage> {
       'icon': Icons.album_rounded,
     },
     {
-      'name': 'Poly Film 400gm (Plain Curd p/c)',
-      'category': 'Poly Film Rolls',
+      'name': 'Poly Film Sweet Curd 400gm',
+      'category': 'Poly Roll',
+      'packaging': '3 Rolls',
+      'totalQty': '3 Rolls',
+      'details': 'Sweet curd 400g pouch film',
+      'status': 'Low Stock Alert',
+      'icon': Icons.album_rounded,
+    },
+    {
+      'name': 'Poly Film Sweet Curd 1kg',
+      'category': 'Poly Roll',
+      'packaging': '6 Rolls',
+      'totalQty': '6 Rolls',
+      'details': 'Sweet curd 1 kg pouch packaging film',
+      'status': 'Adequate',
+      'icon': Icons.album_rounded,
+    },
+    {
+      'name': 'Poly Film Plain Curd 400gm',
+      'category': 'Poly Roll',
       'packaging': '3 Rolls',
       'totalQty': '3 Rolls',
       'details': 'Plain curd 400g pouch film',
@@ -186,69 +146,82 @@ class _StockPageState extends State<StockPage> {
       'icon': Icons.album_rounded,
     },
     {
-      'name': 'Poly Film 400gm (Sweet Curd s/c)',
-      'category': 'Poly Film Rolls',
-      'packaging': '3 Rolls',
-      'totalQty': '3 Rolls',
-      'details': 'Sweet curd 400g pouch film',
-      'status': 'Low Stock Alert',
+      'name': 'Poly Film Plain Curd 1kg',
+      'category': 'Poly Roll',
+      'packaging': '7 Rolls',
+      'totalQty': '7 Rolls',
+      'details': 'Plain curd 1 kg pouch packaging film',
+      'status': 'Adequate',
       'icon': Icons.album_rounded,
     },
 
-    // --- COLD ROOM FINISHED GOODS ---
+    // --- ALUMINIUM FOIL ---
     {
-      'name': 'Curd Pouch 400 g (CP400)',
-      'category': 'Finished Goods',
-      'packaging': '60 Crates',
-      'totalQty': '1,800 pcs (720.0 kg)',
-      'details': '30 pcs / crate • 12.0 kg per crate • Rate ₹35/pc',
+      'name': 'Foil 80gm (Pink)',
+      'category': 'Aluminium Foil',
+      'packaging': '22 Boxes',
+      'totalQty': '831,600 lids',
+      'details': '37,800 lids / box • Sweet curd 80g',
       'status': 'Adequate',
-      'icon': Icons.inventory_rounded,
+      'icon': Icons.circle_outlined,
     },
     {
-      'name': 'Curd Pouch 1 kg (CP1000)',
-      'category': 'Finished Goods',
-      'packaging': '100 Crates',
-      'totalQty': '1,200 pcs (1,200.0 kg)',
-      'details': '12 pcs / crate • 12.0 kg per crate • Rate ₹75/pc',
+      'name': 'Foil 200/400gm (Pink)',
+      'category': 'Aluminium Foil',
+      'packaging': '12 Boxes',
+      'totalQty': '16,800 lids',
+      'details': '1,400 lids / box • Sweet curd cups',
       'status': 'Adequate',
-      'icon': Icons.inventory_rounded,
+      'icon': Icons.circle_outlined,
     },
     {
-      'name': 'Purabi Plus Milk 500 ml',
-      'category': 'Finished Goods',
-      'packaging': '175 Crates',
-      'totalQty': '4,200 pcs (2,100.0 L)',
-      'details': '24 pcs / crate • 12.0 L per crate',
+      'name': 'Foil 80gm (Blue)',
+      'category': 'Aluminium Foil',
+      'packaging': '69 Boxes',
+      'totalQty': '96,600 lids',
+      'details': '1,400 lids / box • Plain curd 80g & Lassi 200ml',
       'status': 'Adequate',
-      'icon': Icons.water_drop_rounded,
+      'icon': Icons.circle_outlined,
     },
     {
-      'name': 'Purabi Plus Milk 250 ml (PP250)',
-      'category': 'Finished Goods',
-      'packaging': '75 Crates',
-      'totalQty': '3,600 pcs (900.0 L)',
-      'details': '48 pcs / crate • 12.0 L per crate • Rate ₹18/pc',
+      'name': 'Foil 200/400gm (Blue)',
+      'category': 'Aluminium Foil',
+      'packaging': '35 Boxes',
+      'totalQty': '49,000 lids',
+      'details': '1,400 lids / box • Plain curd cups',
       'status': 'Adequate',
-      'icon': Icons.water_drop_rounded,
+      'icon': Icons.circle_outlined,
+    },
+
+    // --- SERVING MATERIAL ---
+    {
+      'name': 'Wooden Spoon',
+      'category': 'Serving Material',
+      'packaging': '7 Boxes',
+      'totalQty': '126,000 pcs',
+      'details': '18,000 pcs / box • Curd & dessert spoon',
+      'status': 'Adequate',
+      'icon': Icons.flatware_rounded,
+    },
+
+    // --- INGREDIENTS ---
+    {
+      'name': 'Sugar',
+      'category': 'Ingredients',
+      'packaging': '19 Bags',
+      'totalQty': '950 kg',
+      'details': '50 kg / bag • Sweet curd production buffer',
+      'status': 'Adequate',
+      'icon': Icons.inventory_2_rounded,
     },
     {
-      'name': 'Sweet Curd Cup 80 g (S80)',
-      'category': 'Finished Goods',
-      'packaging': '20 Crates',
-      'totalQty': '1,200 pcs (96.0 kg)',
-      'details': '60 pcs / crate • 4.8 kg per crate',
-      'status': 'Low Stock Alert',
-      'icon': Icons.takeout_dining_rounded,
-    },
-    {
-      'name': 'Purabi Lassi 200 ml (PL200)',
-      'category': 'Finished Goods',
-      'packaging': '80 Crates',
-      'totalQty': '2,400 pcs (480.0 L)',
-      'details': '30 pcs / crate • 6.0 L per crate',
+      'name': 'SMP (Skimmed Milk Powder)',
+      'category': 'Ingredients',
+      'packaging': '57 Bags',
+      'totalQty': '1,425 kg',
+      'details': '25 kg / bag • Plant standardization stock',
       'status': 'Adequate',
-      'icon': Icons.local_drink_rounded,
+      'icon': Icons.grain_rounded,
     },
   ];
 
@@ -260,16 +233,16 @@ class _StockPageState extends State<StockPage> {
 
   IconData _getCategoryIcon(String cat) {
     switch (cat) {
-      case 'Finished Goods':
-        return Icons.warehouse_rounded;
-      case 'Raw Materials':
-        return Icons.grain_rounded;
-      case 'Cups & Spoons':
+      case 'Cups':
         return Icons.takeout_dining_rounded;
-      case 'Foil Lids':
-        return Icons.circle_outlined;
-      case 'Poly Film Rolls':
+      case 'Poly Roll':
         return Icons.album_rounded;
+      case 'Aluminium Foil':
+        return Icons.circle_outlined;
+      case 'Serving Material':
+        return Icons.flatware_rounded;
+      case 'Ingredients':
+        return Icons.grain_rounded;
       default:
         return Icons.all_inbox_rounded;
     }
@@ -280,7 +253,7 @@ class _StockPageState extends State<StockPage> {
     final isMobile = ResponsiveLayout.isMobile(context);
     final query = _searchController.text.trim().toLowerCase();
 
-    final categories = ['All', 'Finished Goods', 'Raw Materials', 'Cups & Spoons', 'Foil Lids', 'Poly Film Rolls'];
+    final categories = ['All', 'Cups', 'Poly Roll', 'Aluminium Foil', 'Serving Material', 'Ingredients'];
 
     final filtered = _inventoryData.where((item) {
       final matchesCategory = _selectedCategory == 'All' || item['category'] == _selectedCategory;
@@ -306,7 +279,7 @@ class _StockPageState extends State<StockPage> {
               children: [
                 Expanded(
                   child: _buildMetricTile(
-                    'Raw Materials',
+                    'Ingredients Buffer',
                     '2,375 kg',
                     '57 Bags SMP • 19 Bags Sugar',
                     Icons.grain_rounded,
@@ -316,8 +289,8 @@ class _StockPageState extends State<StockPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: _buildMetricTile(
-                    'Poly Film Rolls',
-                    '61 Rolls',
+                    'Poly Roll Stock',
+                    '89 Rolls',
                     'STD, SM+ & Curd Pouches',
                     Icons.album_rounded,
                     AppColors.primary,
@@ -327,7 +300,7 @@ class _StockPageState extends State<StockPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: _buildMetricTile(
-                      'Foil Lids Buffer',
+                      'Aluminium Foil Buffer',
                       '994k Lids',
                       '138 Total Boxes on Floor',
                       Icons.circle_outlined,
@@ -348,7 +321,7 @@ class _StockPageState extends State<StockPage> {
                     controller: _searchController,
                     onChanged: (_) => setState(() {}),
                     decoration: InputDecoration(
-                      hintText: 'Search items (e.g. CP400, SMP, S80, Poly Film)...',
+                      hintText: 'Search items (e.g. STD 500ml, Sugar, S80, Foil)...',
                       prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppColors.textSecondary),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
@@ -370,13 +343,18 @@ class _StockPageState extends State<StockPage> {
                     runSpacing: 8,
                     children: categories.map((cat) {
                       final isSelected = _selectedCategory == cat;
+                      final count = cat == 'All'
+                          ? _inventoryData.length
+                          : _inventoryData.where((item) => item['category'] == cat).length;
+                      final chipText = '$cat ($count)';
+
                       return ChoiceChip(
                         avatar: Icon(
                           _getCategoryIcon(cat),
                           size: 16,
                           color: isSelected ? Colors.white : AppColors.textSecondary,
                         ),
-                        label: Text(cat),
+                        label: Text(chipText),
                         selected: isSelected,
                         showCheckmark: false,
                         selectedColor: AppColors.primary,
@@ -391,7 +369,7 @@ class _StockPageState extends State<StockPage> {
                         ),
                         labelStyle: TextStyle(
                           fontSize: AppTextSizes.caption,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                          fontWeight: isSelected ? AppFontWeights.bold : AppFontWeights.medium,
                           color: isSelected ? Colors.white : AppColors.textSecondary,
                         ),
                         onSelected: (selected) {
@@ -413,7 +391,7 @@ class _StockPageState extends State<StockPage> {
                         '${filtered.length} ITEMS LOGGED',
                         style: const TextStyle(
                           fontSize: AppTextSizes.caption,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: AppFontWeights.bold,
                           letterSpacing: 1.0,
                           color: AppColors.textSecondary,
                         ),
@@ -459,7 +437,7 @@ class _StockPageState extends State<StockPage> {
                                         child: Text(
                                           item['name'],
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.w700,
+                                            fontWeight: AppFontWeights.bold,
                                             fontSize: AppTextSizes.body,
                                             color: AppColors.textPrimary,
                                           ),
@@ -484,7 +462,7 @@ class _StockPageState extends State<StockPage> {
                                 Text(
                                   item['packaging'],
                                   style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
+                                    fontWeight: AppFontWeights.bold,
                                     fontSize: AppTextSizes.body,
                                     color: AppColors.primaryDark,
                                   ),
@@ -494,7 +472,7 @@ class _StockPageState extends State<StockPage> {
                                   item['totalQty'],
                                   style: const TextStyle(
                                     fontSize: AppTextSizes.caption,
-                                    fontWeight: FontWeight.w600,
+                                    fontWeight: AppFontWeights.semiBold,
                                     color: AppColors.textSecondary,
                                   ),
                                 ),
@@ -505,7 +483,7 @@ class _StockPageState extends State<StockPage> {
                                     style: TextStyle(
                                       fontSize: AppTextSizes.caption,
                                       color: AppColors.danger,
-                                      fontWeight: FontWeight.w700,
+                                      fontWeight: AppFontWeights.bold,
                                     ),
                                   )
                                 else
@@ -514,7 +492,7 @@ class _StockPageState extends State<StockPage> {
                                     style: TextStyle(
                                       fontSize: AppTextSizes.caption,
                                       color: AppColors.success,
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: AppFontWeights.semiBold,
                                     ),
                                   ),
                               ],
@@ -553,11 +531,11 @@ class _StockPageState extends State<StockPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: AppFontWeights.semiBold, color: AppColors.textSecondary),
                 ),
                 Text(
                   val,
-                  style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                  style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold, color: AppColors.textPrimary),
                 ),
                 Text(
                   subtitle,
