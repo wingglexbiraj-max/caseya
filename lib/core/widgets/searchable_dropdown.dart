@@ -58,7 +58,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                             ? widget.label.trim()
                             : 'Select ${widget.label.trim()}',
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: AppTextSizes.subheading,
                           fontWeight: FontWeight.w700,
                           color: AppColors.textPrimary,
                         ),
@@ -120,7 +120,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                                 ? Text(
                                     widget.itemSubtitle!(item),
                                     style: const TextStyle(
-                                      fontSize: 12,
+                                      fontSize: AppTextSizes.caption,
                                       color: AppColors.textSecondary,
                                     ),
                                   )
@@ -153,7 +153,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
             Text(
               widget.label,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: AppTextSizes.body,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary,
                 letterSpacing: 0.2,
@@ -186,7 +186,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                           widget.hint,
                           style: const TextStyle(
                             color: AppColors.textMuted,
-                            fontSize: 14,
+                            fontSize: AppTextSizes.body,
                           ),
                           overflow: TextOverflow.ellipsis,
                         )
@@ -195,7 +195,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
                           style: const TextStyle(
                             color: AppColors.textPrimary,
                             fontWeight: FontWeight.w600,
-                            fontSize: 14.5,
+                            fontSize: AppTextSizes.body,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),

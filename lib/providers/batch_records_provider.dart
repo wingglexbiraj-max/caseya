@@ -129,7 +129,8 @@ class BatchRecordsState {
 class BatchRecordsNotifier extends StateNotifier<BatchRecordsState> {
   final BatchRepository _repository;
 
-  BatchRecordsNotifier(this._repository) : super(const BatchRecordsState()) {
+  BatchRecordsNotifier(this._repository)
+      : super(BatchRecordsState(selectedDate: DateTime.now())) {
     loadBatches();
   }
 
@@ -242,7 +243,7 @@ class BatchRecordsNotifier extends StateNotifier<BatchRecordsState> {
 
   void clearFilters() {
     state = state.copyWith(
-      clearSelectedDate: true,
+      selectedDate: DateTime.now(),
       clearDateRange: true,
       selectedProduct: 'All',
       searchQuery: '',

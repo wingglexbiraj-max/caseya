@@ -82,12 +82,47 @@ class BatchRecipeService {
       ],
     ),
     StandardRecipe(
+      productName: 'STD Milk',
+      category: 'Milk',
+      defaultUnit: 'L',
+      ingredients: [
+        StandardRecipeIngredient(ingredientName: 'Milk', unit: 'L', defaultRatio: 100.0),
+      ],
+    ),
+    StandardRecipe(
+      productName: 'SM+ (Army Milk)',
+      category: 'Milk',
+      defaultUnit: 'L',
+      ingredients: [
+        StandardRecipeIngredient(ingredientName: 'Milk', unit: 'L', defaultRatio: 100.0),
+      ],
+    ),
+    StandardRecipe(
+      productName: 'Plain Curd Cup',
+      category: 'Curd',
+      defaultUnit: 'kg',
+      ingredients: [
+        StandardRecipeIngredient(ingredientName: 'Milk', unit: 'L', defaultRatio: 98.0),
+        StandardRecipeIngredient(ingredientName: 'SMP', unit: 'kg', defaultRatio: 2.0),
+        StandardRecipeIngredient(ingredientName: 'Curd Culture', unit: 'g', defaultRatio: 0.1),
+      ],
+    ),
+    StandardRecipe(
+      productName: 'Plain Curd Pouch',
+      category: 'Curd',
+      defaultUnit: 'kg',
+      ingredients: [
+        StandardRecipeIngredient(ingredientName: 'Milk', unit: 'L', defaultRatio: 100.0),
+        StandardRecipeIngredient(ingredientName: 'Curd Culture', unit: 'g', defaultRatio: 0.1),
+      ],
+    ),
+    StandardRecipe(
       productName: 'Sweet Curd',
       category: 'Curd',
       defaultUnit: 'kg',
       ingredients: [
-        StandardRecipeIngredient(ingredientName: 'Milk', unit: 'L', defaultRatio: 90.0),
-        StandardRecipeIngredient(ingredientName: 'Sugar', unit: 'kg', defaultRatio: 8.0),
+        StandardRecipeIngredient(ingredientName: 'Milk', unit: 'L', defaultRatio: 88.0),
+        StandardRecipeIngredient(ingredientName: 'Sugar', unit: 'kg', defaultRatio: 10.0),
         StandardRecipeIngredient(ingredientName: 'SMP', unit: 'kg', defaultRatio: 2.0),
         StandardRecipeIngredient(ingredientName: 'Curd Culture', unit: 'g', defaultRatio: 0.1),
       ],
@@ -113,14 +148,15 @@ class BatchRecipeService {
     }
   }
 
-  /// List of initial supported products
+  /// List of initial supported products aligned with milk standardization
   static List<String> getSupportedProducts() {
     return [
-      'Lassi',
-      'Curd',
-      'Milk Pouch',
+      'STD Milk',
+      'SM+ (Army Milk)',
+      'Plain Curd Cup',
+      'Plain Curd Pouch',
       'Sweet Curd',
-      'Paneer',
+      'Lassi',
     ];
   }
 }

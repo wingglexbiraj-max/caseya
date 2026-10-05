@@ -102,6 +102,7 @@ class StandardizationState {
     String? successMessage,
     bool clearResult = false,
     bool clearMessages = false,
+    bool clearSelectedTargetProduct = false,
   }) {
     return StandardizationState(
       selectedDate: selectedDate ?? this.selectedDate,
@@ -112,7 +113,7 @@ class StandardizationState {
       milkFat: milkFat ?? this.milkFat,
       milkSnf: milkSnf ?? this.milkSnf,
       targetProducts: targetProducts ?? this.targetProducts,
-      selectedTargetProduct: selectedTargetProduct ?? this.selectedTargetProduct,
+      selectedTargetProduct: clearSelectedTargetProduct ? null : (selectedTargetProduct ?? this.selectedTargetProduct),
       targetFat: targetFat ?? this.targetFat,
       targetSnf: targetSnf ?? this.targetSnf,
       sugarPercent: sugarPercent ?? this.sugarPercent,
@@ -171,24 +172,11 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
 
     final history = await _stdRepo.getRecords();
 
-    ProductModel? defaultTarget;
-    if (targets.isNotEmpty) {
-      defaultTarget = targets.firstWhere(
-        (p) => p.productId == 'SWEET_CURD' || p.productName.toLowerCase().contains('sweet curd'),
-        orElse: () => targets.first,
-      );
-    }
-
     state = state.copyWith(
       targetProducts: targets,
-      selectedTargetProduct: defaultTarget,
-      targetFat: defaultTarget?.targetFat ?? 3.0,
-      targetSnf: defaultTarget?.targetSnf ?? 14.0,
-      sugarPercent: defaultTarget?.targetSugar ?? 12.0,
+      clearSelectedTargetProduct: true,
       smpFactor: configuredSmpFactor,
       waterCalculationMethod: configuredWaterMethod,
-      desiredFinalFat: defaultTarget?.targetFat ?? 3.0,
-      desiredTargetSnf: defaultTarget?.targetSnf ?? 14.0,
       history: history,
       isLoading: false,
     );
@@ -452,8 +440,28 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     required String employeeName,
     String notes = '',
   }) async {
+    // 1. Ensure target product is assigned
+    if (state.selectedTargetProduct == null) {
+      if (state.targetProducts.isNotEmpty) {
+        selectTargetProduct(state.targetProducts.first);
+      } else if (MilkStandardizationCalculator.standardizationProducts.isNotEmpty) {
+        selectTargetProduct(MilkStandardizationCalculator.standardizationProducts.first);
+      }
+    }
+
+    // 2. Ensure calculation result is ready
+    if (state.result == null) {
+      calculate();
+    }
+
     final res = state.result;
-    if (res == null || state.selectedTargetProduct == null) return false;
+    final product = state.selectedTargetProduct;
+    if (res == null || product == null) {
+      state = state.copyWith(
+        errorMessage: state.errorMessage ?? 'Please enter valid batch numbers and calculate before recording.',
+      );
+      return false;
+    }
 
     final now = DateTime.now();
     final recordId = 'STD-${const Uuid().v4().substring(0, 8).toUpperCase()}';
@@ -470,8 +478,8 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
       inputUnit: state.inputUnit,
       inputFat: res.presentFat,
       inputSnf: res.presentSnf,
-      targetProductId: state.selectedTargetProduct!.productId,
-      targetProductName: state.selectedTargetProduct!.productName,
+      targetProductId: product.productId,
+      targetProductName: product.productName,
       targetFat: res.targetFat,
       targetSnf: res.targetSnf,
       availableFatKg: res.availableFatKg,
@@ -531,8 +539,8 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     final batchRecord = BatchRecordModel(
       id: batchId,
       productionDate: Formatters.formatIsoDate(state.selectedDate),
-      productId: state.selectedTargetProduct!.productId,
-      productName: state.selectedTargetProduct!.productName,
+      productId: product.productId,
+      productName: product.productName,
       batchNumber: 'STD-${now.millisecondsSinceEpoch.toString().substring(7)}',
       batchQuantity: res.totalBatch,
       batchUnit: 'L',

@@ -60,7 +60,7 @@ class AppBottomNav extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSizes.caption,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? AppColors.primary : AppColors.textSecondary,
               ),
@@ -90,7 +90,7 @@ class AppBottomNav extends StatelessWidget {
             Text(
               'More',
               style: TextStyle(
-                fontSize: 11,
+                fontSize: AppTextSizes.caption,
                 fontWeight: isMoreSelected ? FontWeight.w700 : FontWeight.w500,
                 color: isMoreSelected ? AppColors.primary : AppColors.textSecondary,
               ),

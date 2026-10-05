@@ -89,7 +89,7 @@ class _ReportsPageState extends State<ReportsPage> {
                 children: [
                   const Text(
                     'REPORT PARAMETERS',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 14),
                   Row(
@@ -99,7 +99,7 @@ class _ReportsPageState extends State<ReportsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Select Module', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            const Text('Select Module', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -129,7 +129,7 @@ class _ReportsPageState extends State<ReportsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text('Shift Filter', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                            const Text('Shift Filter', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600)),
                             const SizedBox(height: 6),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -166,7 +166,7 @@ class _ReportsPageState extends State<ReportsPage> {
                       const SizedBox(width: 8),
                       Text(
                         'Date Range: ${Formatters.formatDate(_startDate)}  —  ${Formatters.formatDate(_endDate)}',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+                        style: const TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                       ),
                     ],
                   ),
@@ -185,7 +185,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     children: [
                       Text(
                         _selectedModule.toUpperCase(),
-                        style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
+                        style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
                       ),
                       StatusBadge.info('Verified Log Data'),
                     ],
@@ -208,10 +208,10 @@ class _ReportsPageState extends State<ReportsPage> {
         TableRow(
           decoration: const BoxDecoration(color: AppColors.primaryContainer),
           children: const [
-            Padding(padding: EdgeInsets.all(10), child: Text('Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-            Padding(padding: EdgeInsets.all(10), child: Text('Shift / Batch', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-            Padding(padding: EdgeInsets.all(10), child: Text('Consumption / Net Output', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
-            Padding(padding: EdgeInsets.all(10), child: Text('Officer / Chemist', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13))),
+            Padding(padding: EdgeInsets.all(10), child: Text('Date', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body))),
+            Padding(padding: EdgeInsets.all(10), child: Text('Shift / Batch', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body))),
+            Padding(padding: EdgeInsets.all(10), child: Text('Consumption / Net Output', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body))),
+            Padding(padding: EdgeInsets.all(10), child: Text('Officer / Chemist', style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body))),
           ],
         ),
         TableRow(

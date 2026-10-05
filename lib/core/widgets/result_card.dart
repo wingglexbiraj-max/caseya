@@ -84,7 +84,7 @@ class ResultCard extends StatelessWidget {
                         Text(
                           title.toUpperCase(),
                           style: const TextStyle(
-                            fontSize: 12.5,
+                            fontSize: AppTextSizes.caption,
                             fontWeight: FontWeight.w900,
                             letterSpacing: 1.2,
                             color: AppColors.primaryDark,
@@ -97,7 +97,7 @@ class ResultCard extends StatelessWidget {
                       Text(
                         subtitle!,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: AppTextSizes.caption,
                           color: AppColors.textSecondary,
                           fontWeight: FontWeight.w500,
                         ),
@@ -141,7 +141,7 @@ class ResultCard extends StatelessWidget {
                             Text(
                               item.label,
                               style: const TextStyle(
-                                fontSize: 12,
+                                fontSize: AppTextSizes.caption,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textSecondary,
                                 letterSpacing: 0.2,
@@ -156,7 +156,7 @@ class ResultCard extends StatelessWidget {
                                   child: Text(
                                     item.value,
                                     style: TextStyle(
-                                      fontSize: 28, // Golden ratio metric display
+                                      fontSize: AppTextSizes.heading, // Golden ratio metric display
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: -0.8,
                                       color: item.highlightColor ?? AppColors.textPrimary,
@@ -169,7 +169,7 @@ class ResultCard extends StatelessWidget {
                                   Text(
                                     item.unit!,
                                     style: const TextStyle(
-                                      fontSize: 13,
+                                      fontSize: AppTextSizes.body,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.textSecondary,
                                     ),
@@ -182,7 +182,7 @@ class ResultCard extends StatelessWidget {
                               Text(
                                 item.subtitle!,
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: AppTextSizes.caption,
                                   fontWeight: FontWeight.w500,
                                   color: AppColors.textMuted,
                                 ),

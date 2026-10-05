@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
@@ -111,6 +113,7 @@ class _LabPageState extends ConsumerState<LabPage> {
 
   void _onClear() {
     ref.read(labProvider.notifier).cancelEditing();
+    ref.read(labProvider.notifier).resetToLiveTime();
     final currentUserName = ref.read(authProvider).name;
     final match = _defaultAnalysts.firstWhere(
       (n) => n.toLowerCase() == currentUserName.toLowerCase(),
@@ -161,9 +164,13 @@ class _LabPageState extends ConsumerState<LabPage> {
 
   Future<void> _selectTime() async {
     final current = ref.read(labProvider).selectedTime;
-    final picked = await showTimePicker(context: context, initialTime: current);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: current,
+      helpText: 'SELECT SAMPLE COLLECTION TIME',
+    );
     if (picked != null) {
-      ref.read(labProvider.notifier).setTime(picked);
+      ref.read(labProvider.notifier).setTime(picked, isManual: true);
     }
   }
 
@@ -210,7 +217,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                 Text(
                   name,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: AppTextSizes.body,
                     fontWeight: isOther ? FontWeight.w700 : FontWeight.w600,
                     color: isOther ? AppColors.primary : AppColors.textPrimary,
                   ),
@@ -290,7 +297,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                           state.errorMessage!,
                           style: const TextStyle(
                             color: AppColors.danger,
-                            fontSize: 13,
+                            fontSize: AppTextSizes.body,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -328,7 +335,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                   const Text(
                     'RECORD MILK QUALITY TEST',
                     style: TextStyle(
-                      fontSize: 16.5,
+                      fontSize: AppTextSizes.subheading,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.6,
                       color: AppColors.textPrimary,
@@ -360,7 +367,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                     const Text(
                                       'Date',
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppTextSizes.body,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -398,7 +405,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                                 ),
                                                 style: const TextStyle(
                                                   fontWeight: FontWeight.w700,
-                                                  fontSize: 13.5,
+                                                  fontSize: AppTextSizes.body,
                                                 ),
                                               ),
                                             ),
@@ -411,7 +418,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                               ),
                               const SizedBox(width: 12),
 
-                              // 2. Time (Auto recorded / Selectable)
+                              // 2. Time (Auto recorded in Real-Time / Selectable)
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,51 +426,14 @@ class _LabPageState extends ConsumerState<LabPage> {
                                     const Text(
                                       'Time',
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppTextSizes.body,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
                                     const SizedBox(height: 6),
-                                    InkWell(
+                                    _LiveTimeSelectorChip(
+                                      isMobile: false,
                                       onTap: _selectTime,
-                                      borderRadius: BorderRadius.circular(9),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 14,
-                                          vertical: 14,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            9,
-                                          ),
-                                          border: Border.all(
-                                            color: AppColors.cardBorder,
-                                            width: 1.2,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.access_time_rounded,
-                                              size: 17,
-                                              color: AppColors.primary,
-                                            ),
-                                            const SizedBox(width: 10),
-                                            Expanded(
-                                              child: Text(
-                                                state.selectedTime.format(
-                                                  context,
-                                                ),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 13.5,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     ),
                                   ],
                                 ),
@@ -478,7 +448,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                     const Text(
                                       'Tank / Silo',
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: AppTextSizes.body,
                                         fontWeight: FontWeight.w700,
                                       ),
                                     ),
@@ -507,6 +477,14 @@ class _LabPageState extends ConsumerState<LabPage> {
                                             child: DropdownButtonHideUnderline(
                                               child: DropdownButton<String>(
                                                 value: state.selectedSiloId,
+                                                hint: const Text(
+                                                  'Select Silo',
+                                                  style: TextStyle(
+                                                    fontSize: AppTextSizes.body,
+                                                    color: AppColors.textMuted,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
                                                 isExpanded: true,
                                                 items: state.silos.map((s) {
                                                   return DropdownMenuItem(
@@ -514,7 +492,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                                     child: Text(
                                                       '${s.name} (${s.description})',
                                                       style: const TextStyle(
-                                                        fontSize: 13,
+                                                        fontSize: AppTextSizes.body,
                                                         fontWeight:
                                                             FontWeight.w700,
                                                       ),
@@ -586,39 +564,9 @@ class _LabPageState extends ConsumerState<LabPage> {
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
-                                    child: InkWell(
+                                    child: _LiveTimeSelectorChip(
+                                      isMobile: true,
                                       onTap: _selectTime,
-                                      child: Container(
-                                        padding: const EdgeInsets.all(12),
-                                        decoration: BoxDecoration(
-                                          border: Border.all(
-                                            color: AppColors.cardBorder,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            const Icon(
-                                              Icons.access_time_rounded,
-                                              size: 16,
-                                              color: AppColors.primary,
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: Text(
-                                                state.selectedTime.format(
-                                                  context,
-                                                ),
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
                                     ),
                                   ),
                                 ],
@@ -648,6 +596,14 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       child: DropdownButtonHideUnderline(
                                         child: DropdownButton<String>(
                                           value: state.selectedSiloId,
+                                          hint: const Text(
+                                            'Select Silo',
+                                            style: TextStyle(
+                                              fontSize: AppTextSizes.body,
+                                              color: AppColors.textMuted,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
                                           isExpanded: true,
                                           items: state.silos.map((s) {
                                             return DropdownMenuItem(
@@ -655,7 +611,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                               child: Text(
                                                 '${s.name} (${s.description})',
                                                 style: const TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: AppTextSizes.body,
                                                   fontWeight: FontWeight.w700,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
@@ -851,7 +807,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                   ? 'Update Lab Reading'
                                   : 'Save Reading',
                               style: const TextStyle(
-                                fontSize: 14.5,
+                                fontSize: AppTextSizes.body,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.3,
                               ),
@@ -879,7 +835,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                             child: const Text(
                               'Clear',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppTextSizes.body,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -931,7 +887,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                 const Text(
                   'LATEST READINGS DASHBOARD (TODAY)',
                   style: TextStyle(
-                    fontSize: 16.5,
+                    fontSize: AppTextSizes.subheading,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.6,
                     color: AppColors.textPrimary,
@@ -942,7 +898,7 @@ class _LabPageState extends ConsumerState<LabPage> {
             const Text(
               'Automatic Source for Milk Standardization',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: AppTextSizes.caption,
                 color: AppColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
@@ -1092,7 +1048,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       silo.name,
                                       style: TextStyle(
                                         fontWeight: FontWeight.w900,
-                                        fontSize: 15,
+                                        fontSize: AppTextSizes.body,
                                         color: titleColor,
                                         letterSpacing: -0.3,
                                       ),
@@ -1101,7 +1057,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                     Text(
                                       _getSiloFullName(silo),
                                       style: const TextStyle(
-                                        fontSize: 10.5,
+                                        fontSize: AppTextSizes.caption,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textSecondary,
                                       ),
@@ -1142,7 +1098,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 Text(
                                   'Fresh Reading',
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w800,
                                     color: Color(0xFF15803D),
                                   ),
@@ -1175,7 +1131,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 Text(
                                   'No reading today',
                                   style: TextStyle(
-                                    fontSize: 10,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.danger,
                                   ),
@@ -1197,7 +1153,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 const Text(
                                   'FAT',
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textSecondary,
                                   ),
@@ -1205,7 +1161,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 Text(
                                   '${reading.fatPercentage.toStringAsFixed(2)}%',
                                   style: TextStyle(
-                                    fontSize: 17,
+                                    fontSize: AppTextSizes.subheading,
                                     fontWeight: FontWeight.w900,
                                     color: valueColor,
                                   ),
@@ -1222,7 +1178,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 const Text(
                                   'SNF',
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.textSecondary,
                                   ),
@@ -1230,7 +1186,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 Text(
                                   '${reading.snfPercentage.toStringAsFixed(2)}%',
                                   style: TextStyle(
-                                    fontSize: 17,
+                                    fontSize: AppTextSizes.subheading,
                                     fontWeight: FontWeight.w900,
                                     color: valueColor,
                                   ),
@@ -1246,7 +1202,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                         child: Text(
                           'Awaiting today\'s laboratory test. Enter Fat & SNF below.',
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: AppTextSizes.caption,
                             color: AppColors.textMuted,
                             fontStyle: FontStyle.italic,
                           ),
@@ -1272,7 +1228,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                 ? 'Tested: $testDateFormatted, ${reading.testTime}'
                                 : 'No sample',
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: AppTextSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
                             ),
@@ -1280,7 +1236,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                           Text(
                             hasReading ? reading.labUserName : 'Pending',
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: AppTextSizes.caption,
                               fontWeight: FontWeight.w600,
                               color: AppColors.textSecondary,
                             ),
@@ -1332,7 +1288,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                     const Text(
                       'LABORATORY READING HISTORY',
                       style: TextStyle(
-                        fontSize: 16.5,
+                        fontSize: AppTextSizes.subheading,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
                         color: AppColors.textPrimary,
@@ -1363,7 +1319,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                           Text(
                             _historyExpanded ? 'Collapse' : 'Expand',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTextSizes.caption,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
                             ),
@@ -1560,7 +1516,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                               item.testDate,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w800,
-                                                fontSize: 14,
+                                                fontSize: AppTextSizes.body,
                                               ),
                                             ),
                                             const SizedBox(width: 8),
@@ -1568,14 +1524,14 @@ class _LabPageState extends ConsumerState<LabPage> {
                                               item.testTime,
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.w600,
-                                                fontSize: 12,
+                                                fontSize: AppTextSizes.caption,
                                                 color: AppColors.textSecondary,
                                               ),
                                             ),
                                             const SizedBox(width: 10),
                                             StatusBadge.neutral(
                                               item.siloName,
-                                              fontSize: 11,
+                                              fontSize: AppTextSizes.caption,
                                             ),
                                           ],
                                         ),
@@ -1583,7 +1539,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                         Text(
                                           'Tested by: ${item.labUserName}',
                                           style: const TextStyle(
-                                            fontSize: 12,
+                                            fontSize: AppTextSizes.caption,
                                             color: AppColors.textSecondary,
                                           ),
                                         ),
@@ -1617,7 +1573,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                                   child: Text(
                                                     'Note: ${item.remarks.trim()}',
                                                     style: const TextStyle(
-                                                      fontSize: 11.5,
+                                                      fontSize: AppTextSizes.caption,
                                                       fontWeight:
                                                           FontWeight.w700,
                                                       color: AppColors.danger,
@@ -1638,7 +1594,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       Text(
                                         'Fat: ${item.fatPercentage.toStringAsFixed(2)}%',
                                         style: const TextStyle(
-                                          fontSize: 14.5,
+                                          fontSize: AppTextSizes.body,
                                           fontWeight: FontWeight.w900,
                                           color: AppColors.primaryDark,
                                         ),
@@ -1646,7 +1602,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                                       Text(
                                         'SNF: ${item.snfPercentage.toStringAsFixed(2)}%',
                                         style: const TextStyle(
-                                          fontSize: 13,
+                                          fontSize: AppTextSizes.body,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.textPrimary,
                                         ),
@@ -1762,7 +1718,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                       : 'Select Date',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: AppTextSizes.body,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -1805,7 +1761,7 @@ class _LabPageState extends ConsumerState<LabPage> {
                   Text(
                     'Today',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppTextSizes.caption,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
                     ),
@@ -1848,7 +1804,7 @@ class _LabPageState extends ConsumerState<LabPage> {
               ),
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
+                fontSize: AppTextSizes.body,
                 color: AppColors.textPrimary,
               ),
               items: [
@@ -1875,3 +1831,171 @@ class _LabPageState extends ConsumerState<LabPage> {
     );
   }
 }
+
+class _LiveTimeSelectorChip extends ConsumerStatefulWidget {
+  final bool isMobile;
+  final VoidCallback onTap;
+
+  const _LiveTimeSelectorChip({
+    required this.isMobile,
+    required this.onTap,
+  });
+
+  @override
+  ConsumerState<_LiveTimeSelectorChip> createState() => _LiveTimeSelectorChipState();
+}
+
+class _LiveTimeSelectorChipState extends ConsumerState<_LiveTimeSelectorChip> {
+  Timer? _timer;
+  late DateTime _currentTime;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = DateTime.now();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        final now = DateTime.now();
+        setState(() {
+          _currentTime = now;
+        });
+        ref.read(labProvider.notifier).updateLiveTime(now);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final labState = ref.watch(labProvider);
+    final isLive = labState.isLiveTime;
+
+    // Real-time second-by-second live clock when in LIVE mode;
+    // User picked time when in MANUAL mode
+    final String displayTime = isLive
+        ? DateFormat('hh:mm:ss a').format(_currentTime)
+        : labState.selectedTime.format(context);
+
+    return InkWell(
+      onTap: widget.onTap,
+      borderRadius: BorderRadius.circular(widget.isMobile ? 8 : 9),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: widget.isMobile ? 10 : 14,
+          vertical: widget.isMobile ? 12 : 14,
+        ),
+        decoration: BoxDecoration(
+          color: isLive ? const Color(0xFFF9FDFB) : Colors.white,
+          borderRadius: BorderRadius.circular(widget.isMobile ? 8 : 9),
+          border: Border.all(
+            color: isLive ? const Color(0xFF86EFAC) : AppColors.cardBorder,
+            width: isLive ? 1.4 : 1.2,
+          ),
+          boxShadow: isLive
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isLive ? Icons.access_time_filled_rounded : Icons.access_time_rounded,
+              size: widget.isMobile ? 16 : 17,
+              color: isLive ? const Color(0xFF16A34A) : AppColors.primary,
+            ),
+            SizedBox(width: widget.isMobile ? 8 : 10),
+            Expanded(
+              child: Text(
+                displayTime,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
+                  color: isLive ? const Color(0xFF0F2448) : AppColors.primaryDark,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            if (isLive)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 5,
+                      height: 5,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF16A34A),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    const SizedBox(width: 3),
+                    const Text(
+                      'LIVE',
+                      style: TextStyle(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF16A34A),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              InkWell(
+                onTap: () {
+                  ref.read(labProvider.notifier).resetToLiveTime();
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Tooltip(
+                  message: 'Reset to Live Real-Time Clock',
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.refresh_rounded, size: 11, color: AppColors.primary),
+                        SizedBox(width: 2),
+                        Text(
+                          'RESET',
+                          style: TextStyle(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryDark,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+

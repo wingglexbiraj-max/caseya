@@ -46,7 +46,7 @@ class AppTextField extends StatelessWidget {
         Text(
           label,
           style: const TextStyle(
-            fontSize: 13,
+            fontSize: AppTextSizes.body,
             fontWeight: FontWeight.w600,
             color: AppColors.textPrimary,
             letterSpacing: 0.2,
@@ -65,7 +65,7 @@ class AppTextField extends StatelessWidget {
           maxLines: maxLines,
           focusNode: focusNode,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: AppTextSizes.body,
             fontWeight: FontWeight.w500,
             color: readOnly ? AppColors.textSecondary : AppColors.textPrimary,
           ),
@@ -74,7 +74,7 @@ class AppTextField extends StatelessWidget {
             prefixIcon: prefixIcon,
             suffixText: suffixText,
             suffixStyle: const TextStyle(
-              fontSize: 13,
+              fontSize: AppTextSizes.caption,
               fontWeight: FontWeight.w600,
               color: AppColors.textSecondary,
             ),

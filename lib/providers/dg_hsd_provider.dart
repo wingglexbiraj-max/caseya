@@ -1,13 +1,18 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../models/dg_hsd_record.dart';
 import '../services/dg_hsd_calculator.dart';
 import '../repositories/dg_hsd_repository.dart';
+import '../core/constants/app_constants.dart';
 import '../core/utils/formatters.dart';
 
 final dgHsdRepositoryProvider = Provider((ref) => DgHsdRepository());
 
 class DgHsdState {
   final DateTime selectedDate;
+  final TimeOfDay? selectedTime;
+  final bool isLiveTime;
   final String selectedShift;
   final double fuelAdded;
   final double startPercentage;
@@ -28,13 +33,15 @@ class DgHsdState {
 
   const DgHsdState({
     required this.selectedDate,
+    this.selectedTime,
+    this.isLiveTime = true,
     this.selectedShift = 'Shift A (06:00 - 14:00)',
     this.fuelAdded = 0.0,
-    this.startPercentage = 80.0,
-    this.endPercentage = 65.0,
-    this.fuelConsumption = 50.0,
-    this.kwh = 175.0,
-    this.runningHours = 3.5,
+    this.startPercentage = 0.0,
+    this.endPercentage = 0.0,
+    this.fuelConsumption = 0.0,
+    this.kwh = 0.0,
+    this.runningHours = 0.0,
     this.remarks = '',
     this.liveResult,
     this.allRecords = const [],
@@ -49,6 +56,8 @@ class DgHsdState {
 
   DgHsdState copyWith({
     DateTime? selectedDate,
+    TimeOfDay? selectedTime,
+    bool? isLiveTime,
     String? selectedShift,
     double? fuelAdded,
     double? startPercentage,
@@ -68,10 +77,13 @@ class DgHsdState {
     String? successMessage,
     bool clearEditing = false,
     bool clearFilterShift = false,
+    bool clearSelectedTime = false,
     bool clearMessages = false,
   }) {
     return DgHsdState(
       selectedDate: selectedDate ?? this.selectedDate,
+      selectedTime: clearSelectedTime ? null : (selectedTime ?? this.selectedTime),
+      isLiveTime: isLiveTime ?? this.isLiveTime,
       selectedShift: selectedShift ?? this.selectedShift,
       fuelAdded: fuelAdded ?? this.fuelAdded,
       startPercentage: startPercentage ?? this.startPercentage,
@@ -97,7 +109,10 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
   final DgHsdRepository _repo;
 
   DgHsdNotifier(this._repo)
-      : super(DgHsdState(selectedDate: DateTime.now())) {
+      : super(DgHsdState(
+          selectedDate: DateTime.now(),
+          selectedShift: AppConstants.determineShift(DateTime.now()),
+        )) {
     init();
   }
 
@@ -136,6 +151,14 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
 
   void setDate(DateTime date) {
     state = state.copyWith(selectedDate: date);
+  }
+
+  void setTime(TimeOfDay time) {
+    state = state.copyWith(selectedTime: time, isLiveTime: false);
+  }
+
+  void resetToLiveTime() {
+    state = state.copyWith(isLiveTime: true, clearSelectedTime: true);
   }
 
   void setShift(String shift) {
@@ -250,14 +273,30 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
     }
 
     final dateStr = Formatters.formatDate(state.selectedDate);
-    final timeStr = Formatters.formatTime(DateTime.now());
+    final now = DateTime.now();
+    final String timeStr;
+    if (state.editingRecord != null) {
+      timeStr = state.editingRecord!.time;
+    } else if (state.isLiveTime) {
+      timeStr = DateFormat('hh:mm a').format(DateTime.now());
+    } else {
+      final hour = state.selectedTime!.hour;
+      final minute = state.selectedTime!.minute;
+      final dt = DateTime(now.year, now.month, now.day, hour, minute);
+      timeStr = DateFormat('hh:mm a').format(dt);
+    }
+    final effectiveShift = state.isLiveTime
+        ? AppConstants.determineShift(DateTime.now())
+        : (state.selectedTime != null
+            ? AppConstants.determineShift(DateTime(now.year, now.month, now.day, state.selectedTime!.hour, state.selectedTime!.minute))
+            : state.selectedShift);
 
     try {
       if (state.editingRecord != null) {
         final updated = state.editingRecord!.copyWith(
           date: dateStr,
           time: timeStr,
-          shift: state.selectedShift,
+          shift: effectiveShift,
           employeeId: employeeId,
           employeeName: employeeName,
           fuelAdded: state.fuelAdded,
@@ -291,7 +330,7 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
           recordId: 'DG-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
           date: dateStr,
           time: timeStr,
-          shift: state.selectedShift,
+          shift: effectiveShift,
           employeeId: employeeId,
           employeeName: employeeName,
           fuelAdded: state.fuelAdded,

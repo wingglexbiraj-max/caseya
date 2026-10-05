@@ -1,3 +1,5 @@
+import '../core/constants/app_constants.dart';
+
 class ProductionRecord {
   final String recordId;
   final String date;
@@ -11,6 +13,8 @@ class ProductionRecord {
   final double quantityProduced;
   final String unit;
   final double cratesProduced;
+  final int piecesProduced;
+  final String? standardizationRecordId;
   final double? fatPercent;
   final double? snfPercent;
   final String remarks;
@@ -28,6 +32,8 @@ class ProductionRecord {
     required this.quantityProduced,
     required this.unit,
     required this.cratesProduced,
+    this.piecesProduced = 0,
+    this.standardizationRecordId,
     this.fatPercent,
     this.snfPercent,
     this.remarks = '',
@@ -47,6 +53,8 @@ class ProductionRecord {
       'quantity_produced': quantityProduced,
       'unit': unit,
       'crates_produced': cratesProduced,
+      'pieces_produced': piecesProduced,
+      'standardization_record_id': standardizationRecordId,
       'fat_percent': fatPercent,
       'snf_percent': snfPercent,
       'remarks': remarks,
@@ -54,11 +62,15 @@ class ProductionRecord {
   }
 
   factory ProductionRecord.fromJson(Map<String, dynamic> json) {
+    final rawShift = json['shift']?.toString() ?? 'Shift A';
+    final rawTime = json['time']?.toString() ?? '';
+    final shift = AppConstants.sanitizeShiftForTime(rawShift, rawTime);
+
     return ProductionRecord(
       recordId: json['record_id']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
-      time: json['time']?.toString() ?? '',
-      shift: json['shift']?.toString() ?? 'Shift A',
+      time: rawTime,
+      shift: shift,
       employeeId: json['employee_id']?.toString() ?? '',
       employeeName: json['employee_name']?.toString() ?? 'Operator',
       productId: json['product_id']?.toString() ?? '',
@@ -67,6 +79,8 @@ class ProductionRecord {
       quantityProduced: (json['quantity_produced'] as num?)?.toDouble() ?? 0.0,
       unit: json['unit']?.toString() ?? 'Litres',
       cratesProduced: (json['crates_produced'] as num?)?.toDouble() ?? 0.0,
+      piecesProduced: (json['pieces_produced'] as num?)?.toInt() ?? 0,
+      standardizationRecordId: json['standardization_record_id']?.toString(),
       fatPercent: (json['fat_percent'] as num?)?.toDouble(),
       snfPercent: (json['snf_percent'] as num?)?.toDouble(),
       remarks: json['remarks']?.toString() ?? '',

@@ -1,15 +1,20 @@
+import 'package:flutter/material.dart' show TimeOfDay;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 import '../models/boiler_record.dart';
 import '../services/boiler_calculator.dart';
 import '../services/local_storage_service.dart';
 import '../repositories/boiler_repository.dart';
+import '../core/constants/app_constants.dart';
 import '../core/utils/formatters.dart';
 
 final boilerRepositoryProvider = Provider((ref) => BoilerRepository());
 
 class BoilerState {
   final DateTime selectedDate;
+  final TimeOfDay? selectedTime;
+  final bool isLiveTime;
   final String selectedShift;
   final double openingCm;
   final double closingCm;
@@ -30,10 +35,12 @@ class BoilerState {
 
   const BoilerState({
     required this.selectedDate,
+    this.selectedTime,
+    this.isLiveTime = true,
     this.selectedShift = 'Shift A (06:00 - 14:00)',
-    this.openingCm = 500.0,
-    this.closingCm = 430.0,
-    this.runningHours = 8.5,
+    this.openingCm = 0.0,
+    this.closingCm = 0.0,
+    this.runningHours = 0.0,
     this.fuelTopUp = 0.0,
     this.remarks = '',
     this.includeTopUpInNet = true,
@@ -51,6 +58,8 @@ class BoilerState {
 
   BoilerState copyWith({
     DateTime? selectedDate,
+    TimeOfDay? selectedTime,
+    bool? isLiveTime,
     String? selectedShift,
     double? openingCm,
     double? closingCm,
@@ -71,10 +80,13 @@ class BoilerState {
     bool clearEditing = false,
     bool clearFilterShift = false,
     bool clearFilterDate = false,
+    bool clearSelectedTime = false,
     bool clearMessages = false,
   }) {
     return BoilerState(
       selectedDate: selectedDate ?? this.selectedDate,
+      selectedTime: clearSelectedTime ? null : (selectedTime ?? this.selectedTime),
+      isLiveTime: isLiveTime ?? this.isLiveTime,
       selectedShift: selectedShift ?? this.selectedShift,
       openingCm: openingCm ?? this.openingCm,
       closingCm: closingCm ?? this.closingCm,
@@ -100,7 +112,10 @@ class BoilerNotifier extends StateNotifier<BoilerState> {
   final BoilerRepository _repo;
 
   BoilerNotifier(this._repo)
-      : super(BoilerState(selectedDate: DateTime.now())) {
+      : super(BoilerState(
+          selectedDate: DateTime.now(),
+          selectedShift: AppConstants.determineShift(DateTime.now()),
+        )) {
     init();
   }
 
@@ -139,6 +154,14 @@ class BoilerNotifier extends StateNotifier<BoilerState> {
 
   void setDate(DateTime date) {
     state = state.copyWith(selectedDate: date);
+  }
+
+  void setTime(TimeOfDay time) {
+    state = state.copyWith(selectedTime: time, isLiveTime: false);
+  }
+
+  void resetToLiveTime() {
+    state = state.copyWith(isLiveTime: true, clearSelectedTime: true);
   }
 
   void setShift(String shift) {
@@ -195,14 +218,30 @@ class BoilerNotifier extends StateNotifier<BoilerState> {
 
     final now = DateTime.now();
     final isEditing = state.editingRecord != null;
+    final String timeStr;
+    if (isEditing) {
+      timeStr = state.editingRecord!.time;
+    } else if (state.isLiveTime) {
+      timeStr = DateFormat('hh:mm a').format(DateTime.now());
+    } else {
+      final hour = state.selectedTime!.hour;
+      final minute = state.selectedTime!.minute;
+      final dt = DateTime(now.year, now.month, now.day, hour, minute);
+      timeStr = DateFormat('hh:mm a').format(dt);
+    }
+    final effectiveShift = state.isLiveTime
+        ? AppConstants.determineShift(DateTime.now())
+        : (state.selectedTime != null
+            ? AppConstants.determineShift(DateTime(now.year, now.month, now.day, state.selectedTime!.hour, state.selectedTime!.minute))
+            : state.selectedShift);
 
     final record = BoilerRecord(
       recordId: isEditing
           ? state.editingRecord!.recordId
           : 'BLR-${const Uuid().v4().substring(0, 8).toUpperCase()}',
       date: Formatters.formatIsoDate(state.selectedDate),
-      time: Formatters.formatTime(now),
-      shift: state.selectedShift,
+      time: timeStr,
+      shift: effectiveShift,
       employeeId: employeeId,
       employeeName: employeeName,
       openingCm: state.openingCm,

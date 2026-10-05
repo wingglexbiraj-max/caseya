@@ -40,6 +40,17 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
   }
 
   void _onCalculate() {
+    final state = ref.read(productCalculatorProvider);
+    if (state.selectedProduct == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select a product first.'),
+          backgroundColor: AppColors.warning,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
     if (_formKey.currentState?.validate() ?? false) {
       final qty = Formatters.parseDouble(_quantityController.text);
       ref.read(productCalculatorProvider.notifier).setQuantity(qty);
@@ -118,7 +129,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w700),
+                          style: const TextStyle(color: AppColors.danger, fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -127,198 +138,169 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                 const SizedBox(height: 16),
               ],
 
-              // Golden Ratio Layout: 61.8% Input Controls vs 38.2% Metadata
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 880;
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              // Input Specifications Section
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      // Calculation Controls Form (Flex 62)
-                      Expanded(
-                        flex: isWide ? 62 : 100,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(7),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(
-                                    Icons.calculate_rounded,
-                                    size: 20,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                const Text(
-                                  'INPUT SPECIFICATIONS',
-                                  style: TextStyle(
-                                    fontSize: 16.5,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.6,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            AppCard(
-                              topBorderColor: AppColors.primary,
-                              topBorderHeight: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-
-                              // Product Selection Dropdown
-                              SearchableDropdown<ProductModel>(
-                                label: 'Product',
-                                hint: 'Select product from plant catalog...',
-                                items: state.products
-                                    .where((p) =>
-                                        p.productName.trim() != '2' &&
-                                        p.productId.trim() != '2' &&
-                                        p.productName.trim().isNotEmpty)
-                                    .toList(),
-                                selectedItem: state.selectedProduct,
-                                itemLabel: (p) => p.productName,
-                                onChanged: (product) {
-                                  if (product != null) {
-                                    ref.read(productCalculatorProvider.notifier).selectProduct(product);
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: 16),
-
-                              // Dynamic Input Mode Selection
-                              if (state.selectedProduct != null) ...[
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Text(
-                                          'Input Mode',
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w700,
-                                            color: AppColors.textPrimary,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          '(Allowed: ${state.selectedProduct!.allowedInputModes.join(', ')})',
-                                          style: const TextStyle(
-                                            fontSize: 11.5,
-                                            color: AppColors.textMuted,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Wrap(
-                                      spacing: 8,
-                                      runSpacing: 8,
-                                      children: state.selectedProduct!.allowedInputModes.map((mode) {
-                                        final isSelected = state.selectedInputMode == mode;
-                                        return ChoiceChip(
-                                          avatar: Icon(
-                                            _getInputModeIcon(mode),
-                                            size: 16,
-                                            color: isSelected ? Colors.white : AppColors.textSecondary,
-                                          ),
-                                          label: Text(mode),
-                                          selected: isSelected,
-                                          showCheckmark: false,
-                                          selectedColor: AppColors.primary,
-                                          backgroundColor: AppColors.background,
-                                          elevation: isSelected ? 1 : 0,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(8),
-                                            side: BorderSide(
-                                              color: isSelected ? AppColors.primary : AppColors.cardBorder,
-                                              width: isSelected ? 1.6 : 1.0,
-                                            ),
-                                          ),
-                                          labelStyle: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                                            color: isSelected ? Colors.white : AppColors.textSecondary,
-                                          ),
-                                          onSelected: (selected) {
-                                            if (selected) {
-                                              ref.read(productCalculatorProvider.notifier).setInputMode(mode);
-                                            }
-                                          },
-                                        );
-                                      }).toList(),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-
-                              // Quantity Input
-                              AppTextField(
-                                label: 'Enter Quantity',
-                                hint: 'e.g. 150',
-                                controller: _quantityController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                suffixText: state.selectedInputMode,
-                                validator: (val) {
-                                  if (val == null || val.trim().isEmpty) {
-                                    return 'Please enter a quantity';
-                                  }
-                                  final n = Formatters.parseDouble(val);
-                                  if (n <= 0) return 'Quantity must be greater than zero';
-                                  return null;
-                                },
-                              ),
-                              const SizedBox(height: 22),
-
-                              // Calculate Button
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 16),
-                                  ),
-                                  icon: const Icon(Icons.calculate_rounded, size: 20),
-                                  label: const Text('Calculate'),
-                                  onPressed: _onCalculate,
-                                ),
-                              ),
-                                ],
-                              ),
-                            ),
-                          ],
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.calculate_rounded,
+                          size: 20,
+                          color: AppColors.primary,
                         ),
                       ),
-
-                      if (isWide) const SizedBox(width: 20),
-
-                      // Product Metadata Card (Flex 38)
-                      if (isWide && state.selectedProduct != null)
-                        Expanded(
-                          flex: 38,
-                          child: _buildMetadataCard(state.selectedProduct!),
+                      const SizedBox(width: 10),
+                      const Text(
+                        'INPUT SPECIFICATIONS',
+                        style: TextStyle(
+                          fontSize: AppTextSizes.subheading,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 0.6,
+                          color: AppColors.textPrimary,
                         ),
+                      ),
                     ],
-                  );
-                },
-              ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppCard(
+                    topBorderColor: AppColors.primary,
+                    topBorderHeight: 4,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Product Selection Dropdown (Product Chip)
+                        SearchableDropdown<ProductModel>(
+                          label: 'Product',
+                          hint: 'Select Product',
+                          items: state.products
+                              .where((p) =>
+                                  p.productName.trim() != '2' &&
+                                  p.productId.trim() != '2' &&
+                                  p.productName.trim().isNotEmpty)
+                              .toList(),
+                          selectedItem: state.selectedProduct,
+                          itemLabel: (p) => p.productName,
+                          onChanged: (product) {
+                            ref.read(productCalculatorProvider.notifier).selectProduct(product);
+                          },
+                        ),
+                        const SizedBox(height: 12),
 
-              // Mobile Metadata Card underneath
-              if (isMobile && state.selectedProduct != null) ...[
-                const SizedBox(height: 16),
-                _buildMetadataCard(state.selectedProduct!),
-              ],
+                        // Collapsible PRODUCT SPECIFICATIONS directly below Product Chip
+                        _buildCollapsibleSpecifications(state.selectedProduct),
+                        const SizedBox(height: 16),
+
+                        // Dynamic Input Mode Selection
+                        if (state.selectedProduct != null) ...[
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text(
+                                    'Input Mode',
+                                    style: TextStyle(
+                                      fontSize: AppTextSizes.body,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '(Allowed: ${state.selectedProduct!.allowedInputModes.join(', ')})',
+                                    style: const TextStyle(
+                                      fontSize: AppTextSizes.caption,
+                                      color: AppColors.textMuted,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: state.selectedProduct!.allowedInputModes.map((mode) {
+                                  final isSelected = state.selectedInputMode == mode;
+                                  return ChoiceChip(
+                                    avatar: Icon(
+                                      _getInputModeIcon(mode),
+                                      size: 16,
+                                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                                    ),
+                                    label: Text(mode),
+                                    selected: isSelected,
+                                    showCheckmark: false,
+                                    selectedColor: AppColors.primary,
+                                    backgroundColor: AppColors.background,
+                                    elevation: isSelected ? 1 : 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      side: BorderSide(
+                                        color: isSelected ? AppColors.primary : AppColors.cardBorder,
+                                        width: isSelected ? 1.6 : 1.0,
+                                      ),
+                                    ),
+                                    labelStyle: TextStyle(
+                                      fontSize: AppTextSizes.body,
+                                      fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                                      color: isSelected ? Colors.white : AppColors.textSecondary,
+                                    ),
+                                    onSelected: (selected) {
+                                      if (selected) {
+                                        ref.read(productCalculatorProvider.notifier).setInputMode(mode);
+                                      }
+                                    },
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        // Quantity Input
+                        AppTextField(
+                          label: 'Enter Quantity',
+                          hint: 'e.g. 150',
+                          controller: _quantityController,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          suffixText: state.selectedProduct != null ? state.selectedInputMode : 'Qty',
+                          validator: (val) {
+                            if (val == null || val.trim().isEmpty) {
+                              return 'Please enter a quantity';
+                            }
+                            final n = Formatters.parseDouble(val);
+                            if (n <= 0) return 'Quantity must be greater than zero';
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 22),
+
+                        // Calculate Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            icon: const Icon(Icons.calculate_rounded, size: 20),
+                            label: const Text('Calculate'),
+                            onPressed: _onCalculate,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
 
               // Results Section
               if (state.result != null) ...[
@@ -334,7 +316,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     ),
                     icon: const Icon(Icons.save_outlined, size: 16),
-                    label: const Text('Save Record', style: TextStyle(fontSize: 12.5)),
+                    label: const Text('Save Record', style: TextStyle(fontSize: AppTextSizes.caption)),
                     onPressed: _onSave,
                   ),
                   items: [
@@ -388,148 +370,170 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
     );
   }
 
-  Widget _buildMetadataCard(ProductModel product) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(7),
-                  decoration: BoxDecoration(
-                    color: AppColors.goldAccent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.inventory_2_rounded,
-                    size: 20,
-                    color: AppColors.goldAccent,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Text(
-                  'PRODUCT SPECIFICATIONS',
-                  style: TextStyle(
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.6,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-            StatusBadge.neutral(product.category),
-          ],
+  Widget _buildCollapsibleSpecifications(ProductModel? product) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF9FBFA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: _metadataExpanded
+              ? AppColors.goldAccent.withValues(alpha: 0.6)
+              : AppColors.cardBorder,
+          width: 1.1,
         ),
-        const SizedBox(height: 12),
-        AppCard(
-          topBorderColor: AppColors.goldAccent,
-          topBorderHeight: 4,
-          backgroundColor: const Color(0xFFF9FBFA),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              InkWell(
-                onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
-                borderRadius: BorderRadius.circular(8),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _metadataExpanded
-                            ? 'Hide Specifications'
-                            : 'Show Specifications & Metadata',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryDark,
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppColors.cardBorderSubtle),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              _metadataExpanded ? 'Collapse' : 'Expand',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            Icon(
-                              _metadataExpanded
-                                  ? Icons.keyboard_arrow_up_rounded
-                                  : Icons.keyboard_arrow_down_rounded,
-                              size: 18,
-                              color: AppColors.primary,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (_metadataExpanded) ...[
-                const SizedBox(height: 14),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.cardBorder, width: 1.1),
-              ),
-              clipBehavior: Clip.antiAlias,
-              child: Column(
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () => setState(() => _metadataExpanded = !_metadataExpanded),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              child: Row(
                 children: [
-                  _buildTabulatedRow('Item Code', product.itemCode, isEven: false),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Product Code', product.productCode, isEven: true, valueColor: AppColors.primary),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Pieces per Crate', '${product.piecesPerCrate} pcs / crate', isEven: false),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Per Crate Quantity', product.calculatedPerCrateDisplay, isEven: true),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Price per Piece', product.priceDisplay, isEven: false, valueColor: AppColors.goldAccent),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Pack Size', product.packSizeDisplay, isEven: true),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Shelf Life', product.shelfLife, isEven: false),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Base Unit', product.baseUnitLabel, isEven: true),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow(
-                    'Target FAT / SNF',
-                    'FAT: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'}   •   SNF: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
-                    isEven: false,
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.goldAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(
+                      Icons.inventory_2_rounded,
+                      size: 16,
+                      color: AppColors.goldAccent,
+                    ),
                   ),
-                  const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
-                  _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: true),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'PRODUCT SPECIFICATIONS',
+                    style: TextStyle(
+                      fontSize: AppTextSizes.caption,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0.6,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  if (product != null) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: AppColors.primary.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Text(
+                        product.category,
+                        style: const TextStyle(
+                          fontSize: AppTextSizes.caption,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: AppColors.cardBorderSubtle),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _metadataExpanded ? 'Collapse' : 'Expand',
+                          style: const TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          _metadataExpanded
+                              ? Icons.keyboard_arrow_up_rounded
+                              : Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: AppColors.primary,
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+          ),
+          if (_metadataExpanded) ...[
+            const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+            if (product != null)
+              Container(
+                margin: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.cardBorder, width: 1.1),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: [
+                    _buildTabulatedRow('Item Code', product.itemCode, isEven: false),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Product Code', product.productCode, isEven: true, valueColor: AppColors.primary),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Pieces per Crate', '${product.piecesPerCrate} pcs / crate', isEven: false),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Per Crate Quantity', product.calculatedPerCrateDisplay, isEven: true),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Price per Piece', product.priceDisplay, isEven: false, valueColor: AppColors.goldAccent),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Pack Size', product.packSizeDisplay, isEven: true),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Shelf Life', product.shelfLife, isEven: false),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Base Unit', product.baseUnitLabel, isEven: true),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow(
+                      'Target FAT / SNF',
+                      'FAT: ${product.targetFat != null ? Formatters.formatPercent(product.targetFat!) : '—'}   •   SNF: ${product.targetSnf != null ? Formatters.formatPercent(product.targetSnf!) : '—'}',
+                      isEven: false,
+                    ),
+                    const Divider(height: 1, thickness: 1, color: AppColors.cardBorder),
+                    _buildTabulatedRow('Allowed Modes', product.allowedInputModes.join(' • '), isEven: true),
+                  ],
+                ),
+              )
+            else
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline_rounded, size: 18, color: AppColors.textMuted),
+                    SizedBox(width: 8),
+                    Text(
+                      'Select a product above to inspect specifications & packaging standards.',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        color: AppColors.textSecondary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
           ],
         ],
       ),
-    ),
-  ],
-);
-}
+    );
+  }
 
   Widget _buildTabulatedRow(
     String label,
@@ -552,7 +556,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
               child: Text(
                 label,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: AppTextSizes.caption,
                   fontWeight: FontWeight.w600,
                   color: Color(0xFF475569),
                   letterSpacing: -0.2,
@@ -573,7 +577,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   child: Text(
                     value,
                     style: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: AppTextSizes.caption,
                       fontWeight: FontWeight.w700,
                       color: valueColor ?? AppColors.textPrimary,
                     ),
@@ -650,7 +654,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                     const Text(
                       'RECENT PRODUCT CALCULATIONS',
                       style: TextStyle(
-                        fontSize: 16.5,
+                        fontSize: AppTextSizes.subheading,
                         fontWeight: FontWeight.w900,
                         letterSpacing: 0.6,
                         color: AppColors.textPrimary,
@@ -681,7 +685,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                           Text(
                             _historyExpanded ? 'Collapse' : 'Expand',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: AppTextSizes.caption,
                               fontWeight: FontWeight.w700,
                               color: AppColors.primary,
                             ),
@@ -887,7 +891,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                             titleText,
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w800,
-                                              fontSize: 14,
+                                              fontSize: AppTextSizes.body,
                                               color: AppColors.textPrimary,
                                             ),
                                           ),
@@ -897,7 +901,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                             'Packing: ${item.packingNeeded.isNotEmpty ? item.packingNeeded : '${Formatters.formatSmart(item.crates)} Crates'} | '
                                             'Quantity: ${item.totalQuantityDisplay.isNotEmpty ? item.totalQuantityDisplay : '${Formatters.formatSmart(item.volumeLitres)} L'}',
                                             style: const TextStyle(
-                                              fontSize: 12,
+                                              fontSize: AppTextSizes.caption,
                                               color: AppColors.textSecondary,
                                               height: 1.35,
                                             ),
@@ -916,7 +920,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                           '${Formatters.formatInt(item.pieces)} pcs',
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w800,
-                                            fontSize: 14,
+                                            fontSize: AppTextSizes.body,
                                             color: AppColors.primaryDark,
                                           ),
                                         ),
@@ -926,7 +930,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                                           Text(
                                             item.totalPriceDisplay,
                                             style: const TextStyle(
-                                              fontSize: 13,
+                                              fontSize: AppTextSizes.body,
                                               fontWeight: FontWeight.w800,
                                               color: AppColors.goldAccent,
                                             ),
@@ -1012,7 +1016,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                       : 'Select Date',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    fontSize: 13,
+                    fontSize: AppTextSizes.body,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -1054,7 +1058,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
                   Text(
                     'Today',
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: AppTextSizes.caption,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
                     ),
@@ -1106,7 +1110,7 @@ class _ProductCalculatorPageState extends ConsumerState<ProductCalculatorPage> {
               ),
               style: const TextStyle(
                 fontWeight: FontWeight.w700,
-                fontSize: 13,
+                fontSize: AppTextSizes.body,
                 color: AppColors.textPrimary,
               ),
               items: [

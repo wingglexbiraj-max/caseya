@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../constants/app_colors.dart';
 
+export 'app_text_sizes.dart';
+
 class AppTheme {
   static ThemeData get lightTheme {
     final baseTextTheme = GoogleFonts.interTextTheme();
@@ -34,44 +36,44 @@ class AppTheme {
         displayLarge: baseTextTheme.displayLarge?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w800,
-          fontSize: 38, // Golden ratio headline
+          fontSize: AppTextSizes.display, // Golden ratio headline
           letterSpacing: -1.0,
         ),
         headlineLarge: baseTextTheme.headlineLarge?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w800,
-          fontSize: 24, // Golden ratio subheadline (~14.5 * 1.618)
+          fontSize: AppTextSizes.heading, // Golden ratio subheadline
           letterSpacing: -0.6,
         ),
         headlineMedium: baseTextTheme.headlineMedium?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w700,
-          fontSize: 18,
+          fontSize: AppTextSizes.subheading,
           letterSpacing: -0.3,
         ),
         titleLarge: baseTextTheme.titleLarge?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w700,
-          fontSize: 16,
+          fontSize: AppTextSizes.subheading,
         ),
         titleMedium: baseTextTheme.titleMedium?.copyWith(
           color: AppColors.textPrimary,
           fontWeight: FontWeight.w600,
-          fontSize: 14.5,
+          fontSize: AppTextSizes.body,
         ),
         bodyLarge: baseTextTheme.bodyLarge?.copyWith(
           color: AppColors.textPrimary,
-          fontSize: 14.5,
+          fontSize: AppTextSizes.body,
           height: 1.5,
         ),
         bodyMedium: baseTextTheme.bodyMedium?.copyWith(
           color: AppColors.textSecondary,
-          fontSize: 13,
+          fontSize: AppTextSizes.caption,
           height: 1.45,
         ),
         labelLarge: baseTextTheme.labelLarge?.copyWith(
           fontWeight: FontWeight.w600,
-          fontSize: 13.5,
+          fontSize: AppTextSizes.body,
           letterSpacing: 0.2,
         ),
       ),
@@ -110,12 +112,12 @@ class AppTheme {
         ),
         labelStyle: const TextStyle(
           color: AppColors.textSecondary,
-          fontSize: 13.5,
+          fontSize: AppTextSizes.body,
           fontWeight: FontWeight.w500,
         ),
         hintStyle: const TextStyle(
           color: AppColors.textMuted,
-          fontSize: 13,
+          fontSize: AppTextSizes.caption,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
@@ -128,7 +130,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(9),
           ),
           textStyle: const TextStyle(
-            fontSize: 14,
+            fontSize: AppTextSizes.body,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.2,
           ),
@@ -143,7 +145,7 @@ class AppTheme {
             borderRadius: BorderRadius.circular(9),
           ),
           textStyle: const TextStyle(
-            fontSize: 13.5,
+            fontSize: AppTextSizes.body,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -161,7 +163,7 @@ class AppTheme {
         centerTitle: false,
         titleTextStyle: TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 18,
+          fontSize: AppTextSizes.subheading,
           fontWeight: FontWeight.w700,
         ),
       ),
@@ -172,12 +174,12 @@ class AppTheme {
         checkmarkColor: Colors.white,
         labelStyle: const TextStyle(
           color: AppColors.textPrimary,
-          fontSize: 13,
+          fontSize: AppTextSizes.caption,
           fontWeight: FontWeight.w500,
         ),
         secondaryLabelStyle: const TextStyle(
           color: Colors.white,
-          fontSize: 13,
+          fontSize: AppTextSizes.caption,
           fontWeight: FontWeight.w700,
         ),
         iconTheme: const IconThemeData(

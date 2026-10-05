@@ -390,7 +390,7 @@ class _StockPageState extends State<StockPage> {
                           ),
                         ),
                         labelStyle: TextStyle(
-                          fontSize: 12.5,
+                          fontSize: AppTextSizes.caption,
                           fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
                           color: isSelected ? Colors.white : AppColors.textSecondary,
                         ),
@@ -412,7 +412,7 @@ class _StockPageState extends State<StockPage> {
                       Text(
                         '${filtered.length} ITEMS LOGGED',
                         style: const TextStyle(
-                          fontSize: 11.5,
+                          fontSize: AppTextSizes.caption,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 1.0,
                           color: AppColors.textSecondary,
@@ -460,19 +460,19 @@ class _StockPageState extends State<StockPage> {
                                           item['name'],
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 14,
+                                            fontSize: AppTextSizes.body,
                                             color: AppColors.textPrimary,
                                           ),
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      StatusBadge.neutral(item['category'], fontSize: 10.5),
+                                      StatusBadge.neutral(item['category'], fontSize: AppTextSizes.caption),
                                     ],
                                   ),
                                   const SizedBox(height: 3),
                                   Text(
                                     item['details'],
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted),
                                   ),
                                 ],
                               ),
@@ -485,7 +485,7 @@ class _StockPageState extends State<StockPage> {
                                   item['packaging'],
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 14,
+                                    fontSize: AppTextSizes.body,
                                     color: AppColors.primaryDark,
                                   ),
                                 ),
@@ -493,7 +493,7 @@ class _StockPageState extends State<StockPage> {
                                 Text(
                                   item['totalQty'],
                                   style: const TextStyle(
-                                    fontSize: 12,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
                                   ),
@@ -503,7 +503,7 @@ class _StockPageState extends State<StockPage> {
                                   const Text(
                                     'Low Buffer Alert',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: AppTextSizes.caption,
                                       color: AppColors.danger,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -512,7 +512,7 @@ class _StockPageState extends State<StockPage> {
                                   const Text(
                                     'Adequate',
                                     style: TextStyle(
-                                      fontSize: 11,
+                                      fontSize: AppTextSizes.caption,
                                       color: AppColors.success,
                                       fontWeight: FontWeight.w600,
                                     ),
@@ -553,15 +553,15 @@ class _StockPageState extends State<StockPage> {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                 ),
                 Text(
                   val,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                  style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                 ),
                 Text(
                   subtitle,
-                  style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                  style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textMuted),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],

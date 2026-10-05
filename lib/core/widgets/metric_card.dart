@@ -92,7 +92,7 @@ class _MetricCardState extends State<MetricCard> {
               child: Text(
                 widget.title,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: AppTextSizes.caption,
                   fontWeight: FontWeight.w600,
                   color: AppColors.textSecondary,
                   letterSpacing: 0.1,
@@ -130,7 +130,7 @@ class _MetricCardState extends State<MetricCard> {
               child: Text(
                 widget.value,
                 style: const TextStyle(
-                  fontSize: 28, // Golden ratio metric display
+                  fontSize: AppTextSizes.heading, // Golden ratio metric display
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary,
                   letterSpacing: -0.8,
@@ -143,7 +143,7 @@ class _MetricCardState extends State<MetricCard> {
               Text(
                 widget.unit!,
                 style: const TextStyle(
-                  fontSize: 14,
+                  fontSize: AppTextSizes.body,
                   fontWeight: FontWeight.w700,
                   color: AppColors.textSecondary,
                 ),
@@ -156,7 +156,7 @@ class _MetricCardState extends State<MetricCard> {
           Text(
             widget.subtitle!,
             style: const TextStyle(
-              fontSize: 12,
+              fontSize: AppTextSizes.caption,
               fontWeight: FontWeight.w500,
               color: AppColors.textMuted,
             ),

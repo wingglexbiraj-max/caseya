@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+export '../theme/app_text_sizes.dart';
 
 /// CASEYA 4-Color Golden Ratio Design System:
 /// 1. Midnight Navy (30% - Structural Identity & Key Actions)

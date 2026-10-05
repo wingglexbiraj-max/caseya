@@ -45,10 +45,11 @@ class ProductCalculatorState {
     String? successMessage,
     bool clearResult = false,
     bool clearMessages = false,
+    bool clearSelectedProduct = false,
   }) {
     return ProductCalculatorState(
       products: products ?? this.products,
-      selectedProduct: selectedProduct ?? this.selectedProduct,
+      selectedProduct: clearSelectedProduct ? null : (selectedProduct ?? this.selectedProduct),
       selectedInputMode: selectedInputMode ?? this.selectedInputMode,
       enteredQuantity: enteredQuantity ?? this.enteredQuantity,
       result: clearResult ? null : (result ?? this.result),
@@ -74,25 +75,30 @@ class ProductCalculatorNotifier extends StateNotifier<ProductCalculatorState> {
     final products = await _productRepo.getProducts();
     final history = await _stdRepo.getProductCalcRecords();
 
-    ProductModel? initialProduct;
-    if (products.isNotEmpty) {
-      initialProduct = products.first;
-    }
-
     state = state.copyWith(
       products: products,
-      selectedProduct: initialProduct,
-      selectedInputMode: initialProduct?.allowedInputModes.first ?? 'Pieces',
+      clearSelectedProduct: true,
+      selectedInputMode: 'Pieces',
       history: history,
       isLoading: false,
     );
   }
 
-  void selectProduct(ProductModel product) {
+  void selectProduct(ProductModel? product) {
+    if (product == null) {
+      state = state.copyWith(
+        clearSelectedProduct: true,
+        clearResult: true,
+        clearMessages: true,
+      );
+      return;
+    }
     // If current mode is not allowed for the new product, switch to its first allowed mode
     String newMode = state.selectedInputMode;
     if (!product.allowedInputModes.contains(newMode)) {
-      newMode = product.allowedInputModes.first;
+      newMode = product.allowedInputModes.isNotEmpty
+          ? product.allowedInputModes.first
+          : 'Pieces';
     }
 
     state = state.copyWith(

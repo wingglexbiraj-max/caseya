@@ -8,7 +8,7 @@ void main() {
       expect(products.length, greaterThanOrEqualTo(6));
 
       // 1. std milk: target fat 4.5, target snf 8.5, sugar NA, shelf life 2 days
-      final stdMilk = products.firstWhere((p) => p.productName == 'std milk');
+      final stdMilk = products.firstWhere((p) => p.productName.toLowerCase().contains('std'));
       expect(stdMilk.targetFat, 4.5);
       expect(stdMilk.targetSnf, 8.5);
       expect(stdMilk.targetSugar, isNull);
@@ -16,7 +16,7 @@ void main() {
       expect(stdMilk.shelfLife, '2 Days');
 
       // 2. army milk (sm+): target fat 3.5, target snf 8.5, sugar NA, shelf life 2 days
-      final armyMilk = products.firstWhere((p) => p.productName == 'army milk (sm+)');
+      final armyMilk = products.firstWhere((p) => p.productName.toLowerCase().contains('army') || p.productName.toLowerCase().contains('sm+'));
       expect(armyMilk.targetFat, 3.5);
       expect(armyMilk.targetSnf, 8.5);
       expect(armyMilk.targetSugar, isNull);
@@ -24,7 +24,7 @@ void main() {
       expect(armyMilk.shelfLife, '2 Days');
 
       // 3. plain curd cup: target fat 3.0, target snf 14, sugar NA, shelf life 12 days
-      final plainCurdCup = products.firstWhere((p) => p.productName == 'plain curd cup');
+      final plainCurdCup = products.firstWhere((p) => p.productName.toLowerCase().contains('plain') && p.productName.toLowerCase().contains('cup'));
       expect(plainCurdCup.targetFat, 3.0);
       expect(plainCurdCup.targetSnf, 14.0);
       expect(plainCurdCup.targetSugar, isNull);
@@ -32,7 +32,7 @@ void main() {
       expect(plainCurdCup.shelfLife, '12 Days');
 
       // 4. plain pouch curd: target fat 3.0, target snf 11, sugar NA, shelf life 12 days
-      final plainCurdPouch = products.firstWhere((p) => p.productName == 'plain pouch curd');
+      final plainCurdPouch = products.firstWhere((p) => p.productName.toLowerCase().contains('plain') && p.productName.toLowerCase().contains('pouch'));
       expect(plainCurdPouch.targetFat, 3.0);
       expect(plainCurdPouch.targetSnf, 11.0);
       expect(plainCurdPouch.targetSugar, isNull);
@@ -40,7 +40,7 @@ void main() {
       expect(plainCurdPouch.shelfLife, '12 Days');
 
       // 5. sweet curd: target fat 3, target snf 14, sugar 12%, shelf life 12 days
-      final sweetCurd = products.firstWhere((p) => p.productName == 'sweet curd');
+      final sweetCurd = products.firstWhere((p) => p.productName.toLowerCase().contains('sweet'));
       expect(sweetCurd.targetFat, 3.0);
       expect(sweetCurd.targetSnf, 14.0);
       expect(sweetCurd.targetSugar, 12.0);
@@ -48,7 +48,7 @@ void main() {
       expect(sweetCurd.shelfLife, '12 Days');
 
       // 6. lassi: target fat 1.5, target snf 7.0, sugar 15%, shelf life 7 days
-      final lassi = products.firstWhere((p) => p.productName == 'lassi');
+      final lassi = products.firstWhere((p) => p.productName.toLowerCase().contains('lassi'));
       expect(lassi.targetFat, 1.5);
       expect(lassi.targetSnf, 7.0);
       expect(lassi.targetSugar, 15.0);

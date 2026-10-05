@@ -10,7 +10,8 @@ final labMilkTestRepositoryProvider = Provider((ref) => LabMilkTestRepository())
 class LabState {
   final DateTime selectedDate;
   final TimeOfDay selectedTime;
-  final String selectedSiloId;
+  final bool isLiveTime;
+  final String? selectedSiloId;
   final double? fatInput;
   final double? snfInput;
   final String remarks;
@@ -29,7 +30,8 @@ class LabState {
   const LabState({
     required this.selectedDate,
     required this.selectedTime,
-    this.selectedSiloId = 'PMST',
+    this.isLiveTime = true,
+    this.selectedSiloId,
     this.fatInput,
     this.snfInput,
     this.remarks = '',
@@ -49,6 +51,7 @@ class LabState {
   LabState copyWith({
     DateTime? selectedDate,
     TimeOfDay? selectedTime,
+    bool? isLiveTime,
     String? selectedSiloId,
     double? fatInput,
     double? snfInput,
@@ -68,11 +71,13 @@ class LabState {
     bool clearFilterSiloId = false,
     bool clearFilterDate = false,
     bool clearMessages = false,
+    bool clearSelectedSilo = false,
   }) {
     return LabState(
       selectedDate: selectedDate ?? this.selectedDate,
       selectedTime: selectedTime ?? this.selectedTime,
-      selectedSiloId: selectedSiloId ?? this.selectedSiloId,
+      isLiveTime: isLiveTime ?? this.isLiveTime,
+      selectedSiloId: clearSelectedSilo ? null : (selectedSiloId ?? this.selectedSiloId),
       fatInput: fatInput ?? this.fatInput,
       snfInput: snfInput ?? this.snfInput,
       remarks: remarks ?? this.remarks,
@@ -98,6 +103,7 @@ class LabNotifier extends StateNotifier<LabState> {
       : super(LabState(
           selectedDate: DateTime.now(),
           selectedTime: TimeOfDay.now(),
+          isLiveTime: true,
           filterDate: DateTime.now(),
         )) {
     init();
@@ -125,12 +131,37 @@ class LabNotifier extends StateNotifier<LabState> {
     state = state.copyWith(selectedDate: date);
   }
 
-  void setTime(TimeOfDay time) {
-    state = state.copyWith(selectedTime: time);
+  void setTime(TimeOfDay time, {bool isManual = true}) {
+    state = state.copyWith(selectedTime: time, isLiveTime: !isManual);
   }
 
-  void setSiloId(String siloId) {
-    state = state.copyWith(selectedSiloId: siloId);
+  void resetToLiveTime() {
+    state = state.copyWith(
+      selectedTime: TimeOfDay.now(),
+      selectedDate: DateTime.now(),
+      isLiveTime: true,
+    );
+  }
+
+  void updateLiveTime(DateTime now) {
+    if (state.isLiveTime && state.editingTest == null) {
+      final newTod = TimeOfDay.fromDateTime(now);
+      if (newTod.minute != state.selectedTime.minute ||
+          newTod.hour != state.selectedTime.hour ||
+          now.day != state.selectedDate.day) {
+        state = state.copyWith(
+          selectedTime: newTod,
+          selectedDate: now,
+        );
+      }
+    }
+  }
+
+  void setSiloId(String? siloId) {
+    state = state.copyWith(
+      selectedSiloId: siloId,
+      clearSelectedSilo: siloId == null,
+    );
   }
 
   void setFat(double? val) {
@@ -188,9 +219,25 @@ class LabNotifier extends StateNotifier<LabState> {
 
   void startEditing(LabMilkTest test) {
     final parsedDate = DateTime.tryParse(test.testDate) ?? DateTime.now();
+    TimeOfDay parsedTime = TimeOfDay.now();
+    try {
+      final clean = test.testTime.trim().toUpperCase();
+      final isPm = clean.contains('PM');
+      final match = RegExp(r'(\d{1,2}):(\d{2})').firstMatch(clean);
+      if (match != null) {
+        int h = int.parse(match.group(1)!);
+        int m = int.parse(match.group(2)!);
+        if (isPm && h < 12) h += 12;
+        if (!isPm && clean.contains('AM') && h == 12) h = 0;
+        parsedTime = TimeOfDay(hour: h, minute: m);
+      }
+    } catch (_) {}
+
     state = state.copyWith(
       editingTest: test,
       selectedDate: parsedDate,
+      selectedTime: parsedTime,
+      isLiveTime: false,
       selectedSiloId: test.siloId,
       fatInput: test.fatPercentage,
       snfInput: test.snfPercentage,
@@ -201,8 +248,10 @@ class LabNotifier extends StateNotifier<LabState> {
   void cancelEditing() {
     state = state.copyWith(
       clearEditing: true,
+      clearSelectedSilo: true,
       selectedDate: DateTime.now(),
       selectedTime: TimeOfDay.now(),
+      isLiveTime: true,
       fatInput: null,
       snfInput: null,
       remarks: '',
@@ -213,6 +262,11 @@ class LabNotifier extends StateNotifier<LabState> {
     required String userId,
     required String userName,
   }) async {
+    if (state.selectedSiloId == null || state.selectedSiloId!.isEmpty) {
+      state = state.copyWith(errorMessage: 'Please select a tank/silo');
+      return false;
+    }
+
     final fat = state.fatInput;
     final snf = state.snfInput;
 
@@ -225,13 +279,20 @@ class LabNotifier extends StateNotifier<LabState> {
       return false;
     }
 
-    final dateStr = Formatters.formatDate(state.selectedDate);
-    final timeStr = _formatTimeOfDay(state.selectedTime);
+    final effectiveTime = state.isLiveTime && state.editingTest == null
+        ? TimeOfDay.now()
+        : state.selectedTime;
+    final effectiveDate = state.isLiveTime && state.editingTest == null
+        ? DateTime.now()
+        : state.selectedDate;
+
+    final dateStr = Formatters.formatDate(effectiveDate);
+    final timeStr = _formatTimeOfDay(effectiveTime);
 
     // Resolve Silo Name
     final silo = state.silos.firstWhere(
       (s) => s.id == state.selectedSiloId,
-      orElse: () => SiloModel(id: state.selectedSiloId, name: state.selectedSiloId, description: ''),
+      orElse: () => SiloModel(id: state.selectedSiloId ?? '', name: state.selectedSiloId ?? '', description: ''),
     );
 
     try {
@@ -262,6 +323,8 @@ class LabNotifier extends StateNotifier<LabState> {
           allTests: updatedList,
           todayLatestBySilo: todayMap,
           clearEditing: true,
+          clearSelectedSilo: true,
+          isLiveTime: true,
           successMessage: 'Lab test for ${silo.name} updated successfully.',
         );
         _applyFilters();
@@ -291,7 +354,9 @@ class LabNotifier extends StateNotifier<LabState> {
         state = state.copyWith(
           allTests: newList,
           todayLatestBySilo: todayMap,
-          successMessage: 'Lab test for ${silo.name} recorded. Fat: ${fat.toStringAsFixed(2)}%, SNF: ${snf.toStringAsFixed(2)}%',
+          clearSelectedSilo: true,
+          isLiveTime: true,
+          successMessage: 'Lab test for ${silo.name} recorded at $timeStr. Fat: ${fat.toStringAsFixed(2)}%, SNF: ${snf.toStringAsFixed(2)}%',
         );
         _applyFilters();
         return true;

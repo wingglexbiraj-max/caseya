@@ -1,3 +1,5 @@
+import '../core/constants/app_constants.dart';
+
 class DgHsdRecord {
   final String recordId;
   final String date; // YYYY-MM-DD
@@ -63,11 +65,15 @@ class DgHsdRecord {
   }
 
   factory DgHsdRecord.fromJson(Map<String, dynamic> json) {
+    final rawShift = json['shift']?.toString() ?? 'Shift A (06:00 - 14:00)';
+    final rawTime = json['time']?.toString() ?? '';
+    final shift = AppConstants.sanitizeShiftForTime(rawShift, rawTime);
+
     return DgHsdRecord(
       recordId: json['record_id']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
-      time: json['time']?.toString() ?? '',
-      shift: json['shift']?.toString() ?? 'Shift A (06:00 - 14:00)',
+      time: rawTime,
+      shift: shift,
       employeeId: json['employee_id']?.toString() ?? '',
       employeeName: json['employee_name']?.toString() ?? 'Operator',
       fuelAdded: (json['fuel_added'] as num?)?.toDouble() ?? 0.0,

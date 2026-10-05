@@ -10,6 +10,7 @@ import '../../core/widgets/result_card.dart';
 import '../../core/widgets/calculation_breakdown.dart';
 import '../../core/widgets/status_badge.dart';
 import '../../core/widgets/confirmation_dialog.dart';
+import '../../core/widgets/live_time_chip.dart';
 import '../../providers/dg_hsd_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/dg_hsd_record.dart';
@@ -22,12 +23,12 @@ class DgHsdPage extends ConsumerStatefulWidget {
 }
 
 class _DgHsdPageState extends ConsumerState<DgHsdPage> {
-  final TextEditingController _fuelAddedController = TextEditingController(text: '0');
-  final TextEditingController _startPercentController = TextEditingController(text: '80');
-  final TextEditingController _endPercentController = TextEditingController(text: '65');
-  final TextEditingController _runningHoursController = TextEditingController(text: '3.5');
-  final TextEditingController _consumptionController = TextEditingController(text: '50');
-  final TextEditingController _kwhController = TextEditingController(text: '175');
+  final TextEditingController _fuelAddedController = TextEditingController();
+  final TextEditingController _startPercentController = TextEditingController();
+  final TextEditingController _endPercentController = TextEditingController();
+  final TextEditingController _runningHoursController = TextEditingController();
+  final TextEditingController _consumptionController = TextEditingController();
+  final TextEditingController _kwhController = TextEditingController();
   final TextEditingController _remarksController = TextEditingController();
   final TextEditingController _searchController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
@@ -73,7 +74,12 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
         );
         if (ref.read(dgHsdProvider).editingRecord == null) {
           _remarksController.clear();
-          _fuelAddedController.text = '0';
+          _fuelAddedController.clear();
+          _startPercentController.clear();
+          _endPercentController.clear();
+          _runningHoursController.clear();
+          _consumptionController.clear();
+          _kwhController.clear();
         }
       }
     }
@@ -95,12 +101,12 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
   void _cancelEditing() {
     ref.read(dgHsdProvider.notifier).cancelEditing();
     setState(() {
-      _fuelAddedController.text = '0';
-      _startPercentController.text = '80';
-      _endPercentController.text = '65';
-      _runningHoursController.text = '3.5';
-      _consumptionController.text = '50';
-      _kwhController.text = '175';
+      _fuelAddedController.clear();
+      _startPercentController.clear();
+      _endPercentController.clear();
+      _runningHoursController.clear();
+      _consumptionController.clear();
+      _kwhController.clear();
       _remarksController.clear();
     });
   }
@@ -166,7 +172,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                       Expanded(
                         child: Text(
                           state.errorMessage!,
-                          style: const TextStyle(color: AppColors.danger, fontSize: 13, fontWeight: FontWeight.w700),
+                          style: const TextStyle(color: AppColors.danger, fontSize: AppTextSizes.body, fontWeight: FontWeight.w700),
                         ),
                       ),
                     ],
@@ -194,7 +200,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                   const Text(
                     'DG SHIFT FUEL LOGGING',
                     style: TextStyle(
-                      fontSize: 16.5,
+                      fontSize: AppTextSizes.subheading,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 0.6,
                       color: AppColors.textPrimary,
@@ -226,7 +232,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                    const Text('Date', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
                                     const SizedBox(height: 6),
                                     InkWell(
                                       onTap: _selectDate,
@@ -243,7 +249,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                           children: [
                                             Text(
                                               Formatters.formatDate(state.selectedDate),
-                                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+                                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
                                             ),
                                             const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
                                           ],
@@ -255,37 +261,23 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               ),
                               const SizedBox(width: 12),
 
-                              // 2. Shift
+                              // 2. Time
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                    const Text('Time', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
                                     const SizedBox(height: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 14),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(9),
-                                        border: Border.all(color: AppColors.cardBorder, width: 1.2),
-                                      ),
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          value: state.selectedShift,
-                                          isExpanded: true,
-                                          items: AppConstants.shifts.map((s) {
-                                            return DropdownMenuItem(
-                                              value: s,
-                                              child: Text(s, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-                                            );
-                                          }).toList(),
-                                          onChanged: (newShift) {
-                                            if (newShift != null) {
-                                              ref.read(dgHsdProvider.notifier).setShift(newShift);
-                                            }
-                                          },
-                                        ),
-                                      ),
+                                    LiveTimeChip(
+                                      selectedTime: state.selectedTime,
+                                      isLiveTime: state.isLiveTime,
+                                      isMobile: false,
+                                      onTimeChanged: (newTime) {
+                                        ref.read(dgHsdProvider.notifier).setTime(newTime);
+                                      },
+                                      onResetToLive: () {
+                                        ref.read(dgHsdProvider.notifier).resetToLiveTime();
+                                      },
                                     ),
                                   ],
                                 ),
@@ -296,7 +288,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'Fuel Added',
-                                  hint: '0',
+                                  hint: 'e.g., 0',
                                   controller: _fuelAddedController,
                                   suffixText: 'Litres',
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -314,7 +306,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        const Text('Date', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
                                         const SizedBox(height: 6),
                                         InkWell(
                                           onTap: _selectDate,
@@ -331,7 +323,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                               children: [
                                                 Text(
                                                   Formatters.formatDate(state.selectedDate),
-                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5),
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
                                                 ),
                                                 const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.textSecondary),
                                               ],
@@ -346,32 +338,18 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Shift', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+                                        const Text('Time', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w700)),
                                         const SizedBox(height: 6),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 14),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white,
-                                            borderRadius: BorderRadius.circular(9),
-                                            border: Border.all(color: AppColors.cardBorder, width: 1.2),
-                                          ),
-                                          child: DropdownButtonHideUnderline(
-                                            child: DropdownButton<String>(
-                                              value: state.selectedShift,
-                                              isExpanded: true,
-                                              items: AppConstants.shifts.map((s) {
-                                                return DropdownMenuItem(
-                                                  value: s,
-                                                  child: Text(s, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
-                                                );
-                                              }).toList(),
-                                              onChanged: (newShift) {
-                                                if (newShift != null) {
-                                                  ref.read(dgHsdProvider.notifier).setShift(newShift);
-                                                }
-                                              },
-                                            ),
-                                          ),
+                                        LiveTimeChip(
+                                          selectedTime: state.selectedTime,
+                                          isLiveTime: state.isLiveTime,
+                                          isMobile: true,
+                                          onTimeChanged: (newTime) {
+                                            ref.read(dgHsdProvider.notifier).setTime(newTime);
+                                          },
+                                          onResetToLive: () {
+                                            ref.read(dgHsdProvider.notifier).resetToLiveTime();
+                                          },
                                         ),
                                       ],
                                     ),
@@ -381,7 +359,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               const SizedBox(height: 12),
                               AppTextField(
                                 label: 'Fuel Added',
-                                hint: '0',
+                                hint: 'e.g., 0',
                                 controller: _fuelAddedController,
                                 suffixText: 'Litres',
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -405,7 +383,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'Start Percentage',
-                                  hint: '80',
+                                  hint: 'e.g., 80',
                                   controller: _startPercentController,
                                   suffixText: '%',
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -422,7 +400,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'End Percentage',
-                                  hint: '65',
+                                  hint: 'e.g., 65',
                                   controller: _endPercentController,
                                   suffixText: '%',
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -439,7 +417,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'Shift Running Hours',
-                                  hint: '3.5',
+                                  hint: 'e.g., 3.5',
                                   controller: _runningHoursController,
                                   suffixText: 'Hours',
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -462,7 +440,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                   Expanded(
                                     child: AppTextField(
                                       label: 'Start %',
-                                      hint: '80',
+                                      hint: 'e.g., 80',
                                       controller: _startPercentController,
                                       suffixText: '%',
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -473,7 +451,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                   Expanded(
                                     child: AppTextField(
                                       label: 'End %',
-                                      hint: '65',
+                                      hint: 'e.g., 65',
                                       controller: _endPercentController,
                                       suffixText: '%',
                                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -485,7 +463,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               const SizedBox(height: 12),
                               AppTextField(
                                 label: 'Shift Running Hours',
-                                hint: '3.5',
+                                hint: 'e.g., 3.5',
                                 controller: _runningHoursController,
                                 suffixText: 'Hours',
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -509,7 +487,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'Fuel Consumption (Manual Input)',
-                                  hint: '50',
+                                  hint: 'e.g., 50',
                                   controller: _consumptionController,
                                   suffixText: 'Litres',
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -526,7 +504,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               Expanded(
                                 child: AppTextField(
                                   label: 'Energy Generated (Manual Input)',
-                                  hint: '175',
+                                  hint: 'e.g., 175',
                                   controller: _kwhController,
                                   suffixText: 'kWh',
                                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -546,7 +524,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                             children: [
                               AppTextField(
                                 label: 'Fuel Consumption (Manual Input)',
-                                hint: '50',
+                                hint: 'e.g., 50',
                                 controller: _consumptionController,
                                 suffixText: 'Litres',
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -555,7 +533,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                               const SizedBox(height: 12),
                               AppTextField(
                                 label: 'Energy Generated (Manual Input)',
-                                hint: '175',
+                                hint: 'e.g., 175',
                                 controller: _kwhController,
                                 suffixText: 'kWh',
                                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -603,7 +581,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                             label: Text(
                               state.editingRecord != null ? 'Update DG Record' : 'Record DG Entry',
                               style: const TextStyle(
-                                fontSize: 14.5,
+                                fontSize: AppTextSizes.body,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 0.3,
                               ),
@@ -631,7 +609,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                             child: const Text(
                               'Clear',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: AppTextSizes.body,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -709,16 +687,21 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
   Widget _buildLiveDgChips(DgHsdState state) {
     final result = state.liveResult;
     final double fuelConsumption = result?.fuelConsumption ?? 0.0;
-    final double kwh = result?.kwh ?? 0.0;
     final double unitsPerLitre = result?.unitsPerLitre ?? 0.0;
     final double burnRate = result?.consumptionPerHour ?? 0.0;
+
+    final double percentageDrop = state.startPercentage - state.endPercentage;
+    final double remainingFuel = (percentageDrop > 0 && fuelConsumption > 0)
+        ? (fuelConsumption / percentageDrop) * state.endPercentage
+        : (state.endPercentage > 0 ? (state.endPercentage / 100.0) * 500.0 : 0.0);
+    final double estimatedRuntime = burnRate > 0 ? (remainingFuel / burnRate) : 0.0;
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 700;
 
         final fuelChip = Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
@@ -737,14 +720,14 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.local_gas_station_rounded, color: AppColors.goldAccent, size: 22),
+                child: const Icon(Icons.local_gas_station_rounded, color: AppColors.goldAccent, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -752,21 +735,23 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                     const Text(
                       'FUEL CONSUMPTION',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppTextSizes.caption,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.9,
+                        letterSpacing: 0.6,
                         color: AppColors.goldAccent,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       '${Formatters.formatSmart(fuelConsumption)} L',
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: AppTextSizes.subheading,
                         fontWeight: FontWeight.w900,
                         color: Colors.white,
                         letterSpacing: -0.5,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -775,8 +760,8 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
           ),
         );
 
-        final energyChip = Container(
-          padding: const EdgeInsets.all(14),
+        final rateChip = Container(
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: const Color(0xFFFFFBEB),
             borderRadius: BorderRadius.circular(10),
@@ -792,36 +777,38 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: AppColors.goldAccent.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.electric_bolt_rounded, color: Color(0xFFB45309), size: 22),
+                child: const Icon(Icons.speed_rounded, color: Color(0xFFB45309), size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'ENERGY GENERATED',
+                      'CONSUMPTION RATE',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppTextSizes.caption,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.9,
+                        letterSpacing: 0.6,
                         color: Color(0xFFB45309),
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${Formatters.formatSmart(kwh)} kWh',
+                      '${Formatters.formatDecimal(burnRate)} L/hr',
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: AppTextSizes.subheading,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF78350F),
                         letterSpacing: -0.5,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -831,7 +818,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
         );
 
         final efficiencyChip = Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(10),
@@ -847,14 +834,14 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(7),
                 decoration: BoxDecoration(
                   color: AppColors.background,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.speed_rounded, color: AppColors.primary, size: 22),
+                child: const Icon(Icons.electric_bolt_rounded, color: AppColors.primary, size: 20),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -862,34 +849,80 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                     const Text(
                       'EFFICIENCY YIELD',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppTextSizes.caption,
                         fontWeight: FontWeight.w800,
-                        letterSpacing: 0.9,
+                        letterSpacing: 0.6,
                         color: AppColors.textSecondary,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        Text(
-                          '${Formatters.formatDecimal(unitsPerLitre)} kWh/L',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '• ${Formatters.formatDecimal(burnRate)} L/hr',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '${Formatters.formatDecimal(unitsPerLitre)} kWh/L',
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.subheading,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+
+        final runtimeChip = Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFF86EFAC), width: 1.2),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDCFCE7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.hourglass_top_rounded, color: Color(0xFF16A34A), size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'ESTIMATED RUNTIME',
+                      style: TextStyle(
+                        fontSize: AppTextSizes.caption,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.6,
+                        color: Color(0xFF15803D),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      estimatedRuntime > 0 ? '${Formatters.formatDecimal(estimatedRuntime)} hrs' : '--',
+                      style: const TextStyle(
+                        fontSize: AppTextSizes.subheading,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF14532D),
+                        letterSpacing: -0.5,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
@@ -901,21 +934,33 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
         if (isWide) {
           return Row(
             children: [
-              Expanded(flex: 3, child: fuelChip),
-              const SizedBox(width: 12),
-              Expanded(flex: 3, child: energyChip),
-              const SizedBox(width: 12),
-              Expanded(flex: 4, child: efficiencyChip),
+              Expanded(child: fuelChip),
+              const SizedBox(width: 10),
+              Expanded(child: rateChip),
+              const SizedBox(width: 10),
+              Expanded(child: efficiencyChip),
+              const SizedBox(width: 10),
+              Expanded(child: runtimeChip),
             ],
           );
         } else {
           return Column(
             children: [
-              fuelChip,
+              Row(
+                children: [
+                  Expanded(child: fuelChip),
+                  const SizedBox(width: 10),
+                  Expanded(child: rateChip),
+                ],
+              ),
               const SizedBox(height: 10),
-              energyChip,
-              const SizedBox(height: 10),
-              efficiencyChip,
+              Row(
+                children: [
+                  Expanded(child: efficiencyChip),
+                  const SizedBox(width: 10),
+                  Expanded(child: runtimeChip),
+                ],
+              ),
             ],
           );
         }
@@ -948,7 +993,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                 const Text(
                   'RECENT DG HSD ENTRIES (DATE-WISE)',
                   style: TextStyle(
-                    fontSize: 16.5,
+                    fontSize: AppTextSizes.subheading,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0.6,
                     color: AppColors.textPrimary,
@@ -1014,7 +1059,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                             const SizedBox(width: 12),
                             DropdownButton<String>(
                               value: state.filterShift,
-                              hint: const Text('Filter Shift', style: TextStyle(fontSize: 13)),
+                              hint: const Text('Filter Shift', style: TextStyle(fontSize: AppTextSizes.body)),
                               items: [
                                 const DropdownMenuItem(value: '', child: Text('All Shifts')),
                                 ...AppConstants.shifts.map((s) => DropdownMenuItem(value: s, child: Text(s))),
@@ -1078,21 +1123,21 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                       children: [
                                         Text(
                                           item.date,
-                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
                                         ),
                                         const SizedBox(width: 8),
-                                        StatusBadge.neutral(item.shift, fontSize: 11),
+                                        StatusBadge.neutral(item.shift, fontSize: AppTextSizes.caption),
                                       ],
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
                                       'Start: ${Formatters.formatSmart(item.startPercentage)}%  •  End: ${Formatters.formatSmart(item.endPercentage)}% (Drop: ${Formatters.formatSmart(item.percentageDrop)}%)  •  Running: ${Formatters.formatSmart(item.runningHours)} hr',
-                                      style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                      style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                                     ),
                                     if (item.fuelAdded > 0)
                                       Text(
                                         'Fuel Added: ${Formatters.formatSmart(item.fuelAdded)} L',
-                                        style: const TextStyle(fontSize: 11.5, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
+                                        style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.goldAccent, fontWeight: FontWeight.w700),
                                       ),
                                     if (item.remarks.trim().isNotEmpty) ...[
                                       const SizedBox(height: 5),
@@ -1112,7 +1157,7 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                               child: Text(
                                                 'Note: ${item.remarks.trim()}',
                                                 style: const TextStyle(
-                                                  fontSize: 12,
+                                                  fontSize: AppTextSizes.caption,
                                                   fontWeight: FontWeight.w700,
                                                   color: AppColors.danger,
                                                 ),
@@ -1131,14 +1176,14 @@ class _DgHsdPageState extends ConsumerState<DgHsdPage> {
                                   Text(
                                     '${Formatters.formatSmart(item.fuelConsumption)} L',
                                     style: const TextStyle(
-                                      fontSize: 15.5,
+                                      fontSize: AppTextSizes.body,
                                       fontWeight: FontWeight.w900,
                                       color: AppColors.primaryDark,
                                     ),
                                   ),
                                   Text(
                                     '${Formatters.formatSmart(item.kwh)} kWh (${Formatters.formatDecimal(item.unitsPerLitre)} u/L)',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                                   ),
                                 ],
                               ),

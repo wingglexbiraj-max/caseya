@@ -77,7 +77,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             title: Text(
               product == null ? 'Add Product Master' : 'Edit ${product.productName}',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.subheading),
             ),
             content: SizedBox(
               width: 500,
@@ -168,7 +168,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                       const SizedBox(height: 16),
                       Align(
                         alignment: Alignment.centerLeft,
-                        child: const Text('Allowed Input Modes:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                        child: const Text('Allowed Input Modes:', style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w600)),
                       ),
                       const SizedBox(height: 6),
                       Wrap(
@@ -290,10 +290,10 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                                 children: [
                                   Text(
                                     p.productName,
-                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
                                   ),
                                   const SizedBox(width: 8),
-                                  StatusBadge.neutral(p.category, fontSize: 11),
+                                  StatusBadge.neutral(p.category, fontSize: AppTextSizes.caption),
                                   if (p.productCode.isNotEmpty) ...[
                                     const SizedBox(width: 6),
                                     Container(
@@ -306,7 +306,7 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                                       child: Text(
                                         'Code: ${p.productCode}',
                                         style: const TextStyle(
-                                          fontSize: 10.5,
+                                          fontSize: AppTextSizes.caption,
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.primaryDark,
                                         ),
@@ -318,12 +318,12 @@ class _ProductsMasterPageState extends ConsumerState<ProductsMasterPage> {
                               const SizedBox(height: 4),
                               Text(
                                 'Item Code: ${p.itemCode}  •  Pack: ${p.packSizeDisplay}  •  ${p.piecesPerCrate} pcs/crate (${p.calculatedPerCrateDisplay})  •  ₹${Formatters.formatSmart(p.pricePerPiece)}/pc  •  Shelf Life: ${p.shelfLife}',
-                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'Base Unit: ${p.baseUnitLabel}${p.targetFat != null ? '  •  Target FAT: ${Formatters.formatPercent(p.targetFat!)}' : ''}${p.targetSnf != null ? '  •  Target SNF: ${Formatters.formatPercent(p.targetSnf!)}' : ''}  •  Allowed: ${p.allowedInputModes.join(', ')}',
-                                style: const TextStyle(fontSize: 11.5, color: AppColors.primary, fontWeight: FontWeight.w600),
+                                style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.primary, fontWeight: FontWeight.w600),
                               ),
                             ],
                           ),

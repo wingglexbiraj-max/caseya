@@ -76,7 +76,7 @@ class MilkStandardizationCalculator {
   static const List<ProductModel> standardizationProducts = [
     ProductModel(
       productId: 'STD_MILK',
-      productName: 'std milk',
+      productName: 'STD Milk',
       itemCode: 'NA',
       shortCode: 'STD',
       category: 'Milk',
@@ -92,7 +92,7 @@ class MilkStandardizationCalculator {
     ),
     ProductModel(
       productId: 'ARMY_MILK',
-      productName: 'army milk (sm+)',
+      productName: 'SM+ (Army Milk)',
       itemCode: 'NA',
       shortCode: 'ARMY/SM+',
       category: 'Milk',
@@ -109,7 +109,7 @@ class MilkStandardizationCalculator {
     ),
     ProductModel(
       productId: 'PLAIN_CURD_CUP',
-      productName: 'plain curd cup',
+      productName: 'Plain Curd Cup',
       itemCode: 'NA',
       shortCode: 'P-CUP',
       category: 'Curd',
@@ -125,7 +125,7 @@ class MilkStandardizationCalculator {
     ),
     ProductModel(
       productId: 'PLAIN_CURD_POUCH',
-      productName: 'plain pouch curd',
+      productName: 'Plain Curd Pouch',
       itemCode: 'NA',
       shortCode: 'P-POUCH',
       category: 'Curd',
@@ -141,7 +141,7 @@ class MilkStandardizationCalculator {
     ),
     ProductModel(
       productId: 'SWEET_CURD',
-      productName: 'sweet curd',
+      productName: 'Sweet Curd',
       itemCode: 'NA',
       shortCode: 'S-CURD',
       category: 'Curd',
@@ -157,7 +157,7 @@ class MilkStandardizationCalculator {
     ),
     ProductModel(
       productId: 'LASSI',
-      productName: 'lassi',
+      productName: 'Lassi',
       itemCode: 'NA',
       shortCode: 'LASSI',
       category: 'Fermented',

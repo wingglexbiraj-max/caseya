@@ -1,3 +1,5 @@
+import '../core/constants/app_constants.dart';
+
 class BoilerRecord {
   final String recordId;
   final String date; // YYYY-MM-DD
@@ -60,11 +62,15 @@ class BoilerRecord {
   }
 
   factory BoilerRecord.fromJson(Map<String, dynamic> json) {
+    final rawShift = json['shift']?.toString() ?? 'Shift A';
+    final rawTime = json['time']?.toString() ?? '';
+    final shift = AppConstants.sanitizeShiftForTime(rawShift, rawTime);
+
     return BoilerRecord(
       recordId: json['record_id']?.toString() ?? '',
       date: json['date']?.toString() ?? '',
-      time: json['time']?.toString() ?? '',
-      shift: json['shift']?.toString() ?? 'Shift A',
+      time: rawTime,
+      shift: shift,
       employeeId: json['employee_id']?.toString() ?? '',
       employeeName: json['employee_name']?.toString() ?? 'Operator',
       openingCm: (json['opening_cm'] as num?)?.toDouble() ?? 0.0,

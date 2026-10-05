@@ -1,3 +1,5 @@
+import '../core/constants/app_constants.dart';
+
 /// Models for Daily Batch Making Records & Dynamic Ingredient Formulations
 ///
 /// Complies with relational database structure:
@@ -98,28 +100,35 @@ class BatchRecordModel {
         'updated_at': updatedAt.toIso8601String(),
       };
 
-  factory BatchRecordModel.fromJson(Map<String, dynamic> json) =>
-      BatchRecordModel(
-        id: json['id']?.toString() ?? '',
-        productionDate: json['production_date']?.toString() ?? '',
-        productId: json['product_id']?.toString() ?? '',
-        productName: json['product_name']?.toString() ?? '',
-        batchNumber: json['batch_number']?.toString() ?? '',
-        batchQuantity: (json['batch_quantity'] as num?)?.toDouble() ?? 0.0,
-        batchUnit: json['batch_unit']?.toString() ?? 'L',
-        shift: json['shift']?.toString(),
-        operatorName: json['operator_name']?.toString(),
-        notes: json['notes']?.toString(),
-        ingredients: (json['ingredients'] as List<dynamic>?)
-                ?.map((e) =>
-                    BatchIngredientModel.fromJson(e as Map<String, dynamic>))
-                .toList() ??
-            [],
-        createdAt: DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-            DateTime.now(),
-        updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
-            DateTime.now(),
-      );
+  factory BatchRecordModel.fromJson(Map<String, dynamic> json) {
+    final createdAt = DateTime.tryParse(json['created_at']?.toString() ?? '') ??
+        DateTime.now();
+    final rawShift = json['shift']?.toString();
+    final shift = (rawShift != null && AppConstants.isDateTimeValidForShift(createdAt, rawShift))
+        ? rawShift
+        : AppConstants.determineShift(createdAt);
+
+    return BatchRecordModel(
+      id: json['id']?.toString() ?? '',
+      productionDate: json['production_date']?.toString() ?? '',
+      productId: json['product_id']?.toString() ?? '',
+      productName: json['product_name']?.toString() ?? '',
+      batchNumber: json['batch_number']?.toString() ?? '',
+      batchQuantity: (json['batch_quantity'] as num?)?.toDouble() ?? 0.0,
+      batchUnit: json['batch_unit']?.toString() ?? 'L',
+      shift: shift,
+      operatorName: json['operator_name']?.toString(),
+      notes: json['notes']?.toString(),
+      ingredients: (json['ingredients'] as List<dynamic>?)
+              ?.map((e) =>
+                  BatchIngredientModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
+      createdAt: createdAt,
+      updatedAt: DateTime.tryParse(json['updated_at']?.toString() ?? '') ??
+          DateTime.now(),
+    );
+  }
 
   BatchRecordModel copyWith({
     String? id,

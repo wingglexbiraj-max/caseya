@@ -52,7 +52,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     children: [
                       const Text(
                         'ACTIVE OPERATOR & ROLE-BASED ACCESS',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
+                        style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
                       ),
                       StatusBadge.success(user.role),
                     ],
@@ -65,7 +65,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         backgroundColor: AppColors.primary,
                         child: Text(
                           user.name[0],
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: AppTextSizes.subheading),
                         ),
                       ),
                       const SizedBox(width: 14),
@@ -73,10 +73,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                            Text(user.name, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body)),
                             Text(
                               'Code: ${user.employeeCode}  •  Department: ${user.department}',
-                              style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                              style: const TextStyle(color: AppColors.textSecondary, fontSize: AppTextSizes.caption),
                             ),
                           ],
                         ),
@@ -84,7 +84,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text('Switch Role for Testing Access Permissions:', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  const Text('Switch Role for Testing Access Permissions:', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 10,
@@ -106,18 +106,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                 children: [
                   const Text(
                     'CALCULATION ENGINE SETTINGS',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
+                    style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 16),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text(
                       'Boiler: Include Fuel Top-Up in Net Shift Consumption',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
                     ),
                     subtitle: const Text(
                       'When enabled: Net Consumption = Level Drop Fuel + Fuel Top-up. When disabled, top-up is recorded as a separate inflow log.',
-                      style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                     ),
                     value: boilerState.includeTopUpInNet,
                     activeThumbColor: AppColors.primary,
@@ -129,7 +129,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
-                      Text('Boiler Formula Multiplier', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      Text('Boiler Formula Multiplier', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600)),
                       Text('900.0 (L / 70 CM)', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
                     ],
                   ),
@@ -137,7 +137,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: const [
-                      Text('Standardization Formula Version', style: TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+                      Text('Standardization Formula Version', style: TextStyle(fontSize: AppTextSizes.body, fontWeight: FontWeight.w600)),
                       Text(AppConstants.formulaVersion, style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primaryDark)),
                     ],
                   ),
@@ -156,7 +156,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     children: const [
                       Text(
                         'BACKEND & DATA STORE ARCHITECTURE',
-                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
+                        style: TextStyle(fontSize: AppTextSizes.caption, fontWeight: FontWeight.w800, letterSpacing: 1.0, color: AppColors.textSecondary),
                       ),
                       StatusBadge(
                         text: 'Google Sheets & FastAPI Ready',
@@ -176,11 +176,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     contentPadding: EdgeInsets.zero,
                     title: const Text(
                       'Connect to Remote FastAPI Backend',
-                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                      style: TextStyle(fontWeight: FontWeight.w700, fontSize: AppTextSizes.body),
                     ),
                     subtitle: const Text(
                       'When disabled, CASEYA runs in zero-latency offline mode using browser local storage.',
-                      style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                      style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                     ),
                     value: ApiService.useBackend,
                     activeThumbColor: AppColors.primary,

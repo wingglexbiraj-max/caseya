@@ -54,14 +54,14 @@ class ConfirmationDialog extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w700),
             ),
           ),
         ],
       ),
       content: Text(
         message,
-        style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.4),
+        style: const TextStyle(fontSize: AppTextSizes.body, color: AppColors.textSecondary, height: 1.4),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       actions: [

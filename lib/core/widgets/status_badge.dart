@@ -16,10 +16,10 @@ class StatusBadge extends StatelessWidget {
     this.backgroundColor,
     this.borderColor,
     this.icon,
-    this.fontSize = 12,
+    this.fontSize = AppTextSizes.caption,
   });
 
-  factory StatusBadge.success(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.success(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.success,
@@ -29,7 +29,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.warning(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.warning(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.warning,
@@ -39,7 +39,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.info(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.info(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.info,
@@ -49,7 +49,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.danger(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.danger(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.alert,
@@ -59,7 +59,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.alert(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.alert(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.alert,
@@ -69,7 +69,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.noEntry(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.noEntry(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.alert,
@@ -79,7 +79,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.empty(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.empty(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.alert,
@@ -89,7 +89,7 @@ class StatusBadge extends StatelessWidget {
     );
   }
 
-  factory StatusBadge.neutral(String text, {IconData? icon, double fontSize = 12}) {
+  factory StatusBadge.neutral(String text, {IconData? icon, double fontSize = AppTextSizes.caption}) {
     return StatusBadge(
       text: text,
       textColor: AppColors.textPrimary,

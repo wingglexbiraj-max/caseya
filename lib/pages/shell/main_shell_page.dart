@@ -13,7 +13,6 @@ import '../dg_hsd/dg_hsd_page.dart';
 import '../production/production_page.dart';
 import '../batch_records/batch_records_page.dart';
 import '../dispatch/dispatch_page.dart';
-import '../packaging/packaging_page.dart';
 import '../stock/stock_page.dart';
 import '../reports/reports_page.dart';
 import '../products_master/products_master_page.dart';
@@ -40,7 +39,6 @@ class _MainShellPageState extends State<MainShellPage> {
     'Production Register',
     'Daily Batch Making Records',
     'Dispatch Records',
-    'Packaging Tracker',
     'Cold Room Stock',
     'Reports & Export',
     'Products & Standards Master',
@@ -57,7 +55,6 @@ class _MainShellPageState extends State<MainShellPage> {
     'Daily pasteurization and packaging floor output batches',
     'Record, track, and aggregate recipe formulations and raw material consumption date-wise',
     'Finished goods transport distribution with dynamic multi-product consolidation',
-    'Track film roll consumption, pouch packing counts, and calculate film wastage percentage',
     'Finished inventory levels, cold room crate holdings, and balance stock',
     'Operational reports, shift filters, and clean CSV/Excel spreadsheet exports',
     'Plant product catalog, pack sizes, crate capacities, target fat & SNF standards',
@@ -97,7 +94,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 padding: EdgeInsets.all(12),
                 child: Text(
                   'More Plant Modules',
-                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
                 ),
               ),
               const Divider(height: 1),
@@ -134,19 +131,11 @@ class _MainShellPageState extends State<MainShellPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.inventory_2_outlined, color: AppColors.primary),
-                title: const Text('Packaging Tracker'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _onNavigate(9);
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.warehouse_outlined, color: AppColors.primary),
                 title: const Text('Stock & Inventory'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(10);
+                  _onNavigate(9);
                 },
               ),
               ListTile(
@@ -154,7 +143,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Reports & Export'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(11);
+                  _onNavigate(10);
                 },
               ),
               ListTile(
@@ -162,7 +151,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Products Master'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(12);
+                  _onNavigate(11);
                 },
               ),
               ListTile(
@@ -170,7 +159,7 @@ class _MainShellPageState extends State<MainShellPage> {
                 title: const Text('Settings & Roles'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(13);
+                  _onNavigate(12);
                 },
               ),
             ],
@@ -196,7 +185,6 @@ class _MainShellPageState extends State<MainShellPage> {
         const SelectionArea(child: ProductionPage()),
         const SelectionArea(child: BatchRecordsPage()),
         const SelectionArea(child: DispatchPage()),
-        const SelectionArea(child: PackagingPage()),
         const SelectionArea(child: StockPage()),
         const SelectionArea(child: ReportsPage()),
         const SelectionArea(child: ProductsMasterPage()),

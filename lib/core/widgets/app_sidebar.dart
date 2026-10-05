@@ -42,14 +42,13 @@ class AppSidebar extends StatelessWidget {
     SidebarItem(index: 6, title: 'Production Register', icon: Icons.precision_manufacturing_rounded),
     SidebarItem(index: 7, title: 'Daily Batch Making', icon: Icons.blender_rounded),
     SidebarItem(index: 8, title: 'Dispatch Records', icon: Icons.local_shipping_rounded),
-    SidebarItem(index: 9, title: 'Packaging Tracker', icon: Icons.all_inbox_rounded),
-    SidebarItem(index: 10, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
-    SidebarItem(index: 11, title: 'Reports & Export', icon: Icons.insights_rounded),
+    SidebarItem(index: 9, title: 'Stock & Inventory', icon: Icons.warehouse_rounded),
+    SidebarItem(index: 10, title: 'Reports & Export', icon: Icons.insights_rounded),
   ];
 
   static const List<SidebarItem> adminItems = [
-    SidebarItem(index: 12, title: 'Products Master', icon: Icons.tune_rounded),
-    SidebarItem(index: 13, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
+    SidebarItem(index: 11, title: 'Products Master', icon: Icons.tune_rounded),
+    SidebarItem(index: 12, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
   ];
 
   @override
@@ -104,7 +103,7 @@ class AppSidebar extends StatelessWidget {
                 const Text(
                   AppConstants.appName,
                   style: TextStyle(
-                    fontSize: 20,
+                    fontSize: AppTextSizes.heading,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 1.5,
                     color: Colors.white,
@@ -186,7 +185,7 @@ class AppSidebar extends StatelessWidget {
                   softWrap: false,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 13.5,
+                    fontSize: AppTextSizes.body,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                     color: isSelected ? AppColors.primaryDark : AppColors.textPrimary,
                   ),
@@ -231,14 +230,14 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                 children: [
                   Text(
                     isLoggedIn ? 'Operator Session' : 'Operator Sign In',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: AppTextSizes.subheading, fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     isLoggedIn
                         ? 'Active operator plant account session'
                         : 'Sign in to access dairy plant controls',
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                   ),
                 ],
               ),
@@ -274,11 +273,11 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                         children: [
                           Text(
                             user.name,
-                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: AppTextSizes.body),
                           ),
                           Text(
                             '${user.role}  •  ${user.employeeCode}',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+                            style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                           ),
                         ],
                       ),
@@ -301,7 +300,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         'Currently operating in guest mode. Sign in to record plant operations and save batch records.',
-                        style: TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                        style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
                       ),
                     ),
                   ],
@@ -413,7 +412,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
-                      fontSize: 15,
+                      fontSize: AppTextSizes.body,
                     ),
                   ),
                 ),
@@ -430,7 +429,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 13.5,
+                        fontSize: AppTextSizes.body,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                         letterSpacing: -0.2,
@@ -443,7 +442,7 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: AppTextSizes.caption,
                         color: isLoggedIn ? Colors.white.withValues(alpha: 0.75) : AppColors.goldAccent,
                         fontWeight: FontWeight.w600,
                       ),

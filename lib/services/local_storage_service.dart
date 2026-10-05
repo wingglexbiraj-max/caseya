@@ -378,12 +378,11 @@ class LocalStorageService {
   }
 
   static Future<void> _seedInitialBoilerRecords(SharedPreferences prefs) async {
-    final now = DateTime.now();
     final boilerSeeds = [
       BoilerRecord(
         recordId: 'BLR-20260927-01',
         date: '2026-09-27',
-        time: '02:00 PM',
+        time: '10:30 AM',
         shift: 'Shift A (06:00 - 14:00)',
         employeeId: 'EMP-0101',
         employeeName: 'Biraj Goswami',
@@ -396,14 +395,14 @@ class LocalStorageService {
         runningHours: 8.5,
         consumptionPerHour: 105.88,
         remarks: 'Normal operation during morning pasteurization run',
-        createdAt: now.subtract(const Duration(hours: 4)),
-        updatedAt: now.subtract(const Duration(hours: 4)),
+        createdAt: DateTime(2026, 9, 27, 10, 30),
+        updatedAt: DateTime(2026, 9, 27, 10, 30),
       ),
       BoilerRecord(
         recordId: 'BLR-20260926-02',
         date: '2026-09-26',
         shift: 'Shift B (14:00 - 22:00)',
-        time: '10:00 PM',
+        time: '06:30 PM',
         employeeId: 'EMP-0112',
         employeeName: 'M. Hazarika',
         openingCm: 430.0,
@@ -415,14 +414,14 @@ class LocalStorageService {
         runningHours: 8.0,
         consumptionPerHour: 99.64,
         remarks: 'Evening pouch packing cycle',
-        createdAt: now.subtract(const Duration(days: 1, hours: 2)),
-        updatedAt: now.subtract(const Duration(days: 1, hours: 2)),
+        createdAt: DateTime(2026, 9, 26, 18, 30),
+        updatedAt: DateTime(2026, 9, 26, 18, 30),
       ),
       BoilerRecord(
         recordId: 'BLR-20260925-01',
         date: '2026-09-25',
         shift: 'Shift A (06:00 - 14:00)',
-        time: '02:15 PM',
+        time: '11:15 AM',
         employeeId: 'EMP-0101',
         employeeName: 'Biraj Goswami',
         openingCm: 515.0,
@@ -434,8 +433,8 @@ class LocalStorageService {
         runningHours: 8.0,
         consumptionPerHour: 133.04,
         remarks: 'Tanker fuel replenishment + normal pasteurizer load',
-        createdAt: now.subtract(const Duration(days: 2, hours: 3)),
-        updatedAt: now.subtract(const Duration(days: 2, hours: 3)),
+        createdAt: DateTime(2026, 9, 25, 11, 15),
+        updatedAt: DateTime(2026, 9, 25, 11, 15),
       ),
     ];
     await prefs.setString(
@@ -587,7 +586,6 @@ class LocalStorageService {
   }
 
   static Future<void> _seedInitialBatchRecords(SharedPreferences prefs) async {
-    final now = DateTime.now();
     final initialBatches = [
       BatchRecordModel(
         id: 'BATCH-20260928-01',
@@ -606,8 +604,8 @@ class LocalStorageService {
           BatchIngredientModel(id: 'ING-03', batchId: 'BATCH-20260928-01', ingredientName: 'SMP', quantity: 29.0, unit: 'kg'),
           BatchIngredientModel(id: 'ING-04', batchId: 'BATCH-20260928-01', ingredientName: 'Sugar', quantity: 46.0, unit: 'kg'),
         ],
-        createdAt: now.subtract(const Duration(hours: 4)),
-        updatedAt: now.subtract(const Duration(hours: 4)),
+        createdAt: DateTime(2026, 9, 28, 8, 30),
+        updatedAt: DateTime(2026, 9, 28, 8, 30),
       ),
       BatchRecordModel(
         id: 'BATCH-20260928-02',
@@ -623,8 +621,8 @@ class LocalStorageService {
         ingredients: const [
           BatchIngredientModel(id: 'ING-05', batchId: 'BATCH-20260928-02', ingredientName: 'Milk', quantity: 1000.0, unit: 'L'),
         ],
-        createdAt: now.subtract(const Duration(hours: 3)),
-        updatedAt: now.subtract(const Duration(hours: 3)),
+        createdAt: DateTime(2026, 9, 28, 11, 15),
+        updatedAt: DateTime(2026, 9, 28, 11, 15),
       ),
       BatchRecordModel(
         id: 'BATCH-20260928-03',
@@ -643,8 +641,8 @@ class LocalStorageService {
           BatchIngredientModel(id: 'ING-08', batchId: 'BATCH-20260928-03', ingredientName: 'SMP', quantity: 29.0, unit: 'kg'),
           BatchIngredientModel(id: 'ING-09', batchId: 'BATCH-20260928-03', ingredientName: 'Sugar', quantity: 46.0, unit: 'kg'),
         ],
-        createdAt: now.subtract(const Duration(hours: 1)),
-        updatedAt: now.subtract(const Duration(hours: 1)),
+        createdAt: DateTime(2026, 9, 28, 16, 45),
+        updatedAt: DateTime(2026, 9, 28, 16, 45),
       ),
       BatchRecordModel(
         id: 'BATCH-20260929-01',
@@ -660,8 +658,8 @@ class LocalStorageService {
         ingredients: const [
           BatchIngredientModel(id: 'ING-10', batchId: 'BATCH-20260929-01', ingredientName: 'Milk', quantity: 2000.0, unit: 'L'),
         ],
-        createdAt: now,
-        updatedAt: now,
+        createdAt: DateTime(2026, 9, 29, 7, 45),
+        updatedAt: DateTime(2026, 9, 29, 7, 45),
       ),
       BatchRecordModel(
         id: 'BATCH-20260929-02',
@@ -680,8 +678,8 @@ class LocalStorageService {
           BatchIngredientModel(id: 'ING-13', batchId: 'BATCH-20260929-02', ingredientName: 'SMP', quantity: 29.0, unit: 'kg'),
           BatchIngredientModel(id: 'ING-14', batchId: 'BATCH-20260929-02', ingredientName: 'Sugar', quantity: 46.0, unit: 'kg'),
         ],
-        createdAt: now,
-        updatedAt: now,
+        createdAt: DateTime(2026, 9, 29, 10, 30),
+        updatedAt: DateTime(2026, 9, 29, 10, 30),
       ),
     ];
 
@@ -737,12 +735,11 @@ class LocalStorageService {
   }
 
   static Future<void> _seedInitialDgHsdRecords(SharedPreferences prefs) async {
-    final now = DateTime.now();
     final initialRecords = [
       DgHsdRecord(
         recordId: 'DG-20260928-A',
         date: '2026-09-28',
-        time: '02:00 PM',
+        time: '11:00 AM',
         shift: 'Shift A (06:00 - 14:00)',
         employeeId: 'EMP-001',
         employeeName: 'Biraj Goswami',
@@ -756,13 +753,13 @@ class LocalStorageService {
         consumptionPerHour: 16.67,
         unitsPerLitre: 3.47,
         remarks: 'DG operated smoothly during peak pasteurizer operation',
-        createdAt: now.subtract(const Duration(hours: 18)),
-        updatedAt: now.subtract(const Duration(hours: 18)),
+        createdAt: DateTime(2026, 9, 28, 11, 0),
+        updatedAt: DateTime(2026, 9, 28, 11, 0),
       ),
       DgHsdRecord(
         recordId: 'DG-20260927-B',
         date: '2026-09-27',
-        time: '10:00 PM',
+        time: '07:30 PM',
         shift: 'Shift B (14:00 - 22:00)',
         employeeId: 'EMP-002',
         employeeName: 'M. Hazarika',
@@ -776,8 +773,8 @@ class LocalStorageService {
         consumptionPerHour: 16.0,
         unitsPerLitre: 3.44,
         remarks: 'Power grid cut from 17:30 to 20:30; cold room backup sustained',
-        createdAt: now.subtract(const Duration(hours: 38)),
-        updatedAt: now.subtract(const Duration(hours: 38)),
+        createdAt: DateTime(2026, 9, 27, 19, 30),
+        updatedAt: DateTime(2026, 9, 27, 19, 30),
       ),
     ];
 
@@ -1172,5 +1169,85 @@ class LocalStorageService {
       AppConstants.storageKeyDispatchRecords,
       jsonEncode(initialDispatches.map((e) => e.toJson()).toList()),
     );
+  }
+
+  // ===========================================================================
+  // PRODUCTION RECORDS
+  // ===========================================================================
+
+  static Future<List<ProductionRecord>> getProductionRecords() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(AppConstants.storageKeyProductionRecords);
+    if (jsonStr == null || jsonStr.isEmpty) {
+      final initial = _getInitialProductionRecords();
+      await saveProductionRecords(initial);
+      return initial;
+    }
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      final records = list.map((e) => ProductionRecord.fromJson(e as Map<String, dynamic>)).toList();
+      return records;
+    } catch (_) {
+      return [];
+    }
+  }
+
+  static Future<void> saveProductionRecords(List<ProductionRecord> records) async {
+    final prefs = await _instance;
+    await prefs.setString(
+      AppConstants.storageKeyProductionRecords,
+      jsonEncode(records.map((e) => e.toJson()).toList()),
+    );
+  }
+
+  static Future<void> addProductionRecord(ProductionRecord record) async {
+    final records = await getProductionRecords();
+    records.insert(0, record);
+    await saveProductionRecords(records);
+  }
+
+  static Future<void> deleteProductionRecord(String recordId) async {
+    final records = await getProductionRecords();
+    records.removeWhere((r) => r.recordId == recordId);
+    await saveProductionRecords(records);
+  }
+
+  static List<ProductionRecord> _getInitialProductionRecords() {
+    final now = DateTime.now();
+    final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return [
+      ProductionRecord(
+        recordId: 'PR-${now.millisecondsSinceEpoch}-01',
+        date: todayStr,
+        time: '07:30 AM',
+        shift: 'Shift A (06:00 - 14:00)',
+        employeeId: 'EMP-01',
+        employeeName: 'Biraj Goswami',
+        productId: '9900027',
+        productName: 'STD 500 ml',
+        batchNo: 'BT-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-01',
+        quantityProduced: 2100.0,
+        unit: 'Litres',
+        cratesProduced: 175.0,
+        piecesProduced: 4200,
+        remarks: 'Morning standard batch',
+      ),
+      ProductionRecord(
+        recordId: 'PR-${now.millisecondsSinceEpoch}-02',
+        date: todayStr,
+        time: '09:15 AM',
+        shift: 'Shift A (06:00 - 14:00)',
+        employeeId: 'EMP-02',
+        employeeName: 'Bhriguraj Borah',
+        productId: '9900007',
+        productName: 'Lassi 200 ml',
+        batchNo: 'BT-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-02',
+        quantityProduced: 600.0,
+        unit: 'Litres',
+        cratesProduced: 100.0,
+        piecesProduced: 3000,
+        remarks: 'Fresh curd fermented batch',
+      ),
+    ];
   }
 }

@@ -77,7 +77,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                         maxLines: 1,
                         softWrap: false,
                         style: TextStyle(
-                          fontSize: isMobile ? 16 : 17.5,
+                          fontSize: isMobile ? AppTextSizes.body : AppTextSizes.subheading,
                           fontWeight: FontWeight.w900,
                           color: const Color(0xFF0F2448),
                           letterSpacing: -0.4,
@@ -91,7 +91,7 @@ class AppHeader extends StatelessWidget implements PreferredSizeWidget {
                           maxLines: 1,
                           softWrap: false,
                           style: const TextStyle(
-                            fontSize: 11.5,
+                            fontSize: AppTextSizes.caption,
                             fontWeight: FontWeight.w500,
                             color: AppColors.textSecondary,
                             letterSpacing: -0.1,
@@ -168,7 +168,7 @@ class _LivePlantHeaderBadgeState extends State<_LivePlantHeaderBadge> {
               Text(
                 'Plant Facility Active',
                 style: TextStyle(
-                  fontSize: widget.isMobile ? 12 : 14.5,
+                  fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
                   fontWeight: FontWeight.w800,
                   color: const Color(0xFF0F2448),
                   letterSpacing: -0.3,
@@ -185,7 +185,7 @@ class _LivePlantHeaderBadgeState extends State<_LivePlantHeaderBadge> {
                   child: const Text(
                     'LIVE',
                     style: TextStyle(
-                      fontSize: 9.5,
+                      fontSize: AppTextSizes.caption,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF16A34A),
                       letterSpacing: 0.5,
@@ -199,7 +199,7 @@ class _LivePlantHeaderBadgeState extends State<_LivePlantHeaderBadge> {
           Text(
             widget.isMobile ? timeStr : '$timeStr • $dateStr',
             style: TextStyle(
-              fontSize: widget.isMobile ? 13 : 16,
+              fontSize: widget.isMobile ? AppTextSizes.caption : AppTextSizes.body,
               fontWeight: FontWeight.w700,
               color: const Color(0xFF1E3A8A),
               letterSpacing: -0.2,

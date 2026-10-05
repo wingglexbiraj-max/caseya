@@ -76,7 +76,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                     child: Text(
                       widget.title,
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: AppTextSizes.body,
                         fontWeight: FontWeight.w700,
                         color: AppColors.primaryDark,
                         letterSpacing: -0.2,
@@ -96,7 +96,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                         Text(
                           _expanded ? 'Collapse' : 'Expand',
                           style: const TextStyle(
-                            fontSize: 12,
+                            fontSize: AppTextSizes.caption,
                             fontWeight: FontWeight.w700,
                             color: AppColors.primary,
                           ),
@@ -152,7 +152,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                                 child: Text(
                                   step.stepTitle,
                                   style: const TextStyle(
-                                    fontSize: 11,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.primaryDark,
                                     letterSpacing: 0.5,
@@ -164,7 +164,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                                 child: Text(
                                   step.formula,
                                   style: const TextStyle(
-                                    fontSize: 12.5,
+                                    fontSize: AppTextSizes.caption,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textSecondary,
                                     fontFamily: 'monospace',
@@ -185,7 +185,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                             child: Text(
                               step.calculation,
                               style: const TextStyle(
-                                fontSize: 14,
+                                fontSize: AppTextSizes.body,
                                 fontWeight: FontWeight.w800,
                                 color: AppColors.textPrimary,
                                 fontFamily: 'monospace',
@@ -197,7 +197,7 @@ class _CalculationBreakdownCardState extends State<CalculationBreakdownCard> {
                             Text(
                               step.note!,
                               style: const TextStyle(
-                                fontSize: 11.5,
+                                fontSize: AppTextSizes.caption,
                                 color: AppColors.textMuted,
                                 fontStyle: FontStyle.italic,
                               ),
