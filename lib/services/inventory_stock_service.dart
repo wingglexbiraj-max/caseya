@@ -41,6 +41,9 @@ class InventoryStockService {
         initialTotalQty: 82500.0,
         details: '1 box contains 2500 cups',
         icon: Icons.local_drink_rounded,
+        criticalLimit: 75000.0,
+        adequateLimit: 90000.0,
+        limitDescription: 'Adequate: >90,000 • Low: 70,000–90,000 • Critical: <75,000',
       ),
       InventoryItemModel(
         id: 'cup_s80',
@@ -53,6 +56,9 @@ class InventoryStockService {
         initialTotalQty: 52800.0,
         details: '1 box contains 2400 cups',
         icon: Icons.takeout_dining_rounded,
+        criticalLimit: 30000.0,
+        adequateLimit: 42000.0,
+        limitDescription: 'Adequate: >42,000 • Low: 30,000–42,000 • Critical: <30,000',
       ),
       InventoryItemModel(
         id: 'cup_s200',
@@ -65,6 +71,9 @@ class InventoryStockService {
         initialTotalQty: 22000.0,
         details: '1 box contains 2000 cups',
         icon: Icons.takeout_dining_rounded,
+        criticalLimit: 3500.0,
+        adequateLimit: 4900.0,
+        limitDescription: 'Adequate: >4,900 • Low: 3,500–4,900 • Critical: <3,500',
       ),
       InventoryItemModel(
         id: 'cup_s400',
@@ -77,6 +86,9 @@ class InventoryStockService {
         initialTotalQty: 40000.0,
         details: '1 box contains 1000 cups',
         icon: Icons.takeout_dining_rounded,
+        criticalLimit: 10000.0,
+        adequateLimit: 14000.0,
+        limitDescription: 'Adequate: >14,000 • Low: 10,000–14,000 • Critical: <10,000',
       ),
       InventoryItemModel(
         id: 'cup_p80',
@@ -89,6 +101,9 @@ class InventoryStockService {
         initialTotalQty: 38400.0,
         details: '1 box contains 2400 cups',
         icon: Icons.takeout_dining_rounded,
+        criticalLimit: 6000.0,
+        adequateLimit: 7000.0,
+        limitDescription: 'Adequate: >7,000 • Low: 6,000–7,000 • Critical: <6,000',
       ),
       InventoryItemModel(
         id: 'cup_p200',
@@ -101,6 +116,9 @@ class InventoryStockService {
         initialTotalQty: 10000.0,
         details: '1 box contains 2000 cups',
         icon: Icons.takeout_dining_rounded,
+        criticalLimit: 2400.0,
+        adequateLimit: 2800.0,
+        limitDescription: 'Adequate: >2,800 • Low: 2,400–2,800 • Critical: <2,400',
       ),
       InventoryItemModel(
         id: 'cup_p400',
@@ -113,6 +131,9 @@ class InventoryStockService {
         initialTotalQty: 47000.0,
         details: '1 box contains 1000 cups',
         icon: Icons.takeout_dining_rounded,
+        criticalLimit: 6000.0,
+        adequateLimit: 7000.0,
+        limitDescription: 'Adequate: >7,000 • Low: 6,000–7,000 • Critical: <6,000',
       ),
 
       // --- POLY ROLL (8 Items) ---
@@ -127,6 +148,9 @@ class InventoryStockService {
         initialTotalQty: 8.0,
         details: '1 roll • Standardized milk 500ml film',
         icon: Icons.album_rounded,
+        criticalLimit: 3.0,
+        adequateLimit: 5.0,
+        limitDescription: 'Adequate: >5 • Low: 3–5 • Critical: <3',
       ),
       InventoryItemModel(
         id: 'poly_std_250',
@@ -139,6 +163,9 @@ class InventoryStockService {
         initialTotalQty: 42.0,
         details: '1 roll • Standardized milk 250ml film',
         icon: Icons.album_rounded,
+        criticalLimit: 2.0,
+        adequateLimit: 4.0,
+        limitDescription: 'Adequate: >4 • Low: 2–4 • Critical: <2',
       ),
       InventoryItemModel(
         id: 'poly_std_200',
@@ -151,6 +178,9 @@ class InventoryStockService {
         initialTotalQty: 15.0,
         details: '1 roll • Standardized milk 200ml film',
         icon: Icons.album_rounded,
+        criticalLimit: 2.0,
+        adequateLimit: 4.0,
+        limitDescription: 'Adequate: >4 • Low: 2–4 • Critical: <2',
       ),
       InventoryItemModel(
         id: 'poly_sm_500',
@@ -163,6 +193,9 @@ class InventoryStockService {
         initialTotalQty: 5.0,
         details: '1 roll • Smart Plus toned milk 500ml film',
         icon: Icons.album_rounded,
+        criticalLimit: 3.0,
+        adequateLimit: 5.0,
+        limitDescription: 'Adequate: >5 • Low: 3–5 • Critical: <3',
       ),
       InventoryItemModel(
         id: 'poly_scp_400',
@@ -175,6 +208,9 @@ class InventoryStockService {
         initialTotalQty: 3.0,
         details: '1 roll • Sweet curd 400g pouch film',
         icon: Icons.album_rounded,
+        criticalLimit: 2.0,
+        adequateLimit: 3.0,
+        limitDescription: 'Adequate: >3 • Low: 2–3 • Critical: <2',
       ),
       InventoryItemModel(
         id: 'poly_scp_1000',
@@ -187,6 +223,9 @@ class InventoryStockService {
         initialTotalQty: 6.0,
         details: '1 roll • Sweet curd 1kg pouch film',
         icon: Icons.album_rounded,
+        criticalLimit: 2.0,
+        adequateLimit: 3.0,
+        limitDescription: 'Adequate: >3 • Low: 2–3 • Critical: <2',
       ),
       InventoryItemModel(
         id: 'poly_pcp_400',
@@ -199,6 +238,9 @@ class InventoryStockService {
         initialTotalQty: 3.0,
         details: '1 roll • Plain curd 400g pouch film',
         icon: Icons.album_rounded,
+        criticalLimit: 2.0,
+        adequateLimit: 3.0,
+        limitDescription: 'Adequate: >3 • Low: 2–3 • Critical: <2',
       ),
       InventoryItemModel(
         id: 'poly_pcp_1000',
@@ -211,6 +253,9 @@ class InventoryStockService {
         initialTotalQty: 7.0,
         details: '1 roll • Plain curd 1kg pouch film',
         icon: Icons.album_rounded,
+        criticalLimit: 2.0,
+        adequateLimit: 3.0,
+        limitDescription: 'Adequate: >3 • Low: 2–3 • Critical: <2',
       ),
 
       // --- ALUMINIUM FOIL (4 Items) ---
@@ -225,6 +270,9 @@ class InventoryStockService {
         initialTotalQty: 831600.0,
         details: '1 box contains 37800 lids',
         icon: Icons.circle_outlined,
+        criticalLimit: 30000.0,
+        adequateLimit: 42000.0,
+        limitDescription: 'Adequate: >42,000 • Low: 30,000–42,000 • Critical: <30,000',
       ),
       InventoryItemModel(
         id: 'foil_pink_200_400',
@@ -237,6 +285,9 @@ class InventoryStockService {
         initialTotalQty: 302400.0,
         details: '1 box contains 25200 lids',
         icon: Icons.circle_outlined,
+        criticalLimit: 10000.0,
+        adequateLimit: 14000.0,
+        limitDescription: 'Adequate: >14,000 • Low: 10,000–14,000 • Critical: <10,000',
       ),
       InventoryItemModel(
         id: 'foil_blue_80',
@@ -249,6 +300,9 @@ class InventoryStockService {
         initialTotalQty: 2608200.0,
         details: '1 box contains 37800 lids',
         icon: Icons.circle_outlined,
+        criticalLimit: 75000.0,
+        adequateLimit: 90000.0,
+        limitDescription: 'Adequate: >90,000 • Low: 70,000–90,000 • Critical: <75,000',
       ),
       InventoryItemModel(
         id: 'foil_blue_200_400',
@@ -261,6 +315,9 @@ class InventoryStockService {
         initialTotalQty: 882000.0,
         details: '1 box contains 25200 lids',
         icon: Icons.circle_outlined,
+        criticalLimit: 10000.0,
+        adequateLimit: 14000.0,
+        limitDescription: 'Adequate: >14,000 • Low: 10,000–14,000 • Critical: <10,000',
       ),
 
       // --- SERVING MATERIAL (1 Item) ---
@@ -275,6 +332,9 @@ class InventoryStockService {
         initialTotalQty: 126000.0,
         details: '1 box contains 18000 pieces',
         icon: Icons.flatware_rounded,
+        criticalLimit: 69000.0,
+        adequateLimit: 80500.0,
+        limitDescription: 'Adequate: >80,500 • Low: 69,000–80,500 • Critical: <69,000',
       ),
 
       // --- INGREDIENTS (2 Items) ---
@@ -289,6 +349,9 @@ class InventoryStockService {
         initialTotalQty: 950.0,
         details: '1 box contains 50 kg',
         icon: Icons.inventory_2_rounded,
+        criticalLimit: 2250.0,
+        adequateLimit: 2700.0,
+        limitDescription: 'Adequate: >2,700 kg • Low: 2,250–2,700 kg • Critical: <2,250 kg',
       ),
       InventoryItemModel(
         id: 'ingredient_smp',
@@ -301,6 +364,9 @@ class InventoryStockService {
         initialTotalQty: 1425.0,
         details: '1 bag contains 25kg',
         icon: Icons.grain_rounded,
+        criticalLimit: 1500.0,
+        adequateLimit: 1750.0,
+        limitDescription: 'Adequate: >1,750 kg • Low: 1,500–1,750 kg • Critical: <1,500 kg',
       ),
     ];
   }
@@ -311,6 +377,8 @@ class InventoryStockService {
     required List<StandardizationRecord> standardizationRecords,
     required List<BatchRecordModel> batchRecords,
     List<InventoryItemModel>? customBaseline,
+    Map<String, double>? addedStockMap,
+    Map<String, String>? lastUpdatedMap,
   }) {
     final baseline = customBaseline ?? getBaselineItems();
     final Map<String, double> consumedMap = {};
@@ -798,7 +866,13 @@ class InventoryStockService {
     // Construct updated items list
     final List<InventoryItemModel> updatedItems = baseline.map((item) {
       final consumed = consumedMap[item.id] ?? 0.0;
-      return item.copyWith(consumedQty: consumed);
+      final added = addedStockMap?[item.id] ?? item.addedQty;
+      final updatedTime = lastUpdatedMap?[item.id] ?? item.lastUpdated;
+      return item.copyWith(
+        consumedQty: consumed,
+        addedQty: added,
+        lastUpdated: updatedTime,
+      );
     }).toList();
 
     return InventoryCalculationResult(

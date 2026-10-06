@@ -381,5 +381,82 @@ void main() {
       expect(spoonLedger.quantityDeducted, equals(100.0));
       expect(spoonLedger.unit, equals('pcs'));
     });
+
+    test('8. Inventory items dynamically evaluate Adequate, Low, and Critical based on specified limits', () {
+      final items = InventoryStockService.getBaselineItems();
+      expect(items.length, equals(22));
+
+      // 1. Lassi cup: >90,000 Adequate, 70,000-90,000 Low, <75,000 Critical
+      final lassi = items.firstWhere((i) => i.id == 'cup_lassi_200');
+      expect(lassi.copyWith(initialTotalQty: 95000.0).status, equals('Adequate'));
+      expect(lassi.copyWith(initialTotalQty: 82500.0).status, equals('Low'));
+      expect(lassi.copyWith(initialTotalQty: 74000.0).status, equals('Critical'));
+
+      // 2. Sweet Curd Cup S80 & Foil Pink 80: >42,000 Adequate, 30,000-42,000 Low, <30,000 Critical
+      final s80 = items.firstWhere((i) => i.id == 'cup_s80');
+      expect(s80.copyWith(initialTotalQty: 45000.0).status, equals('Adequate'));
+      expect(s80.copyWith(initialTotalQty: 35000.0).status, equals('Low'));
+      expect(s80.copyWith(initialTotalQty: 29000.0).status, equals('Critical'));
+
+      // 3. Sweet Curd Cup S200: >4,900 Adequate, 3,500-4,900 Low, <3,500 Critical
+      final s200 = items.firstWhere((i) => i.id == 'cup_s200');
+      expect(s200.copyWith(initialTotalQty: 5000.0).status, equals('Adequate'));
+      expect(s200.copyWith(initialTotalQty: 4000.0).status, equals('Low'));
+      expect(s200.copyWith(initialTotalQty: 3200.0).status, equals('Critical'));
+
+      // 4. Sweet Curd Cup S400 & Foil Pink 200/400: >14,000 Adequate, 10,000-14,000 Low, <10,000 Critical
+      final s400 = items.firstWhere((i) => i.id == 'cup_s400');
+      expect(s400.copyWith(initialTotalQty: 15000.0).status, equals('Adequate'));
+      expect(s400.copyWith(initialTotalQty: 12000.0).status, equals('Low'));
+      expect(s400.copyWith(initialTotalQty: 9000.0).status, equals('Critical'));
+
+      // 5. Sugar: >2,700 Adequate, 2,250-2,700 Low, <2,250 Critical
+      final sugar = items.firstWhere((i) => i.id == 'ingredient_sugar');
+      expect(sugar.copyWith(initialTotalQty: 2800.0).status, equals('Adequate'));
+      expect(sugar.copyWith(initialTotalQty: 2500.0).status, equals('Low'));
+      expect(sugar.copyWith(initialTotalQty: 2000.0).status, equals('Critical'));
+
+      // 6. SMP: >1,750 Adequate, 1,500-1,750 Low, <1,500 Critical
+      final smp = items.firstWhere((i) => i.id == 'ingredient_smp');
+      expect(smp.copyWith(initialTotalQty: 1800.0).status, equals('Adequate'));
+      expect(smp.copyWith(initialTotalQty: 1600.0).status, equals('Low'));
+      expect(smp.copyWith(initialTotalQty: 1400.0).status, equals('Critical'));
+
+      // 7. Plain Curd Cup P80 & P400: >7,000 Adequate, 6,000-7,000 Low, <6,000 Critical
+      final p80 = items.firstWhere((i) => i.id == 'cup_p80');
+      expect(p80.copyWith(initialTotalQty: 7500.0).status, equals('Adequate'));
+      expect(p80.copyWith(initialTotalQty: 6500.0).status, equals('Low'));
+      expect(p80.copyWith(initialTotalQty: 5500.0).status, equals('Critical'));
+
+      // 8. Plain Curd Cup P200: >2,800 Adequate, 2,400-2,800 Low, <2,400 Critical
+      final p200 = items.firstWhere((i) => i.id == 'cup_p200');
+      expect(p200.copyWith(initialTotalQty: 3000.0).status, equals('Adequate'));
+      expect(p200.copyWith(initialTotalQty: 2600.0).status, equals('Low'));
+      expect(p200.copyWith(initialTotalQty: 2200.0).status, equals('Critical'));
+
+      // 9. Wooden Spoon: >80,500 Adequate, 69,000-80,500 Low, <69,000 Critical
+      final spoon = items.firstWhere((i) => i.id == 'serving_wooden_spoon');
+      expect(spoon.copyWith(initialTotalQty: 85000.0).status, equals('Adequate'));
+      expect(spoon.copyWith(initialTotalQty: 75000.0).status, equals('Low'));
+      expect(spoon.copyWith(initialTotalQty: 65000.0).status, equals('Critical'));
+
+      // 10. Poly Film STD 500ml & SM+ 500ml: >5 Adequate, 3-5 Low, <3 Critical
+      final std500 = items.firstWhere((i) => i.id == 'poly_std_500');
+      expect(std500.copyWith(initialTotalQty: 6.0).status, equals('Adequate'));
+      expect(std500.copyWith(initialTotalQty: 4.0).status, equals('Low'));
+      expect(std500.copyWith(initialTotalQty: 2.0).status, equals('Critical'));
+
+      // 11. Poly Film STD 250ml & STD 200ml: >4 Adequate, 2-4 Low, <2 Critical
+      final std250 = items.firstWhere((i) => i.id == 'poly_std_250');
+      expect(std250.copyWith(initialTotalQty: 5.0).status, equals('Adequate'));
+      expect(std250.copyWith(initialTotalQty: 3.0).status, equals('Low'));
+      expect(std250.copyWith(initialTotalQty: 1.0).status, equals('Critical'));
+
+      // 12. Poly Film Plain & Sweet Curd 400g & 1kg: >3 Adequate, 2-3 Low, <2 Critical
+      final pcp400 = items.firstWhere((i) => i.id == 'poly_pcp_400');
+      expect(pcp400.copyWith(initialTotalQty: 4.0).status, equals('Adequate'));
+      expect(pcp400.copyWith(initialTotalQty: 2.5).status, equals('Low'));
+      expect(pcp400.copyWith(initialTotalQty: 1.0).status, equals('Critical'));
+    });
   });
 }

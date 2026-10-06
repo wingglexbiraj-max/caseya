@@ -11,8 +11,13 @@ class InventoryItemModel {
   final double initialPackages; // baseline package count
   final double initialTotalQty; // baseline total quantity
   final double consumedQty; // dynamically deducted from production & batch records
+  final double addedQty; // newly received inward stock added by user
+  final String lastUpdated; // date & time when this item was last received or updated
   final String details; // e.g. '2,500 pcs / box'
   final IconData icon;
+  final double? criticalLimit; // Threshold below which stock is Critical
+  final double? adequateLimit; // Threshold above which stock is Adequate
+  final String? limitDescription; // Canonical description of limits
 
   const InventoryItemModel({
     required this.id,
@@ -24,13 +29,18 @@ class InventoryItemModel {
     required this.initialPackages,
     required this.initialTotalQty,
     this.consumedQty = 0.0,
+    this.addedQty = 0.0,
+    this.lastUpdated = '06 Oct 2026 • 08:00 AM',
     required this.details,
     required this.icon,
+    this.criticalLimit,
+    this.adequateLimit,
+    this.limitDescription,
   });
 
-  /// Current available quantity after production and batch deductions
+  /// Current available quantity after inward additions and production deductions
   double get remainingQty {
-    final rem = initialTotalQty - consumedQty;
+    final rem = (initialTotalQty + addedQty) - consumedQty;
     return rem > 0 ? rem : 0.0;
   }
 
@@ -43,14 +53,27 @@ class InventoryItemModel {
   /// Whether any quantity of this item has been deducted
   bool get hasConsumption => consumedQty > 0.0001;
 
-  /// Dynamic status based on remaining stock level
+  /// Whether any inward stock has been added to this item
+  bool get hasAddedStock => addedQty > 0.0001;
+
+  /// Dynamic status based on defined limits or remaining stock level
   String get status {
-    if (remainingQty <= 0) {
-      return 'Out of Stock Alert';
+    if (criticalLimit != null && adequateLimit != null) {
+      if (remainingQty < criticalLimit!) {
+        return 'Critical';
+      }
+      if (remainingQty <= adequateLimit!) {
+        return 'Low';
+      }
+      return 'Adequate';
     }
-    // Low stock if less than 20% of initial baseline
+
+    if (remainingQty <= 0) {
+      return 'Critical';
+    }
+    // Fallback: Low stock if less than 20% of initial baseline
     if (remainingQty < (initialTotalQty * 0.20)) {
-      return 'Low Stock Alert';
+      return 'Low';
     }
     return 'Adequate';
   }
@@ -65,8 +88,13 @@ class InventoryItemModel {
     double? initialPackages,
     double? initialTotalQty,
     double? consumedQty,
+    double? addedQty,
+    String? lastUpdated,
     String? details,
     IconData? icon,
+    double? criticalLimit,
+    double? adequateLimit,
+    String? limitDescription,
   }) {
     return InventoryItemModel(
       id: id ?? this.id,
@@ -78,8 +106,13 @@ class InventoryItemModel {
       initialPackages: initialPackages ?? this.initialPackages,
       initialTotalQty: initialTotalQty ?? this.initialTotalQty,
       consumedQty: consumedQty ?? this.consumedQty,
+      addedQty: addedQty ?? this.addedQty,
+      lastUpdated: lastUpdated ?? this.lastUpdated,
       details: details ?? this.details,
       icon: icon ?? this.icon,
+      criticalLimit: criticalLimit ?? this.criticalLimit,
+      adequateLimit: adequateLimit ?? this.adequateLimit,
+      limitDescription: limitDescription ?? this.limitDescription,
     );
   }
 
@@ -93,8 +126,66 @@ class InventoryItemModel {
         'initial_packages': initialPackages,
         'initial_total_qty': initialTotalQty,
         'consumed_qty': consumedQty,
+        'added_qty': addedQty,
+        'last_updated': lastUpdated,
         'details': details,
+        'critical_limit': criticalLimit,
+        'adequate_limit': adequateLimit,
+        'limit_description': limitDescription,
       };
+}
+
+/// Ledger entry recording an inward stock receipt added by the user
+class InwardStockEntry {
+  final String id;
+  final String itemId;
+  final String itemName;
+  final double quantity; // in baseUnit
+  final double packages; // in packagingUnit
+  final String unit;
+  final String packagingUnit;
+  final String date;
+  final String time;
+  final String notes;
+
+  const InwardStockEntry({
+    required this.id,
+    required this.itemId,
+    required this.itemName,
+    required this.quantity,
+    required this.packages,
+    required this.unit,
+    required this.packagingUnit,
+    required this.date,
+    required this.time,
+    this.notes = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'itemId': itemId,
+        'itemName': itemName,
+        'quantity': quantity,
+        'packages': packages,
+        'unit': unit,
+        'packagingUnit': packagingUnit,
+        'date': date,
+        'time': time,
+        'notes': notes,
+      };
+
+  factory InwardStockEntry.fromJson(Map<String, dynamic> json) => InwardStockEntry(
+        id: json['id'] ?? '',
+        itemId: json['itemId'] ?? '',
+        itemName: json['itemName'] ?? '',
+        quantity: (json['quantity'] as num?)?.toDouble() ?? 0.0,
+        packages: (json['packages'] as num?)?.toDouble() ?? 0.0,
+        unit: json['unit'] ?? '',
+        packagingUnit: json['packagingUnit'] ?? '',
+        date: json['date'] ?? '',
+        time: json['time'] ?? '',
+        notes: json['notes'] ?? '',
+      );
 }
 
 /// Ledger entry recording an individual deduction from inventory

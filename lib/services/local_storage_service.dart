@@ -16,6 +16,7 @@ import '../models/silo_model.dart';
 import '../models/lab_milk_test.dart';
 import '../models/dispatch_record.dart';
 import '../models/milk_stock_entry.dart';
+import '../models/inventory_item_model.dart';
 import 'package:uuid/uuid.dart';
 
 class LocalStorageService {
@@ -1461,5 +1462,31 @@ class LocalStorageService {
         remarks: 'Fresh curd fermented batch',
       ),
     ];
+  }
+
+  // ===========================================================================
+  // INWARD INVENTORY STOCK STORAGE
+  // ===========================================================================
+  static const String storageKeyInwardStock = 'caseya_inward_stock_records_v1';
+
+  static Future<List<InwardStockEntry>> getInwardStockRecords() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(storageKeyInwardStock);
+    if (jsonStr == null || jsonStr.isEmpty) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => InwardStockEntry.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('Error decoding inward stock records: $e');
+      return [];
+    }
+  }
+
+  static Future<void> saveInwardStockRecord(InwardStockEntry entry) async {
+    final prefs = await _instance;
+    final existing = await getInwardStockRecords();
+    existing.insert(0, entry);
+    final jsonStr = jsonEncode(existing.map((e) => e.toJson()).toList());
+    await prefs.setString(storageKeyInwardStock, jsonStr);
   }
 }
