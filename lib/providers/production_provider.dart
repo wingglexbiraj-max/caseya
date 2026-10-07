@@ -9,6 +9,7 @@ import '../models/operations_models.dart';
 import '../models/product_model.dart';
 import '../models/standardization_record.dart';
 import '../repositories/production_repository.dart';
+import '../services/inventory_stock_service.dart';
 
 final productionRepositoryProvider = Provider((ref) => ProductionRepository());
 
@@ -568,8 +569,21 @@ class ProductionNotifier extends StateNotifier<ProductionState> {
 
     final nextBatch = _generateBatchNo(state.selectedDate, state.selectedProduct);
 
+    // Calculate consumed packaging materials for immediate feedback
+    final consumedList = InventoryStockService.getConsumedPackagingForRecord(record);
+    final String consumedSummary;
+    if (consumedList.isNotEmpty) {
+      final itemsText = consumedList
+          .map((c) => '${Formatters.formatSmart(c.quantity)} ${c.unit} ${c.itemName}')
+          .join(', ');
+      consumedSummary = '\n📦 Consumed Packaging: $itemsText';
+    } else {
+      consumedSummary = '';
+    }
+
     state = state.copyWith(
       allRecords: updatedRecords,
+      filterDate: state.selectedDate,
       quantity: 0.0,
       crates: 0.0,
       pieces: 0,
@@ -577,7 +591,7 @@ class ProductionNotifier extends StateNotifier<ProductionState> {
       batchNo: nextBatch,
       clearSelectedProduct: true,
       clearSelectedStandardizationBatch: true,
-      successMessage: '✓ Production entry logged successfully for ${p.productName} (${Formatters.formatSmart(record.quantityProduced)} ${record.unit}).',
+      successMessage: '✓ Production logged for ${p.productName} (${Formatters.formatSmart(record.quantityProduced)} ${record.unit}).$consumedSummary',
       clearMessages: false,
     );
 

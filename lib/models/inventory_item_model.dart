@@ -13,6 +13,7 @@ class InventoryItemModel {
   final double consumedQty; // dynamically deducted from production & batch records
   final double addedQty; // newly received inward stock added by user
   final String lastUpdated; // date & time when this item was last received or updated
+  final String? lastUpdatedBy; // person who last logged or updated this item
   final String details; // e.g. '2,500 pcs / box'
   final IconData icon;
   final double? criticalLimit; // Threshold below which stock is Critical
@@ -31,6 +32,7 @@ class InventoryItemModel {
     this.consumedQty = 0.0,
     this.addedQty = 0.0,
     this.lastUpdated = '06 Oct 2026 • 08:00 AM',
+    this.lastUpdatedBy = 'Biraj Goswami',
     required this.details,
     required this.icon,
     this.criticalLimit,
@@ -90,6 +92,7 @@ class InventoryItemModel {
     double? consumedQty,
     double? addedQty,
     String? lastUpdated,
+    String? lastUpdatedBy,
     String? details,
     IconData? icon,
     double? criticalLimit,
@@ -108,6 +111,7 @@ class InventoryItemModel {
       consumedQty: consumedQty ?? this.consumedQty,
       addedQty: addedQty ?? this.addedQty,
       lastUpdated: lastUpdated ?? this.lastUpdated,
+      lastUpdatedBy: lastUpdatedBy ?? this.lastUpdatedBy,
       details: details ?? this.details,
       icon: icon ?? this.icon,
       criticalLimit: criticalLimit ?? this.criticalLimit,
@@ -128,6 +132,7 @@ class InventoryItemModel {
         'consumed_qty': consumedQty,
         'added_qty': addedQty,
         'last_updated': lastUpdated,
+        'last_updated_by': lastUpdatedBy,
         'details': details,
         'critical_limit': criticalLimit,
         'adequate_limit': adequateLimit,
@@ -146,6 +151,7 @@ class InwardStockEntry {
   final String packagingUnit;
   final String date;
   final String time;
+  final String loggedBy;
   final String notes;
 
   const InwardStockEntry({
@@ -158,6 +164,7 @@ class InwardStockEntry {
     required this.packagingUnit,
     required this.date,
     required this.time,
+    this.loggedBy = 'Biraj Goswami',
     this.notes = '',
   });
 
@@ -171,6 +178,7 @@ class InwardStockEntry {
         'packagingUnit': packagingUnit,
         'date': date,
         'time': time,
+        'loggedBy': loggedBy,
         'notes': notes,
       };
 
@@ -184,6 +192,7 @@ class InwardStockEntry {
         packagingUnit: json['packagingUnit'] ?? '',
         date: json['date'] ?? '',
         time: json['time'] ?? '',
+        loggedBy: json['loggedBy'] ?? 'Biraj Goswami',
         notes: json['notes'] ?? '',
       );
 }
@@ -219,4 +228,36 @@ class StockDeductionEntry {
     this.isCrossVerified = false,
     this.notes = '',
   });
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'date': date,
+        'time': time,
+        'source': source,
+        'referenceId': referenceId,
+        'batchNo': batchNo,
+        'productName': productName,
+        'inventoryItemId': inventoryItemId,
+        'inventoryItemName': inventoryItemName,
+        'quantityDeducted': quantityDeducted,
+        'unit': unit,
+        'isCrossVerified': isCrossVerified,
+        'notes': notes,
+      };
+
+  factory StockDeductionEntry.fromJson(Map<String, dynamic> json) => StockDeductionEntry(
+        id: json['id'] ?? '',
+        date: json['date'] ?? '',
+        time: json['time'] ?? '',
+        source: json['source'] ?? 'Manual Issue Adjustment',
+        referenceId: json['referenceId'] ?? '',
+        batchNo: json['batchNo'] ?? '',
+        productName: json['productName'] ?? '',
+        inventoryItemId: json['inventoryItemId'] ?? '',
+        inventoryItemName: json['inventoryItemName'] ?? '',
+        quantityDeducted: (json['quantityDeducted'] as num?)?.toDouble() ?? 0.0,
+        unit: json['unit'] ?? '',
+        isCrossVerified: json['isCrossVerified'] ?? false,
+        notes: json['notes'] ?? '',
+      );
 }

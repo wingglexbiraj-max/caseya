@@ -1,6 +1,9 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:caseya/models/batch_record_model.dart';
 import 'package:caseya/services/batch_recipe_service.dart';
+import 'package:caseya/models/inventory_item_model.dart';
+import 'package:caseya/models/stock_ledger_entry_model.dart';
 
 void main() {
   group('Daily Batch Making Records Tests', () {
@@ -127,6 +130,110 @@ void main() {
       final milkPouchRecipe = BatchRecipeService.getRecipeForProduct('Milk Pouch');
       expect(milkPouchRecipe, isNotNull);
       expect(milkPouchRecipe!.ingredients.first.ingredientName, 'Milk');
+    });
+
+    test('BatchRecordModel supports fatPercent serialization, deserialization, and copyWith', () {
+      final batch = BatchRecordModel(
+        id: 'BT-FAT-01',
+        productionDate: '2026-10-06',
+        productId: 'CURD',
+        productName: 'Curd',
+        batchNumber: 'BT-20261006-01',
+        batchQuantity: 1000.0,
+        batchUnit: 'L',
+        fatPercent: 4.5,
+        ingredients: const [
+          BatchIngredientModel(id: 'i1', batchId: 'BT-FAT-01', ingredientName: 'SMP', quantity: 35.0, unit: 'kg'),
+          BatchIngredientModel(id: 'i2', batchId: 'BT-FAT-01', ingredientName: 'Sugar', quantity: 50.0, unit: 'kg'),
+        ],
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+
+      final json = batch.toJson();
+      expect(json['fat_percent'], 4.5);
+
+      final restored = BatchRecordModel.fromJson(json);
+      expect(restored.fatPercent, 4.5);
+
+      final updated = restored.copyWith(fatPercent: 5.2);
+      expect(updated.fatPercent, 5.2);
+      expect(updated.id, 'BT-FAT-01');
+    });
+
+    test('StockLedgerCalculator guarantees continuous opening and closing balances across arbitrary months and years', () {
+      const sugarItem = InventoryItemModel(
+        id: 'ingredient_sugar',
+        name: 'Sugar',
+        category: 'Ingredients',
+        baseUnit: 'kg',
+        packagingUnit: 'Bags',
+        itemsPerPackage: 50.0,
+        initialPackages: 20.0,
+        initialTotalQty: 1000.0,
+        details: 'Initial sugar stock',
+        icon: Icons.inventory_2_rounded,
+      );
+
+      // Dec 2025 receipts and issues
+      final List<InwardStockEntry> inward2025 = [
+        const InwardStockEntry(
+          id: 'IN-2025-12',
+          itemId: 'ingredient_sugar',
+          itemName: 'Sugar',
+          date: '2025-12-10',
+          time: '10:00 AM',
+          quantity: 500.0,
+          packages: 10.0,
+          unit: 'kg',
+          packagingUnit: 'Bags',
+          loggedBy: 'Biraj Goswami',
+          notes: 'December inward arrival',
+        ),
+      ];
+
+      final List<StockDeductionEntry> issues2025 = [
+        const StockDeductionEntry(
+          id: 'OUT-2025-12',
+          date: '2025-12-20',
+          time: '08:00 AM',
+          source: 'Daily Batch Making',
+          referenceId: 'B-DEC',
+          batchNo: 'B-DEC',
+          productName: 'Sweet Curd',
+          inventoryItemId: 'ingredient_sugar',
+          inventoryItemName: 'Sugar',
+          quantityDeducted: 200.0,
+          unit: 'kg',
+        ),
+      ];
+
+      // Calculate Dec 2025 ledger
+      final dec2025Result = StockLedgerCalculator.calculateMonthlyLedger(
+        item: sugarItem,
+        month: DateTime(2025, 12, 1),
+        inwardLedger: inward2025,
+        deductionLedger: issues2025,
+      );
+
+      expect(dec2025Result.openingStock, 1000.0);
+      expect(dec2025Result.totalReceipts, 500.0);
+      expect(dec2025Result.totalIssues, 200.0);
+      expect(dec2025Result.closingStock, 1300.0);
+
+      // Jan 2026 ledger: Opening stock MUST equal Dec 2025 closing stock (1300.0)
+      final jan2026Result = StockLedgerCalculator.calculateMonthlyLedger(
+        item: sugarItem,
+        month: DateTime(2026, 1, 1),
+        inwardLedger: inward2025,
+        deductionLedger: issues2025,
+      );
+
+      expect(jan2026Result.openingStock, 1300.0);
+      expect(jan2026Result.openingStock, dec2025Result.closingStock);
+
+      // Day 1 previous stock equals opening stock
+      expect(jan2026Result.rows.first.previousStock, 1300.0);
     });
   });
 }

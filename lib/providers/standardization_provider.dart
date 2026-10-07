@@ -175,6 +175,7 @@ class StandardizationNotifier extends StateNotifier<StandardizationState> {
     }).toList();
 
     final history = await _stdRepo.getRecords();
+    if (!mounted) return;
 
     state = state.copyWith(
       targetProducts: targets,

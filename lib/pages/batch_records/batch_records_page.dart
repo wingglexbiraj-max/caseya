@@ -30,6 +30,7 @@ class BatchRecordsPage extends ConsumerStatefulWidget {
 class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
   // Add Batch Entry Form Controllers
   final TextEditingController _milkController = TextEditingController();
+  final TextEditingController _fatController = TextEditingController();
   final TextEditingController _waterController = TextEditingController();
   final TextEditingController _sugarController = TextEditingController();
   final TextEditingController _smpController = TextEditingController();
@@ -71,6 +72,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
   @override
   void dispose() {
     _milkController.dispose();
+    _fatController.dispose();
     _waterController.dispose();
     _sugarController.dispose();
     _smpController.dispose();
@@ -89,6 +91,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
 
   void _onClearEntryForm() {
     _milkController.clear();
+    _fatController.clear();
     _waterController.clear();
     _sugarController.clear();
     _smpController.clear();
@@ -125,14 +128,15 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     }
 
     final milk = Formatters.parseDouble(_milkController.text);
+    final fat = Formatters.parseDouble(_fatController.text);
     final water = Formatters.parseDouble(_waterController.text);
     final sugar = Formatters.parseDouble(_sugarController.text);
     final smp = Formatters.parseDouble(_smpController.text);
 
-    if (milk <= 0 && water <= 0 && sugar <= 0 && smp <= 0) {
+    if (milk <= 0 && water <= 0 && sugar <= 0 && smp <= 0 && fat <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please enter at least milk, water, sugar, or SMP quantity.'),
+          content: Text('Please enter at least milk, fat, water, sugar, or SMP quantity.'),
           backgroundColor: AppColors.danger,
         ),
       );
@@ -197,6 +201,14 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
           quantity: milk,
           unit: 'L',
         ),
+      if (fat > 0)
+        BatchIngredientModel(
+          id: 'ING-${now.millisecondsSinceEpoch}-fat',
+          batchId: batchNum,
+          ingredientName: 'Fat ($fat%)',
+          quantity: fat,
+          unit: '%',
+        ),
       if (water > 0)
         BatchIngredientModel(
           id: 'ING-${now.millisecondsSinceEpoch}-2',
@@ -233,6 +245,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
       batchUnit: 'L',
       shift: effectiveShift,
       operatorName: effectivePerson,
+      fatPercent: fat > 0 ? fat : null,
       notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
       ingredients: ingredients,
       createdAt: now,
@@ -242,12 +255,20 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
     final success = await ref.read(batchRecordsProvider.notifier).createBatch(batch);
     if (success && mounted) {
       ref.read(labProvider.notifier).refreshSiloStock();
+      final List<String> deductedParts = [];
+      if (smp > 0) deductedParts.add('${Formatters.formatSmart(smp)} kg SMP');
+      if (sugar > 0) deductedParts.add('${Formatters.formatSmart(sugar)} kg Sugar');
+      final stockDeductMsg = deductedParts.isNotEmpty
+          ? ' • Deducted ${deductedParts.join(' & ')} from Inventory'
+          : '';
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            '✓ Batch $batchNum for $_selectedProduct (${Formatters.formatSmart(totalVolume)} L) recorded successfully.',
+            '✓ Batch $batchNum for $_selectedProduct (${Formatters.formatSmart(totalVolume)} L) recorded successfully$stockDeductMsg.',
           ),
           backgroundColor: const Color(0xFF10B981),
+          duration: const Duration(seconds: 4),
         ),
       );
       _onClearEntryForm();
@@ -1045,6 +1066,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                               _selectedStandardizationRecord = b;
                               _selectedProduct = b.targetProductName;
                               _milkController.text = Formatters.formatSmart(b.inputMilkQuantity);
+                              _fatController.text = Formatters.formatSmart(b.targetFat > 0 ? b.targetFat : b.inputFat);
                               _waterController.text = Formatters.formatSmart(b.waterRequired);
                               _sugarController.text = Formatters.formatSmart(b.sugarRequired);
                               _smpController.text = Formatters.formatSmart(b.smpRequired);
@@ -1082,10 +1104,11 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
           ),
           const SizedBox(height: 18),
 
-          // Row 2: Four Formulation Inputs: Milk Taken, Water, Sugar, SMP
+          // Row 2: Five Formulation Inputs: Milk Taken, Fat %, Water, Sugar, SMP
           LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 680;
+              final isWide = constraints.maxWidth >= 920;
+              final isMedium = constraints.maxWidth >= 600 && !isWide;
 
               final milkField = AppTextField(
                 label: 'Milk Taken (L)',
@@ -1093,6 +1116,15 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 suffixText: 'Litres',
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 controller: _milkController,
+                onChanged: (_) => setState(() {}),
+              );
+
+              final fatField = AppTextField(
+                label: 'Fat (%)',
+                hint: 'e.g. 3.0',
+                suffixText: '%',
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                controller: _fatController,
                 onChanged: (_) => setState(() {}),
               );
 
@@ -1127,12 +1159,36 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 return Row(
                   children: [
                     Expanded(child: milkField),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
+                    Expanded(child: fatField),
+                    const SizedBox(width: 10),
                     Expanded(child: waterField),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(child: sugarField),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(child: smpField),
+                  ],
+                );
+              } else if (isMedium) {
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(child: milkField),
+                        const SizedBox(width: 10),
+                        Expanded(child: fatField),
+                        const SizedBox(width: 10),
+                        Expanded(child: waterField),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(child: sugarField),
+                        const SizedBox(width: 10),
+                        Expanded(child: smpField),
+                      ],
+                    ),
                   ],
                 );
               } else {
@@ -1141,18 +1197,20 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     Row(
                       children: [
                         Expanded(child: milkField),
-                        const SizedBox(width: 12),
-                        Expanded(child: waterField),
+                        const SizedBox(width: 10),
+                        Expanded(child: fatField),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Row(
                       children: [
+                        Expanded(child: waterField),
+                        const SizedBox(width: 10),
                         Expanded(child: sugarField),
-                        const SizedBox(width: 12),
-                        Expanded(child: smpField),
                       ],
                     ),
+                    const SizedBox(height: 10),
+                    smpField,
                   ],
                 );
               }
@@ -1234,6 +1292,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
 
   Widget _buildLiveBatchMetrics(double totalVolume) {
     final m = Formatters.parseDouble(_milkController.text);
+    final fat = Formatters.parseDouble(_fatController.text);
     final w = Formatters.parseDouble(_waterController.text);
     final s = Formatters.parseDouble(_sugarController.text);
     final smp = Formatters.parseDouble(_smpController.text);
@@ -1293,6 +1352,17 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
               cardBgColor: const Color(0xFFECFDF5), // Soft Mint
             );
 
+            final cardFat = MetricCard(
+              title: 'Fat (%)',
+              value: fat > 0 ? '${Formatters.formatSmart(fat)}%' : '0%',
+              unit: '%',
+              subtitle: fat > 0 ? 'Batch Fat content' : 'Enter Fat above',
+              icon: Icons.opacity_rounded,
+              iconColor: Colors.black.withValues(alpha: 0.60),
+              iconBgColor: Colors.black.withValues(alpha: 0.06),
+              cardBgColor: const Color(0xFFFDF4FF), // Soft Pink
+            );
+
             final cardWater = MetricCard(
               title: 'Water Added',
               value: w > 0 ? Formatters.formatSmart(w) : '0',
@@ -1326,19 +1396,21 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
               cardBgColor: const Color(0xFFFFF7ED), // Soft Peach/Orange
             );
 
-            if (constraints.maxWidth >= 900) {
+            if (constraints.maxWidth >= 1050) {
               return IntrinsicHeight(
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Expanded(child: cardTotal),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(child: cardMilk),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
+                    Expanded(child: cardFat),
+                    const SizedBox(width: 10),
                     Expanded(child: cardWater),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(child: cardSugar),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(child: cardSmp),
                   ],
                 ),
@@ -1355,6 +1427,7 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 children: [
                   SizedBox(width: itemWidth, child: cardTotal),
                   SizedBox(width: itemWidth, child: cardMilk),
+                  SizedBox(width: itemWidth, child: cardFat),
                   SizedBox(width: itemWidth, child: cardWater),
                   SizedBox(width: itemWidth, child: cardSugar),
                   SizedBox(width: itemWidth, child: cardSmp),

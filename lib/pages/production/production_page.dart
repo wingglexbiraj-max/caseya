@@ -11,8 +11,11 @@ import '../../core/widgets/confirmation_dialog.dart';
 import '../../core/widgets/live_time_chip.dart';
 import '../../core/widgets/metric_card.dart';
 import '../../models/product_model.dart';
+import '../../models/stock_ledger_entry_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/production_provider.dart';
+import '../../providers/navigation_provider.dart';
+import '../../services/inventory_stock_service.dart';
 
 class ProductionPage extends ConsumerStatefulWidget {
   const ProductionPage({super.key});
@@ -159,6 +162,9 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
       );
 
       if (success && mounted) {
+        setState(() {
+          _historyExpanded = true;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -166,7 +172,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                   '✓ Production entry recorded successfully.',
             ),
             backgroundColor: const Color(0xFF10B981),
-            duration: const Duration(seconds: 3),
+            duration: const Duration(seconds: 4),
           ),
         );
         _onClear();
@@ -1132,6 +1138,87 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                               ),
                                             ),
                                           ],
+                                          Builder(
+                                            builder: (context) {
+                                              final consumedList = InventoryStockService.getConsumedPackagingForRecord(item);
+                                              if (consumedList.isEmpty) return const SizedBox.shrink();
+                                              return Padding(
+                                                padding: const EdgeInsets.only(top: 6),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFFF0FDF4),
+                                                    borderRadius: BorderRadius.circular(6),
+                                                    border: Border.all(
+                                                      color: const Color(0xFF86EFAC),
+                                                      width: 1,
+                                                    ),
+                                                  ),
+                                                  child: Wrap(
+                                                    spacing: 8,
+                                                    runSpacing: 4,
+                                                    crossAxisAlignment: WrapCrossAlignment.center,
+                                                    children: [
+                                                      Row(
+                                                        mainAxisSize: MainAxisSize.min,
+                                                        children: [
+                                                          const Icon(
+                                                            Icons.all_inbox_rounded,
+                                                            size: 13,
+                                                            color: Color(0xFF16A34A),
+                                                          ),
+                                                          const SizedBox(width: 4),
+                                                          Text(
+                                                            'Packaging: ${consumedList.map((c) => '${Formatters.formatSmart(c.quantity)} ${c.unit} ${c.itemName}').join(' • ')}',
+                                                            style: const TextStyle(
+                                                              fontSize: AppTextSizes.caption,
+                                                              fontWeight: AppFontWeights.bold,
+                                                              color: Color(0xFF15803D),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      InkWell(
+                                                        onTap: () {
+                                                          final parsedDate = StockLedgerCalculator.parseAnyDate(item.date) ?? DateTime.now();
+                                                          ref.read(stockLedgerTargetMonthProvider.notifier).state = DateTime(parsedDate.year, parsedDate.month, 1);
+                                                          ref.read(stockLedgerTargetItemProvider.notifier).state = consumedList.first.itemId;
+                                                          ref.read(shellNavigationIndexProvider.notifier).state = 9;
+                                                        },
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                                          decoration: BoxDecoration(
+                                                            color: const Color(0xFF15803D),
+                                                            borderRadius: BorderRadius.circular(4),
+                                                          ),
+                                                          child: const Row(
+                                                            mainAxisSize: MainAxisSize.min,
+                                                            children: [
+                                                             Text(
+                                                                'View in Stock Ledger',
+                                                                style: TextStyle(
+                                                                  fontSize: 10.5,
+                                                                  fontWeight: AppFontWeights.bold,
+                                                                  color: Colors.white,
+                                                                ),
+                                                              ),
+                                                              SizedBox(width: 3),
+                                                              Icon(
+                                                                Icons.arrow_forward_rounded,
+                                                                size: 11,
+                                                                color: Colors.white,
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          ),
                                         ],
                                       ),
                                     ),

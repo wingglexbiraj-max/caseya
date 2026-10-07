@@ -1,9 +1,27 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../core/constants/dairy_products.dart';
+import '../core/utils/formatters.dart';
 import '../models/inventory_item_model.dart';
 import '../models/operations_models.dart';
 import '../models/standardization_record.dart';
 import '../models/batch_record_model.dart';
+
+class ConsumedPackagingSummary {
+  final String itemId;
+  final String itemName;
+  final double quantity;
+  final String unit;
+  final String note;
+
+  const ConsumedPackagingSummary({
+    required this.itemId,
+    required this.itemName,
+    required this.quantity,
+    required this.unit,
+    this.note = '',
+  });
+}
 
 class InventoryCalculationResult {
   final List<InventoryItemModel> items;
@@ -379,6 +397,7 @@ class InventoryStockService {
     List<InventoryItemModel>? customBaseline,
     Map<String, double>? addedStockMap,
     Map<String, String>? lastUpdatedMap,
+    Map<String, String>? lastUpdatedByMap,
   }) {
     final baseline = customBaseline ?? getBaselineItems();
     final Map<String, double> consumedMap = {};
@@ -437,7 +456,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_blue_80',
-          inventoryItemName: 'Foil 80gm (Blue)',
+          inventoryItemName: 'Alum Foil (Blue) 80gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Blue) 80gm used 1:1 for Lassi 200 ml',
@@ -476,7 +495,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_pink_80',
-          inventoryItemName: 'Foil 80gm (Pink)',
+          inventoryItemName: 'Alum Foil (Pink) 80gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Pink) 80gm used 1:1 for S80',
@@ -515,7 +534,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_pink_200_400',
-          inventoryItemName: 'Foil 200/400gm (Pink)',
+          inventoryItemName: 'Alum Foil (Pink) 200/400gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Pink) 200/400gm used 1:1 for S200',
@@ -556,7 +575,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_pink_200_400',
-          inventoryItemName: 'Foil 200/400gm (Pink)',
+          inventoryItemName: 'Alum Foil (Pink) 200/400gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Pink) 200/400gm used 1:1 for S400',
@@ -596,7 +615,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_blue_80',
-          inventoryItemName: 'Foil 80gm (Blue)',
+          inventoryItemName: 'Alum Foil (Blue) 80gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Blue) 80gm used 1:1 for P80 (Shared with Lassi)',
@@ -635,7 +654,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_blue_200_400',
-          inventoryItemName: 'Foil 200/400gm (Blue)',
+          inventoryItemName: 'Alum Foil (Blue) 200/400gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Blue) 200/400gm used 1:1 for P200',
@@ -676,7 +695,7 @@ class InventoryStockService {
           batchNo: record.batchNo,
           productName: record.productName,
           inventoryItemId: 'foil_blue_200_400',
-          inventoryItemName: 'Foil 200/400gm (Blue)',
+          inventoryItemName: 'Alum Foil (Blue) 200/400gm',
           quantityDeducted: pcs.toDouble(),
           unit: 'lids',
           notes: 'Alum Foil (Blue) 200/400gm used 1:1 for P400',
@@ -702,6 +721,68 @@ class InventoryStockService {
           quantityDeducted: pcs.toDouble(),
           unit: 'pcs',
           notes: '1 wooden spoon per cup allocated for dispatch (${record.productName})',
+        ));
+      }
+
+      // --- Poly Roll Deduction for Pouch Products (Milk Pouches & Curd Pouches) ---
+      String? polyId;
+      String? polyName;
+      double pouchesPerRoll = 5000.0;
+
+      if (pId == '9900027' || (pName.contains('std') && pName.contains('500'))) {
+        polyId = 'poly_std_500';
+        polyName = 'Poly Film STD 500ml';
+        pouchesPerRoll = 5000.0;
+      } else if (pId == '9900095' || (pName.contains('std') && pName.contains('250'))) {
+        polyId = 'poly_std_250';
+        polyName = 'Poly Film STD 250ml';
+        pouchesPerRoll = 8000.0;
+      } else if (pName.contains('std') && pName.contains('200')) {
+        polyId = 'poly_std_200';
+        polyName = 'Poly Film STD 200ml';
+        pouchesPerRoll = 10000.0;
+      } else if (pId == 'smart500' || pName.contains('sm+') || pName.contains('army')) {
+        polyId = 'poly_sm_500';
+        polyName = 'Poly Film SM+ 500ml';
+        pouchesPerRoll = 5000.0;
+      } else if (pId == 'scp400' || ((pName.contains('sweet curd') || pName.contains('scp')) && pName.contains('400') && pName.contains('pouch'))) {
+        polyId = 'poly_scp_400';
+        polyName = 'Poly Film Sweet Curd 400gm';
+        pouchesPerRoll = 4000.0;
+      } else if (pId == 'scp1000' || ((pName.contains('sweet curd') || pName.contains('scp')) && (pName.contains('1000') || pName.contains('1 kg') || pName.contains('1kg')))) {
+        polyId = 'poly_scp_1000';
+        polyName = 'Poly Film Sweet Curd 1kg';
+        pouchesPerRoll = 2500.0;
+      } else if (pId == 'pcp400' || ((pName.contains('plain curd') || pName.contains('pcp')) && pName.contains('400') && pName.contains('pouch'))) {
+        polyId = 'poly_pcp_400';
+        polyName = 'Poly Film Plain Curd 400gm';
+        pouchesPerRoll = 4000.0;
+      } else if (pId == 'pcp1000' || ((pName.contains('plain curd') || pName.contains('pcp')) && (pName.contains('1000') || pName.contains('1 kg') || pName.contains('1kg')))) {
+        polyId = 'poly_pcp_1000';
+        polyName = 'Poly Film Plain Curd 1kg';
+        pouchesPerRoll = 2500.0;
+      }
+
+      if (polyId != null) {
+        final double rawRolls = pcs / pouchesPerRoll;
+        final double rolls = double.parse(rawRolls.toStringAsFixed(2));
+        final double rollsConsumed = rolls > 0 ? rolls : 0.01;
+
+        consumedMap[polyId] = (consumedMap[polyId] ?? 0.0) + rollsConsumed;
+
+        ledger.add(StockDeductionEntry(
+          id: 'DED-POLY-${record.recordId}',
+          date: record.date,
+          time: record.time,
+          source: 'Production Register',
+          referenceId: record.recordId,
+          batchNo: record.batchNo,
+          productName: record.productName,
+          inventoryItemId: polyId,
+          inventoryItemName: polyName ?? polyId,
+          quantityDeducted: rollsConsumed,
+          unit: 'Rolls',
+          notes: '$pcs pouches produced • ${Formatters.formatSmart(rollsConsumed)} roll(s) consumed for ${record.productName}',
         ));
       }
     }
@@ -812,6 +893,8 @@ class InventoryStockService {
         processedBatchKeys.add(batch.batchNumber.toLowerCase().trim());
       }
 
+      final timeStr = DateFormat('hh:mm a').format(batch.createdAt);
+
       // Check ingredients
       for (final ing in batch.ingredients) {
         final ingName = ing.ingredientName.trim().toLowerCase();
@@ -825,7 +908,7 @@ class InventoryStockService {
           ledger.add(StockDeductionEntry(
             id: 'DED-SUGAR-${batch.id}-${ing.id}',
             date: batch.productionDate,
-            time: '08:00 AM',
+            time: timeStr,
             source: 'Daily Batch Making',
             referenceId: batch.id,
             batchNo: batch.batchNumber,
@@ -835,7 +918,7 @@ class InventoryStockService {
             quantityDeducted: qty,
             unit: 'kg',
             isCrossVerified: true,
-            notes: 'Batch Making Record: ${batch.batchNumber} (${batch.productName})',
+            notes: 'Batch Making Formulation: ${batch.batchNumber} (${batch.productName})',
           ));
         } else if (ingName.contains('smp') || ingName.contains('skimmed milk powder')) {
           consumedMap['ingredient_smp'] = (consumedMap['ingredient_smp'] ?? 0.0) + qty;
@@ -844,7 +927,7 @@ class InventoryStockService {
           ledger.add(StockDeductionEntry(
             id: 'DED-SMP-${batch.id}-${ing.id}',
             date: batch.productionDate,
-            time: '08:00 AM',
+            time: timeStr,
             source: 'Daily Batch Making',
             referenceId: batch.id,
             batchNo: batch.batchNumber,
@@ -854,8 +937,35 @@ class InventoryStockService {
             quantityDeducted: qty,
             unit: 'kg',
             isCrossVerified: true,
-            notes: 'Batch Making Record: ${batch.batchNumber} (${batch.productName})',
+            notes: 'Batch Making Formulation: ${batch.batchNumber} (${batch.productName})',
           ));
+        } else {
+          // Check if any other inventory item matches the ingredient name
+          for (final item in baseline) {
+            if (item.id != 'ingredient_sugar' && item.id != 'ingredient_smp') {
+              if (ingName == item.name.toLowerCase() ||
+                  ingName == item.id.toLowerCase() ||
+                  ingName.contains(item.name.toLowerCase())) {
+                consumedMap[item.id] = (consumedMap[item.id] ?? 0.0) + qty;
+                ledger.add(StockDeductionEntry(
+                  id: 'DED-${item.id}-${batch.id}-${ing.id}',
+                  date: batch.productionDate,
+                  time: timeStr,
+                  source: 'Daily Batch Making',
+                  referenceId: batch.id,
+                  batchNo: batch.batchNumber,
+                  productName: batch.productName,
+                  inventoryItemId: item.id,
+                  inventoryItemName: item.name,
+                  quantityDeducted: qty,
+                  unit: item.baseUnit,
+                  isCrossVerified: true,
+                  notes: 'Batch Making Formulation: ${batch.batchNumber} (${batch.productName})',
+                ));
+                break;
+              }
+            }
+          }
         }
       }
     }
@@ -868,10 +978,12 @@ class InventoryStockService {
       final consumed = consumedMap[item.id] ?? 0.0;
       final added = addedStockMap?[item.id] ?? item.addedQty;
       final updatedTime = lastUpdatedMap?[item.id] ?? item.lastUpdated;
+      final updatedPerson = lastUpdatedByMap?[item.id] ?? item.lastUpdatedBy;
       return item.copyWith(
         consumedQty: consumed,
         addedQty: added,
         lastUpdated: updatedTime,
+        lastUpdatedBy: updatedPerson,
       );
     }).toList();
 
@@ -904,6 +1016,218 @@ class InventoryStockService {
       }
     }
     return 0;
+  }
+
+  /// Returns a structured summary of packaging materials consumed for a production record
+  static List<ConsumedPackagingSummary> getConsumedPackagingForRecord(ProductionRecord record) {
+    final pcs = _resolvePieces(record);
+    if (pcs <= 0) return const [];
+
+    final pId = record.productId.trim().toLowerCase();
+    final pName = record.productName.trim().toLowerCase();
+    final List<ConsumedPackagingSummary> results = [];
+
+    // --- Case 1: Lassi 200 ml ---
+    if (pId == '9900007' || pName.contains('lassi')) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_lassi_200',
+        itemName: 'Lassi Cup (200ml)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+        note: '1 cup per unit produced',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_blue_80',
+        itemName: 'Alum Foil (Blue) 80gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+        note: '1 foil lid per unit produced',
+      ));
+    }
+    // --- Case 2: Sweet Curd Cup S80 ---
+    else if (pId == '9900025' || (pName.contains('sweet curd') && (pName.contains('80') || pName.contains('s80')))) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_s80',
+        itemName: 'S80 Cup (Sweet Curd 80g)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_pink_80',
+        itemName: 'Alum Foil (Pink) 80gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'serving_wooden_spoon',
+        itemName: 'Wooden Spoon',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+        note: '1 spoon per cup allocated',
+      ));
+    }
+    // --- Case 3: Sweet Curd Cup S200 ---
+    else if (pId == '9900011' || (pName.contains('sweet curd') && (pName.contains('200') || pName.contains('s200')))) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_s200',
+        itemName: 'S200 Cup (Sweet Curd 200g)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_pink_200_400',
+        itemName: 'Alum Foil (Pink) 200/400gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'serving_wooden_spoon',
+        itemName: 'Wooden Spoon',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+    }
+    // --- Case 4: Sweet Curd Cup S400 ---
+    else if ((pId == '9900010' || (pName.contains('sweet curd') && pName.contains('400') && (pName.contains('cup') || pName.contains('s400')))) &&
+        !pName.contains('pouch') && !pId.contains('scp')) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_s400',
+        itemName: 'S400 Cup (Sweet Curd 400g)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_pink_200_400',
+        itemName: 'Alum Foil (Pink) 200/400gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'serving_wooden_spoon',
+        itemName: 'Wooden Spoon',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+    }
+    // --- Case 5: Plain Curd Cup P80 ---
+    else if (pId == '9900026' || (pName.contains('plain curd') && (pName.contains('80') || pName.contains('p80')))) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_p80',
+        itemName: 'P80 Cup (Plain Curd 80g)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_blue_80',
+        itemName: 'Alum Foil (Blue) 80gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'serving_wooden_spoon',
+        itemName: 'Wooden Spoon',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+    }
+    // --- Case 6: Plain Curd Cup P200 ---
+    else if (pId == 'p200' || (pName.contains('plain curd') && (pName.contains('200') || pName.contains('p200')))) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_p200',
+        itemName: 'P200 Cup (Plain Curd 200g)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_blue_200_400',
+        itemName: 'Alum Foil (Blue) 200/400gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'serving_wooden_spoon',
+        itemName: 'Wooden Spoon',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+    }
+    // --- Case 7: Plain Curd Cup P400 ---
+    else if ((pId == '9900013' || (pName.contains('plain curd') && pName.contains('400') && (pName.contains('cup') || pName.contains('p400')))) &&
+        !pName.contains('pouch') && !pId.contains('pcp')) {
+      results.add(ConsumedPackagingSummary(
+        itemId: 'cup_p400',
+        itemName: 'P400 Cup (Plain Curd 400g)',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'foil_blue_200_400',
+        itemName: 'Alum Foil (Blue) 200/400gm',
+        quantity: pcs.toDouble(),
+        unit: 'lids',
+      ));
+      results.add(ConsumedPackagingSummary(
+        itemId: 'serving_wooden_spoon',
+        itemName: 'Wooden Spoon',
+        quantity: pcs.toDouble(),
+        unit: 'pcs',
+      ));
+    }
+    // --- Poly Roll Pouches ---
+    else {
+      String? polyId;
+      String? polyName;
+      double pouchesPerRoll = 5000.0;
+
+      if (pId == '9900027' || (pName.contains('std') && pName.contains('500'))) {
+        polyId = 'poly_std_500';
+        polyName = 'Poly Film STD 500ml';
+        pouchesPerRoll = 5000.0;
+      } else if (pId == '9900095' || (pName.contains('std') && pName.contains('250'))) {
+        polyId = 'poly_std_250';
+        polyName = 'Poly Film STD 250ml';
+        pouchesPerRoll = 8000.0;
+      } else if (pName.contains('std') && pName.contains('200')) {
+        polyId = 'poly_std_200';
+        polyName = 'Poly Film STD 200ml';
+        pouchesPerRoll = 10000.0;
+      } else if (pId == 'smart500' || pName.contains('sm+') || pName.contains('army')) {
+        polyId = 'poly_sm_500';
+        polyName = 'Poly Film SM+ 500ml';
+        pouchesPerRoll = 5000.0;
+      } else if (pId == 'scp400' || ((pName.contains('sweet curd') || pName.contains('scp')) && pName.contains('400') && pName.contains('pouch'))) {
+        polyId = 'poly_scp_400';
+        polyName = 'Poly Film Sweet Curd 400gm';
+        pouchesPerRoll = 4000.0;
+      } else if (pId == 'scp1000' || ((pName.contains('sweet curd') || pName.contains('scp')) && (pName.contains('1000') || pName.contains('1 kg') || pName.contains('1kg')))) {
+        polyId = 'poly_scp_1000';
+        polyName = 'Poly Film Sweet Curd 1kg';
+        pouchesPerRoll = 2500.0;
+      } else if (pId == 'pcp400' || ((pName.contains('plain curd') || pName.contains('pcp')) && pName.contains('400') && pName.contains('pouch'))) {
+        polyId = 'poly_pcp_400';
+        polyName = 'Poly Film Plain Curd 400gm';
+        pouchesPerRoll = 4000.0;
+      } else if (pId == 'pcp1000' || ((pName.contains('plain curd') || pName.contains('pcp')) && (pName.contains('1000') || pName.contains('1 kg') || pName.contains('1kg')))) {
+        polyId = 'poly_pcp_1000';
+        polyName = 'Poly Film Plain Curd 1kg';
+        pouchesPerRoll = 2500.0;
+      }
+
+      if (polyId != null) {
+        final double rawRolls = pcs / pouchesPerRoll;
+        final double rolls = double.parse(rawRolls.toStringAsFixed(2));
+        final double rollsConsumed = rolls > 0 ? rolls : 0.01;
+        results.add(ConsumedPackagingSummary(
+          itemId: polyId,
+          itemName: polyName ?? polyId,
+          quantity: rollsConsumed,
+          unit: 'Rolls',
+          note: '$pcs pouches produced',
+        ));
+      }
+    }
+
+    return results;
   }
 
   static String _normalizeBatchKey({

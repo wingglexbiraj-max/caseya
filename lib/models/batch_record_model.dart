@@ -65,6 +65,7 @@ class BatchRecordModel {
   final String? operatorName;
   final String? notes;
   final String? siloId; // 'RMST' | 'PMST' | ...
+  final double? fatPercent; // Fat % input from Daily Batch Making
   final List<BatchIngredientModel> ingredients;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -81,6 +82,7 @@ class BatchRecordModel {
     this.operatorName,
     this.notes,
     this.siloId,
+    this.fatPercent,
     required this.ingredients,
     required this.createdAt,
     required this.updatedAt,
@@ -98,6 +100,7 @@ class BatchRecordModel {
         'operator_name': operatorName,
         'notes': notes,
         'silo_id': siloId,
+        'fat_percent': fatPercent,
         'ingredients': ingredients.map((e) => e.toJson()).toList(),
         'created_at': createdAt.toIso8601String(),
         'updated_at': updatedAt.toIso8601String(),
@@ -123,6 +126,7 @@ class BatchRecordModel {
       operatorName: json['operator_name']?.toString(),
       notes: json['notes']?.toString(),
       siloId: json['silo_id']?.toString(),
+      fatPercent: (json['fat_percent'] as num?)?.toDouble(),
       ingredients: (json['ingredients'] as List<dynamic>?)
               ?.map((e) =>
                   BatchIngredientModel.fromJson(e as Map<String, dynamic>))
@@ -146,6 +150,7 @@ class BatchRecordModel {
     String? operatorName,
     String? notes,
     String? siloId,
+    double? fatPercent,
     List<BatchIngredientModel>? ingredients,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -162,6 +167,7 @@ class BatchRecordModel {
         operatorName: operatorName ?? this.operatorName,
         notes: notes ?? this.notes,
         siloId: siloId ?? this.siloId,
+        fatPercent: fatPercent ?? this.fatPercent,
         ingredients: ingredients ?? this.ingredients,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,

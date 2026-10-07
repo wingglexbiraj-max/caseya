@@ -1489,4 +1489,34 @@ class LocalStorageService {
     final jsonStr = jsonEncode(existing.map((e) => e.toJson()).toList());
     await prefs.setString(storageKeyInwardStock, jsonStr);
   }
+
+  static Future<void> saveAllInwardStockRecords(List<InwardStockEntry> records) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await prefs.setString(storageKeyInwardStock, jsonStr);
+  }
+
+  // ===========================================================================
+  // MANUAL STOCK ISSUES STORAGE
+  // ===========================================================================
+  static const String storageKeyManualStockIssues = 'caseya_manual_stock_issues_v1';
+
+  static Future<List<StockDeductionEntry>> getManualStockIssues() async {
+    final prefs = await _instance;
+    final jsonStr = prefs.getString(storageKeyManualStockIssues);
+    if (jsonStr == null || jsonStr.isEmpty) return [];
+    try {
+      final List<dynamic> list = jsonDecode(jsonStr);
+      return list.map((e) => StockDeductionEntry.fromJson(e as Map<String, dynamic>)).toList();
+    } catch (e) {
+      debugPrint('Error decoding manual stock issues: $e');
+      return [];
+    }
+  }
+
+  static Future<void> saveAllManualStockIssues(List<StockDeductionEntry> records) async {
+    final prefs = await _instance;
+    final jsonStr = jsonEncode(records.map((e) => e.toJson()).toList());
+    await prefs.setString(storageKeyManualStockIssues, jsonStr);
+  }
 }

@@ -4,6 +4,9 @@ import '../models/product_model.dart';
 import '../models/boiler_record.dart';
 import '../models/standardization_record.dart';
 import '../models/lab_record.dart';
+import '../models/inventory_item_model.dart';
+import '../models/operations_models.dart' hide DispatchItem, DispatchRecord;
+import '../models/batch_record_model.dart';
 import 'local_storage_service.dart';
 
 /// Central API Service for CASEYA
@@ -93,4 +96,95 @@ class ApiService {
       } catch (_) {}
     }
   }
+
+  // ===========================================================================
+  // INWARD INVENTORY STOCK RECORDS
+  // ===========================================================================
+
+  static Future<List<InwardStockEntry>> fetchInwardStockRecords() async {
+    if (useBackend) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/stock/inward')).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(res.body);
+          return data.map((e) => InwardStockEntry.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+    }
+    return LocalStorageService.getInwardStockRecords();
+  }
+
+  static Future<void> saveInwardStockRecord(InwardStockEntry entry) async {
+    await LocalStorageService.saveInwardStockRecord(entry);
+    if (useBackend) {
+      try {
+        await http.post(
+          Uri.parse('$baseUrl/stock/inward'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(entry.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  // ===========================================================================
+  // PRODUCTION RECORDS
+  // ===========================================================================
+
+  static Future<List<ProductionRecord>> fetchProductionRecords() async {
+    if (useBackend) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/production')).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(res.body);
+          return data.map((e) => ProductionRecord.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+    }
+    return LocalStorageService.getProductionRecords();
+  }
+
+  static Future<void> saveProductionRecord(ProductionRecord record) async {
+    await LocalStorageService.addProductionRecord(record);
+    if (useBackend) {
+      try {
+        await http.post(
+          Uri.parse('$baseUrl/production'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(record.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  // ===========================================================================
+  // DAILY BATCH MAKING RECORDS
+  // ===========================================================================
+
+  static Future<List<BatchRecordModel>> fetchBatchRecords() async {
+    if (useBackend) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/batches')).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(res.body);
+          return data.map((e) => BatchRecordModel.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+    }
+    return LocalStorageService.getBatchRecords();
+  }
+
+  static Future<void> saveBatchRecord(BatchRecordModel record) async {
+    await LocalStorageService.addBatchRecord(record);
+    if (useBackend) {
+      try {
+        await http.post(
+          Uri.parse('$baseUrl/batches'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(record.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
 }
+

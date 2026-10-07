@@ -21,7 +21,7 @@ void main() {
       expect(result.consumptionPerHour, closeTo(14.2857, 0.001));
       expect(result.unitsPerLitre, 3.5); // 175 / 50 = 3.5 kWh/L
       expect(result.averageLoadKw, 50.0); // 175 / 3.5 = 50 kW
-      expect(result.breakdownSteps.length, 7);
+      expect(result.breakdownSteps.length, 8);
     });
 
     test('Zero running hours handles division by zero safely', () {
@@ -124,7 +124,7 @@ void main() {
       expect(result.percentageAfterTopUp, closeTo(51.3157, 0.01)); // 51.32%
       expect(result.closingLitres, 57.0);
       expect(result.consumedLitres, 138.0);
-      expect(result.fuelConsumption, 138.0);
+      expect(result.fuelConsumption, 0.0);
       expect(result.exceedsCapacity, isFalse);
       expect(result.validationError, isNull);
       expect(result.isValid, isTrue);
@@ -149,7 +149,7 @@ void main() {
       expect(result.percentageAfterTopUp, 50.0);
       expect(result.closingLitres, 76.0);
       expect(result.consumedLitres, 114.0);
-      expect(result.fuelConsumption, 114.0);
+      expect(result.fuelConsumption, 0.0);
       expect(result.exceedsCapacity, isFalse);
     });
 

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/responsive_layout.dart';
 import '../../core/widgets/app_header.dart';
 import '../../core/widgets/app_sidebar.dart';
 import '../../core/widgets/app_bottom_nav.dart';
+import '../../providers/navigation_provider.dart';
 import '../dashboard/dashboard_page.dart';
 import '../lab/lab_page.dart';
 import '../product_calculator/product_calculator_page.dart';
@@ -18,16 +20,22 @@ import '../reports/reports_page.dart';
 import '../products_master/products_master_page.dart';
 import '../settings/settings_page.dart';
 
-class MainShellPage extends StatefulWidget {
+class MainShellPage extends ConsumerStatefulWidget {
   const MainShellPage({super.key});
 
   @override
-  State<MainShellPage> createState() => _MainShellPageState();
+  ConsumerState<MainShellPage> createState() => _MainShellPageState();
 }
 
-class _MainShellPageState extends State<MainShellPage> {
+class _MainShellPageState extends ConsumerState<MainShellPage> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = ref.read(shellNavigationIndexProvider);
+  }
 
   static const List<String> _pageTitles = [
     'Dashboard',
@@ -62,9 +70,12 @@ class _MainShellPageState extends State<MainShellPage> {
   ];
 
   void _onNavigate(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (_selectedIndex != index) {
+      setState(() {
+        _selectedIndex = index;
+      });
+      ref.read(shellNavigationIndexProvider.notifier).state = index;
+    }
     if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
       Navigator.of(context).pop();
     }
@@ -171,6 +182,14 @@ class _MainShellPageState extends State<MainShellPage> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<int>(shellNavigationIndexProvider, (prev, next) {
+      if (next != _selectedIndex) {
+        setState(() {
+          _selectedIndex = next;
+        });
+      }
+    });
+
     final isMobile = ResponsiveLayout.isMobile(context);
 
     final Widget bodyWidget = IndexedStack(
