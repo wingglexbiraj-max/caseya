@@ -22,6 +22,7 @@ class StockPage extends ConsumerStatefulWidget {
 }
 
 class _StockPageState extends ConsumerState<StockPage> {
+  final ScrollController _scrollController = ScrollController();
   DateTime _selectedLedgerMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   String? _selectedLedgerItemId;
   bool _showAllMonthDays = true;
@@ -95,6 +96,12 @@ class _StockPageState extends ConsumerState<StockPage> {
     });
   }
 
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
   IconData _getCategoryIcon(String cat) {
     switch (cat) {
       case 'Cups':
@@ -114,34 +121,44 @@ class _StockPageState extends ConsumerState<StockPage> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<String?>(stockLedgerTargetItemProvider, (prev, next) {
-      if (next != null && next.isNotEmpty) {
-        setState(() {
-          _selectedLedgerItemId = next;
-        });
-        ref.read(stockLedgerTargetItemProvider.notifier).state = null;
-      }
-    });
+    final navTargetItem = ref.watch(stockLedgerTargetItemProvider);
+    final navTargetMonth = ref.watch(stockLedgerTargetMonthProvider);
 
-    ref.listen<DateTime?>(stockLedgerTargetMonthProvider, (prev, next) {
-      if (next != null) {
-        setState(() {
-          _selectedLedgerMonth = DateTime(next.year, next.month, 1);
-        });
-        ref.read(stockLedgerTargetMonthProvider.notifier).state = null;
+    if (navTargetItem != null && navTargetItem.isNotEmpty && navTargetItem != _selectedLedgerItemId) {
+      _selectedLedgerItemId = navTargetItem;
+    }
+    if (navTargetMonth != null) {
+      final targetM = DateTime(navTargetMonth.year, navTargetMonth.month, 1);
+      if (targetM != _selectedLedgerMonth) {
+        _selectedLedgerMonth = targetM;
       }
-    });
+    }
+    if (navTargetItem != null || navTargetMonth != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (ref.read(stockLedgerTargetItemProvider) != null) {
+          ref.read(stockLedgerTargetItemProvider.notifier).state = null;
+        }
+        if (ref.read(stockLedgerTargetMonthProvider) != null) {
+          ref.read(stockLedgerTargetMonthProvider.notifier).state = null;
+        }
+      });
+    }
 
     final isMobile = ResponsiveLayout.isMobile(context);
     final stockState = ref.watch(inventoryStockProvider);
     final filtered = stockState.filteredItems;
     final counts = stockState.categoryCounts;
+    final allItems = stockState.allItems;
+    final currentItem = (allItems.any((i) => i.id == _selectedLedgerItemId))
+        ? allItems.firstWhere((i) => i.id == _selectedLedgerItemId)
+        : (allItems.isNotEmpty ? allItems.first : null);
 
     final categories = ['All', 'Cups', 'Poly Roll', 'Aluminium Foil', 'Serving Material', 'Ingredients'];
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SingleChildScrollView(
+        controller: _scrollController,
         padding: EdgeInsets.symmetric(
           horizontal: isMobile ? 14 : 28,
           vertical: 20,
@@ -274,12 +291,26 @@ class _StockPageState extends ConsumerState<StockPage> {
                           spacing: 14,
                           runSpacing: 14,
                           children: filtered.map((item) {
+                            final isCurrentLedger = currentItem != null && currentItem.id == item.id;
                             return SizedBox(
                               width: itemWidth,
                               child: _InventoryChipCard(
                                 item: item,
-                                onSelect: () => setState(() => _selectedLedgerItemId = item.id),
-                                onAddStock: () => _showAddStockDialog(context, stockState.allItems, item),
+                                isSelected: isCurrentLedger,
+                                onSelect: () {
+                                  setState(() => _selectedLedgerItemId = item.id);
+                                  if (_scrollController.hasClients) {
+                                    _scrollController.animateTo(
+                                      0,
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOutCubic,
+                                    );
+                                  }
+                                },
+                                onAddStock: () {
+                                  setState(() => _selectedLedgerItemId = item.id);
+                                  _showAddStockDialog(context, stockState.allItems, item);
+                                },
                               ),
                             );
                           }).toList(),
@@ -575,6 +606,8 @@ class _StockPageState extends ConsumerState<StockPage> {
     final allItems = stockState.allItems;
     if (allItems.isEmpty) return const SizedBox.shrink();
 
+    final navHighlightDate = ref.watch(stockLedgerHighlightDateProvider);
+
     final currentItem = (allItems.any((i) => i.id == _selectedLedgerItemId))
         ? allItems.firstWhere((i) => i.id == _selectedLedgerItemId)
         : allItems.first;
@@ -595,36 +628,17 @@ class _StockPageState extends ConsumerState<StockPage> {
       );
     }
 
-    // Detect activity in other months for currentItem
-    DateTime? otherMonthWithActivity;
-    String? otherMonthActivitySummary;
-
-    for (final d in stockState.deductionLedger) {
-      if (d.inventoryItemId == currentItem.id) {
-        final dDate = StockLedgerCalculator.parseAnyDate(d.date);
-        if (dDate != null && (dDate.year != _selectedLedgerMonth.year || dDate.month != _selectedLedgerMonth.month)) {
-          otherMonthWithActivity = DateTime(dDate.year, dDate.month, 1);
-          otherMonthActivitySummary = '${Formatters.formatSmart(d.quantityDeducted)} ${d.unit} issued on ${DateFormat('dd-MMM-yyyy').format(dDate)} for ${d.productName}';
-          break;
-        }
-      }
-    }
-    if (otherMonthWithActivity == null) {
-      for (final inEntry in stockState.inwardLedger) {
-        if (inEntry.itemId == currentItem.id) {
-          final inDate = StockLedgerCalculator.parseAnyDate(inEntry.date);
-          if (inDate != null && (inDate.year != _selectedLedgerMonth.year || inDate.month != _selectedLedgerMonth.month)) {
-            otherMonthWithActivity = DateTime(inDate.year, inDate.month, 1);
-            otherMonthActivitySummary = '${Formatters.formatSmart(inEntry.quantity)} ${inEntry.unit} received on ${DateFormat('dd-MMM-yyyy').format(inDate)}';
-            break;
-          }
-        }
-      }
-    }
 
     final displayedRows = _showAllMonthDays
         ? ledgerResult.rows
-        : ledgerResult.rows.where((r) => r.hasActivity || r.date.day == 1).toList();
+        : ledgerResult.rows.where((r) =>
+            r.hasActivity ||
+            r.date.day == 1 ||
+            (navHighlightDate != null &&
+                r.date.year == navHighlightDate.year &&
+                r.date.month == navHighlightDate.month &&
+                r.date.day == navHighlightDate.day)
+          ).toList();
 
     final prevMonth = DateTime(_selectedLedgerMonth.year, _selectedLedgerMonth.month - 1, 1);
     final nextMonth = DateTime(_selectedLedgerMonth.year, _selectedLedgerMonth.month + 1, 1);
@@ -1016,12 +1030,16 @@ class _StockPageState extends ConsumerState<StockPage> {
                         spacing: 8,
                         runSpacing: 4,
                         children: related.map((rel) {
+                          final relItem = allItems.where((i) => i.id == rel['id']).firstOrNull;
+                          final stockStr = relItem != null
+                              ? ' • Stock: ${Formatters.formatSmart(relItem.remainingQty)} ${relItem.baseUnit}'
+                              : '';
                           return ActionChip(
                             backgroundColor: AppColors.primaryContainer.withValues(alpha: 0.5),
                             side: BorderSide(color: AppColors.primary.withValues(alpha: 0.25)),
                             avatar: const Icon(Icons.swap_horiz_rounded, size: 14, color: AppColors.primary),
                             label: Text(
-                              '${rel['name']} (${rel['reason']})',
+                              '${rel['name']}$stockStr (${rel['reason']})',
                               style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.bold, color: AppColors.primary),
                             ),
                             onPressed: () {
@@ -1038,47 +1056,6 @@ class _StockPageState extends ConsumerState<StockPage> {
               ),
             );
           }(),
-          if (otherMonthWithActivity != null && !_showAllHistory) ...[
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEFF6FF),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFF60A5FA).withValues(alpha: 0.5)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFF2563EB)),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        '📌 Activity recorded in ${DateFormat('MMMM yyyy').format(otherMonthWithActivity)}: $otherMonthActivitySummary. Currently viewing ${DateFormat('MMMM yyyy').format(_selectedLedgerMonth)}.',
-                        style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold, color: Color(0xFF1E40AF)),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 13),
-                      label: Text('Switch to ${DateFormat('MMM yyyy').format(otherMonthWithActivity)}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                      onPressed: () {
-                        setState(() {
-                          _selectedLedgerMonth = otherMonthWithActivity!;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
           const SizedBox(height: 14),
 
           // 3. Monthly Summary Strip (4 Cards)
@@ -1218,7 +1195,13 @@ class _StockPageState extends ConsumerState<StockPage> {
                         ...displayedRows.map((r) {
                           final hasReceipt = r.receiptQty > 0;
                           final hasIssue = r.issuedQty > 0;
-                          final rowColor = r.hasActivity ? const Color(0xFFF0FDF4) : Colors.white;
+                          final isHighlightRow = navHighlightDate != null &&
+                              r.date.year == navHighlightDate.year &&
+                              r.date.month == navHighlightDate.month &&
+                              r.date.day == navHighlightDate.day;
+                          final rowColor = isHighlightRow
+                              ? const Color(0xFFDCFCE7)
+                              : (r.hasActivity ? const Color(0xFFF0FDF4) : Colors.white);
 
                           return TableRow(
                             decoration: BoxDecoration(color: rowColor),
@@ -1236,18 +1219,43 @@ class _StockPageState extends ConsumerState<StockPage> {
                                         Icon(
                                           r.hasActivity ? Icons.event_available_rounded : Icons.calendar_today_rounded,
                                           size: 13,
-                                          color: r.hasActivity ? const Color(0xFF16A34A) : AppColors.textMuted,
+                                          color: isHighlightRow
+                                              ? const Color(0xFF15803D)
+                                              : (r.hasActivity ? const Color(0xFF16A34A) : AppColors.textMuted),
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
                                           r.dateDisplay,
                                           textAlign: TextAlign.center,
                                           style: TextStyle(
-                                            fontWeight: r.hasActivity ? AppFontWeights.bold : AppFontWeights.medium,
+                                            fontWeight: (isHighlightRow || r.hasActivity)
+                                                ? AppFontWeights.bold
+                                                : AppFontWeights.medium,
                                             fontSize: 12,
-                                            color: r.hasActivity ? AppColors.textPrimary : AppColors.textSecondary,
+                                            color: isHighlightRow
+                                                ? const Color(0xFF15803D)
+                                                : (r.hasActivity ? AppColors.textPrimary : AppColors.textSecondary),
                                           ),
                                         ),
+                                        if (isHighlightRow) ...[
+                                          const SizedBox(width: 6),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF15803D),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: const Text(
+                                              'UPDATED',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 8.5,
+                                                fontWeight: FontWeight.bold,
+                                                letterSpacing: 0.4,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -3203,17 +3211,31 @@ class _StockPageState extends ConsumerState<StockPage> {
 
                     Navigator.pop(dialogCtx);
 
+                    final isoDateStr = DateFormat('yyyy-MM-dd').format(selectedDate);
                     await ref.read(inventoryStockProvider.notifier).addInwardStock(
                       itemId: selectedItem.id,
                       quantity: finalQty,
                       packages: finalPackages,
-                      date: dateStr,
+                      date: isoDateStr,
                       time: timeStr,
                       loggedBy: effectiveLoggedBy,
                       notes: notesController.text.trim(),
                     );
 
                     if (!context.mounted) return;
+
+                    setState(() {
+                      _selectedLedgerItemId = selectedItem.id;
+                      _selectedLedgerMonth = DateTime(selectedDate.year, selectedDate.month, 1);
+                    });
+
+                    if (_scrollController.hasClients) {
+                      _scrollController.animateTo(
+                        0,
+                        duration: const Duration(milliseconds: 350),
+                        curve: Curves.easeOutCubic,
+                      );
+                    }
 
                     final newTotal = existingDateQty + finalQty;
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -3243,10 +3265,16 @@ class _StockPageState extends ConsumerState<StockPage> {
 
 class _InventoryChipCard extends StatefulWidget {
   final InventoryItemModel item;
+  final bool isSelected;
   final VoidCallback? onAddStock;
   final VoidCallback? onSelect;
 
-  const _InventoryChipCard({required this.item, this.onAddStock, this.onSelect});
+  const _InventoryChipCard({
+    required this.item,
+    this.isSelected = false,
+    this.onAddStock,
+    this.onSelect,
+  });
 
   @override
   State<_InventoryChipCard> createState() => _InventoryChipCardState();
@@ -3287,13 +3315,17 @@ class _InventoryChipCardState extends State<_InventoryChipCard> {
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            color: widget.isSelected
+                ? AppColors.primary.withValues(alpha: 0.04)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _isHovered
-                  ? AppColors.primary.withValues(alpha: 0.35)
-                  : Colors.black.withValues(alpha: 0.08),
-              width: _isHovered ? 1.2 : 1.0,
+              color: widget.isSelected
+                  ? AppColors.primary
+                  : (_isHovered
+                      ? AppColors.primary.withValues(alpha: 0.35)
+                      : Colors.black.withValues(alpha: 0.08)),
+              width: widget.isSelected ? 1.6 : (_isHovered ? 1.2 : 1.0),
             ),
             boxShadow: _isHovered
                 ? const [

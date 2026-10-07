@@ -532,40 +532,28 @@ class StockLedgerCalculator {
     s = s.trim();
     if (s.isEmpty) return null;
 
-    // Clean any trailing time or timezone components e.g. "2026-08-15 10:30 AM" or "2026-08-15T00:00:00.000Z"
-    final cleanDatePart = s.split(' ').first.split('T').first.trim();
-
-    try {
-      final dt = DateTime.parse(cleanDatePart);
-      return DateTime(dt.year, dt.month, dt.day);
-    } catch (_) {}
-    try {
-      final dt = DateTime.parse(s);
-      return DateTime(dt.year, dt.month, dt.day);
-    } catch (_) {}
-
-    // Handle delimited patterns: - or /
-    for (final delimiter in ['-', '/']) {
-      if (cleanDatePart.contains(delimiter)) {
-        final parts = cleanDatePart.split(delimiter);
-        if (parts.length == 3) {
-          final p0 = int.tryParse(parts[0]);
-          final p1 = int.tryParse(parts[1]);
-          final p2 = int.tryParse(parts[2]);
-          // Case: yyyy-M-d or yyyy/M/d
-          if (p0 != null && p1 != null && p2 != null) {
-            if (p0 >= 2000 && p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
-              return DateTime(p0, p1, p2);
-            }
-            // Case: d-M-yyyy or d/M/yyyy
-            if (p2 >= 2000 && p1 >= 1 && p1 <= 12 && p0 >= 1 && p0 <= 31) {
-              return DateTime(p2, p1, p0);
-            }
-          }
-        }
-      }
+    // 1. Direct DateTime.tryParse (ISO strings e.g. 2026-08-15, 2026-08-15T09:00:00)
+    final isoDt = DateTime.tryParse(s);
+    if (isoDt != null) {
+      return DateTime(isoDt.year, isoDt.month, isoDt.day);
     }
 
+    // 2. Remove bullet dividers and trailing time e.g. "06 Oct 2026 • 08:00 AM" -> "06 Oct 2026"
+    final bulletClean = s.split('•').first.trim();
+    final bulletDt = DateTime.tryParse(bulletClean);
+    if (bulletDt != null) {
+      return DateTime(bulletDt.year, bulletDt.month, bulletDt.day);
+    }
+
+    final tClean = s.split('T').first.trim();
+    final tDt = DateTime.tryParse(tClean);
+    if (tDt != null) {
+      return DateTime(tDt.year, tDt.month, tDt.day);
+    }
+
+    final firstWord = s.split(' ').first.trim();
+
+    // 3. Try parsing standard date formats against candidates
     const formats = [
       'yyyy-MM-dd',
       'yyyy-M-d',
@@ -581,17 +569,46 @@ class StockLedgerCalculator {
       'yyyy/M/d',
       'MM/dd/yyyy',
       'M/d/yyyy',
+      'MMMM yyyy',
+      'MMM yyyy',
     ];
 
-    for (final fmt in formats) {
-      try {
-        final dt = DateFormat(fmt).parseStrict(cleanDatePart);
-        return DateTime(dt.year, dt.month, dt.day);
-      } catch (_) {}
-      try {
-        final dt = DateFormat(fmt).parse(cleanDatePart);
-        return DateTime(dt.year, dt.month, dt.day);
-      } catch (_) {}
+    final candidates = [s, bulletClean, tClean, firstWord];
+    for (final cand in candidates) {
+      for (final fmt in formats) {
+        try {
+          final dt = DateFormat(fmt).parseStrict(cand);
+          return DateTime(dt.year, dt.month, dt.day);
+        } catch (_) {}
+        try {
+          final dt = DateFormat(fmt).parse(cand);
+          return DateTime(dt.year, dt.month, dt.day);
+        } catch (_) {}
+      }
+    }
+
+    // 4. Handle delimited patterns: - or /
+    for (final cand in [s, bulletClean, tClean, firstWord]) {
+      for (final delimiter in ['-', '/']) {
+        if (cand.contains(delimiter)) {
+          final parts = cand.split(delimiter);
+          if (parts.length == 3) {
+            final p0 = int.tryParse(parts[0].trim());
+            final p1 = int.tryParse(parts[1].trim());
+            final p2 = int.tryParse(parts[2].trim());
+            // Case: yyyy-M-d or yyyy/M/d
+            if (p0 != null && p1 != null && p2 != null) {
+              if (p0 >= 2000 && p1 >= 1 && p1 <= 12 && p2 >= 1 && p2 <= 31) {
+                return DateTime(p0, p1, p2);
+              }
+              // Case: d-M-yyyy or d/M/yyyy
+              if (p2 >= 2000 && p1 >= 1 && p1 <= 12 && p0 >= 1 && p0 <= 31) {
+                return DateTime(p2, p1, p0);
+              }
+            }
+          }
+        }
+      }
     }
 
     return null;

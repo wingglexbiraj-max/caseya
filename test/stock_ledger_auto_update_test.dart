@@ -9,6 +9,7 @@ import 'package:caseya/models/stock_ledger_entry_model.dart';
 import 'package:caseya/services/inventory_stock_service.dart';
 import 'package:caseya/providers/inventory_stock_provider.dart';
 import 'package:caseya/providers/production_provider.dart';
+import 'package:caseya/providers/navigation_provider.dart';
 import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
 import 'package:caseya/pages/stock/stock_page.dart';
@@ -470,6 +471,28 @@ void main() {
       final foilDay15 = foilLedger.rows.firstWhere((r) => r.date.day == 15);
       expect(foilDay15.issuedQty, equals(20.0));
       expect(foilDay15.hasActivity, isTrue);
+
+      // 4. Verify Latest Production Consumption Event was dispatched
+      final event = container.read(latestProductionConsumptionProvider);
+      expect(event, isNotNull, reason: 'Latest production consumption event should be recorded');
+      expect(event!.isBackDate, isTrue, reason: '2026-08-15 should be flagged as back-date');
+      expect(event.productName, equals('Lassi 200 ml'));
+      expect(event.pieces, equals(20));
+
+      final consumedSummaries = event.consumedPackaging.whereType<ConsumedPackagingSummary>().toList();
+      expect(consumedSummaries.length, equals(2));
+      expect(consumedSummaries.any((c) => c.itemId == 'cup_lassi_200' && c.quantity == 20.0), isTrue);
+      expect(consumedSummaries.any((c) => c.itemId == 'foil_blue_80' && c.quantity == 20.0), isTrue);
+
+      // 5. Verify October 2026 Opening Stock reflects B/F from past months
+      final cupLedgerOct = StockLedgerCalculator.calculateMonthlyLedger(
+        item: cupItem,
+        month: DateTime(2026, 10, 1),
+        inwardLedger: stockState.inwardLedger,
+        deductionLedger: stockState.deductionLedger,
+      );
+      // Opening stock in Oct should be initialTotalQty minus 20 pcs consumed in Aug
+      expect(cupLedgerOct.openingStock, equals(cupItem.initialTotalQty - 20.0));
 
       await Future<void>.delayed(const Duration(milliseconds: 50));
     });

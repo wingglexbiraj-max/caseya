@@ -10,12 +10,16 @@ import '../models/product_model.dart';
 import '../models/standardization_record.dart';
 import '../repositories/production_repository.dart';
 import '../services/inventory_stock_service.dart';
+import 'navigation_provider.dart';
+import 'inventory_stock_provider.dart';
+import 'standardization_provider.dart';
+import 'batch_records_provider.dart';
 
 final productionRepositoryProvider = Provider((ref) => ProductionRepository());
 
 final productionProvider = StateNotifierProvider<ProductionNotifier, ProductionState>((ref) {
   final repo = ref.watch(productionRepositoryProvider);
-  return ProductionNotifier(repo);
+  return ProductionNotifier(repo, ref);
 });
 
 class ProductionState {
@@ -238,8 +242,9 @@ class ProductionState {
 
 class ProductionNotifier extends StateNotifier<ProductionState> {
   final ProductionRepository _repo;
+  final Ref? _ref;
 
-  ProductionNotifier(this._repo)
+  ProductionNotifier(this._repo, [this._ref])
       : super(ProductionState(
           selectedDate: DateTime.now(),
           selectedShift: AppConstants.determineShift(DateTime.now()),
@@ -581,6 +586,34 @@ class ProductionNotifier extends StateNotifier<ProductionState> {
       consumedSummary = '';
     }
 
+    final isBackDate = state.selectedDate.year != now.year ||
+        state.selectedDate.month != now.month ||
+        state.selectedDate.day != now.day;
+
+    if (_ref != null) {
+      _ref.read(latestProductionConsumptionProvider.notifier).state = ProductionConsumptionEvent(
+        recordId: record.recordId,
+        batchNo: record.batchNo,
+        productId: p.productId,
+        productName: p.productName,
+        quantityProduced: record.quantityProduced,
+        unit: record.unit,
+        pieces: record.piecesProduced,
+        crates: record.cratesProduced,
+        date: record.date,
+        time: record.time,
+        isBackDate: isBackDate,
+        consumedPackaging: consumedList,
+      );
+
+      // Instantly synchronize with inventory stock provider
+      _ref.read(inventoryStockProvider.notifier).updateWithRecords(
+        productionRecords: updatedRecords,
+        standardizationRecords: _ref.read(standardizationProvider).history,
+        batchRecords: _ref.read(batchRecordsProvider).batches,
+      );
+    }
+
     state = state.copyWith(
       allRecords: updatedRecords,
       filterDate: state.selectedDate,
@@ -602,6 +635,15 @@ class ProductionNotifier extends StateNotifier<ProductionState> {
   Future<void> deleteRecord(String recordId) async {
     await _repo.deleteProductionRecord(recordId);
     final updatedRecords = await _repo.getProductionRecords();
+
+    if (_ref != null) {
+      _ref.read(inventoryStockProvider.notifier).updateWithRecords(
+        productionRecords: updatedRecords,
+        standardizationRecords: _ref.read(standardizationProvider).history,
+        batchRecords: _ref.read(batchRecordsProvider).batches,
+      );
+    }
+
     state = state.copyWith(
       allRecords: updatedRecords,
       successMessage: 'Production record deleted successfully.',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../core/utils/formatters.dart';
 import '../../core/utils/responsive_layout.dart';
@@ -197,6 +198,7 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(productionProvider);
     final isMobile = ResponsiveLayout.isMobile(context);
+    final latestConsumption = ref.watch(latestProductionConsumptionProvider);
 
     final selectedProduct = state.selectedProduct;
     final unitLabel = selectedProduct?.baseUnitLabel ?? 'Litres';
@@ -859,12 +861,257 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
               const SizedBox(height: 32),
 
               // -------------------------------------------------------------
+              // LATEST CONSUMPTION BANNER (Instant Store Ledger Deduction Summary)
+              // -------------------------------------------------------------
+              if (latestConsumption != null) ...[
+                _buildLatestConsumptionCard(latestConsumption, isMobile),
+                const SizedBox(height: 16),
+              ],
+
+              // -------------------------------------------------------------
               // 2. PRODUCTION HISTORY (Styled exactly like Lab Page's Lab History)
               // -------------------------------------------------------------
               _buildHistorySection(state, isMobile),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // LATEST CONSUMPTION SUMMARY CARD (Instant Visual Feedback on Packaging Deducted)
+  // ---------------------------------------------------------------------------
+  Widget _buildLatestConsumptionCard(ProductionConsumptionEvent event, bool isMobile) {
+    final consumedItems = event.consumedPackaging.whereType<ConsumedPackagingSummary>().toList();
+    final parsedDate = StockLedgerCalculator.parseAnyDate(event.date) ?? DateTime.now();
+    final monthDisplay = DateFormat('MMMM yyyy').format(parsedDate);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF86EFAC), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF16A34A).withValues(alpha: 0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
+              color: Color(0xFFDCFCE7),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(10.5)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF16A34A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check_rounded, color: Colors.white, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Flexible(
+                            child: Text(
+                              'STORE LEDGER UPDATED — PACKAGING DEDUCTION RECORDED',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF15803D),
+                                letterSpacing: 0.3,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (event.isBackDate) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: const Color(0xFFF59E0B)),
+                              ),
+                              child: Text(
+                                'Back-dated: ${event.date}',
+                                style: const TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Batch ${event.batchNo} • ${event.productName} (${Formatters.formatSmart(event.quantityProduced)} ${event.unit} / ${event.pieces} pcs) recorded on ${event.date}',
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          color: Color(0xFF166534),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Dismiss',
+                  icon: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF166534)),
+                  onPressed: () {
+                    ref.read(latestProductionConsumptionProvider.notifier).state = null;
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          // Body: List of Deducted Materials
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'The following materials were automatically deducted from inventory stock in the Store Ledger:',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF166534),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (consumedItems.isEmpty)
+                  const Text(
+                    'No packaging materials configured for this product.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                  )
+                else
+                  Wrap(
+                    spacing: 12,
+                    runSpacing: 10,
+                    children: consumedItems.map((c) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFBBF7D0)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFDCFCE7),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.inventory_2_outlined, size: 16, color: Color(0xFF15803D)),
+                            ),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  c.itemName,
+                                  style: const TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEE2E2),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: Text(
+                                        '−${Formatters.formatSmart(c.quantity)} ${c.unit}',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFFDC2626),
+                                        ),
+                                      ),
+                                    ),
+                                    if (c.note.isNotEmpty) ...[
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        '(${c.note})',
+                                        style: const TextStyle(
+                                          fontSize: 10.5,
+                                          color: AppColors.textMuted,
+                                        ),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 14),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF15803D),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                              ),
+                              icon: const Icon(Icons.menu_book_rounded, size: 13),
+                              label: Text(
+                                'View in Ledger ($monthDisplay)',
+                                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                              onPressed: () {
+                                ref.read(stockLedgerTargetMonthProvider.notifier).state =
+                                    DateTime(parsedDate.year, parsedDate.month, 1);
+                                ref.read(stockLedgerTargetItemProvider.notifier).state = c.itemId;
+                                ref.read(stockLedgerHighlightDateProvider.notifier).state = parsedDate;
+                                ref.read(shellNavigationIndexProvider.notifier).state = 9;
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1177,42 +1424,45 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
                                                             ),
                                                           ),
                                                         ],
-                                                      ),
-                                                      InkWell(
-                                                        onTap: () {
-                                                          final parsedDate = StockLedgerCalculator.parseAnyDate(item.date) ?? DateTime.now();
-                                                          ref.read(stockLedgerTargetMonthProvider.notifier).state = DateTime(parsedDate.year, parsedDate.month, 1);
-                                                          ref.read(stockLedgerTargetItemProvider.notifier).state = consumedList.first.itemId;
-                                                          ref.read(shellNavigationIndexProvider.notifier).state = 9;
-                                                        },
-                                                        borderRadius: BorderRadius.circular(4),
-                                                        child: Container(
-                                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                                                          decoration: BoxDecoration(
-                                                            color: const Color(0xFF15803D),
-                                                            borderRadius: BorderRadius.circular(4),
-                                                          ),
-                                                          child: const Row(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                             Text(
-                                                                'View in Stock Ledger',
-                                                                style: TextStyle(
-                                                                  fontSize: 10.5,
-                                                                  fontWeight: AppFontWeights.bold,
+                                                                                  ),
+                                                      ...consumedList.map((c) {
+                                                        return InkWell(
+                                                          onTap: () {
+                                                            final parsedDate = StockLedgerCalculator.parseAnyDate(item.date) ?? DateTime.now();
+                                                            ref.read(stockLedgerTargetMonthProvider.notifier).state = DateTime(parsedDate.year, parsedDate.month, 1);
+                                                            ref.read(stockLedgerTargetItemProvider.notifier).state = c.itemId;
+                                                            ref.read(stockLedgerHighlightDateProvider.notifier).state = parsedDate;
+                                                            ref.read(shellNavigationIndexProvider.notifier).state = 9;
+                                                          },
+                                                          borderRadius: BorderRadius.circular(4),
+                                                          child: Container(
+                                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                                            decoration: BoxDecoration(
+                                                              color: const Color(0xFF15803D),
+                                                              borderRadius: BorderRadius.circular(4),
+                                                            ),
+                                                            child: Row(
+                                                              mainAxisSize: MainAxisSize.min,
+                                                              children: [
+                                                                Text(
+                                                                  'Ledger: ${c.itemName}',
+                                                                  style: const TextStyle(
+                                                                    fontSize: 10.5,
+                                                                    fontWeight: AppFontWeights.bold,
+                                                                    color: Colors.white,
+                                                                  ),
+                                                                ),
+                                                                const SizedBox(width: 3),
+                                                                const Icon(
+                                                                  Icons.arrow_forward_rounded,
+                                                                  size: 11,
                                                                   color: Colors.white,
                                                                 ),
-                                                              ),
-                                                              SizedBox(width: 3),
-                                                              Icon(
-                                                                Icons.arrow_forward_rounded,
-                                                                size: 11,
-                                                                color: Colors.white,
-                                                              ),
-                                                            ],
+                                                              ],
+                                                            ),
                                                           ),
-                                                        ),
-                                                      ),
+                                                        );
+                                                      }),
                                                     ],
                                                   ),
                                                 ),
@@ -1836,4 +2086,5 @@ class _ProductionPageState extends ConsumerState<ProductionPage> {
     );
   }
 }
+
 

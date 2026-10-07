@@ -1104,11 +1104,11 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
           ),
           const SizedBox(height: 18),
 
-          // Row 2: Five Formulation Inputs: Milk Taken, Fat %, Water, Sugar, SMP
+          // Row 2: Four Formulation Inputs: Milk Taken, Water, Sugar, SMP
           LayoutBuilder(
             builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 920;
-              final isMedium = constraints.maxWidth >= 600 && !isWide;
+              final isWide = constraints.maxWidth >= 800;
+              final isMedium = constraints.maxWidth >= 500 && !isWide;
 
               final milkField = AppTextField(
                 label: 'Milk Taken (L)',
@@ -1116,15 +1116,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 suffixText: 'Litres',
                 keyboardType: const TextInputType.numberWithOptions(decimal: true),
                 controller: _milkController,
-                onChanged: (_) => setState(() {}),
-              );
-
-              final fatField = AppTextField(
-                label: 'Fat (%)',
-                hint: 'e.g. 3.0',
-                suffixText: '%',
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                controller: _fatController,
                 onChanged: (_) => setState(() {}),
               );
 
@@ -1160,8 +1151,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                   children: [
                     Expanded(child: milkField),
                     const SizedBox(width: 10),
-                    Expanded(child: fatField),
-                    const SizedBox(width: 10),
                     Expanded(child: waterField),
                     const SizedBox(width: 10),
                     Expanded(child: sugarField),
@@ -1175,8 +1164,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     Row(
                       children: [
                         Expanded(child: milkField),
-                        const SizedBox(width: 10),
-                        Expanded(child: fatField),
                         const SizedBox(width: 10),
                         Expanded(child: waterField),
                       ],
@@ -1198,19 +1185,17 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                       children: [
                         Expanded(child: milkField),
                         const SizedBox(width: 10),
-                        Expanded(child: fatField),
+                        Expanded(child: waterField),
                       ],
                     ),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        Expanded(child: waterField),
-                        const SizedBox(width: 10),
                         Expanded(child: sugarField),
+                        const SizedBox(width: 10),
+                        Expanded(child: smpField),
                       ],
                     ),
-                    const SizedBox(height: 10),
-                    smpField,
                   ],
                 );
               }
@@ -1292,7 +1277,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
 
   Widget _buildLiveBatchMetrics(double totalVolume) {
     final m = Formatters.parseDouble(_milkController.text);
-    final fat = Formatters.parseDouble(_fatController.text);
     final w = Formatters.parseDouble(_waterController.text);
     final s = Formatters.parseDouble(_sugarController.text);
     final smp = Formatters.parseDouble(_smpController.text);
@@ -1352,17 +1336,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
               cardBgColor: const Color(0xFFECFDF5), // Soft Mint
             );
 
-            final cardFat = MetricCard(
-              title: 'Fat (%)',
-              value: fat > 0 ? '${Formatters.formatSmart(fat)}%' : '0%',
-              unit: '%',
-              subtitle: fat > 0 ? 'Batch Fat content' : 'Enter Fat above',
-              icon: Icons.opacity_rounded,
-              iconColor: Colors.black.withValues(alpha: 0.60),
-              iconBgColor: Colors.black.withValues(alpha: 0.06),
-              cardBgColor: const Color(0xFFFDF4FF), // Soft Pink
-            );
-
             final cardWater = MetricCard(
               title: 'Water Added',
               value: w > 0 ? Formatters.formatSmart(w) : '0',
@@ -1405,8 +1378,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                     const SizedBox(width: 10),
                     Expanded(child: cardMilk),
                     const SizedBox(width: 10),
-                    Expanded(child: cardFat),
-                    const SizedBox(width: 10),
                     Expanded(child: cardWater),
                     const SizedBox(width: 10),
                     Expanded(child: cardSugar),
@@ -1427,7 +1398,6 @@ class _BatchRecordsPageState extends ConsumerState<BatchRecordsPage> {
                 children: [
                   SizedBox(width: itemWidth, child: cardTotal),
                   SizedBox(width: itemWidth, child: cardMilk),
-                  SizedBox(width: itemWidth, child: cardFat),
                   SizedBox(width: itemWidth, child: cardWater),
                   SizedBox(width: itemWidth, child: cardSugar),
                   SizedBox(width: itemWidth, child: cardSmp),

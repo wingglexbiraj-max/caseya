@@ -584,7 +584,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
 
                         final totalBatchField = AppTextField(
                           label: 'Total Batch Required',
-                          hint: 'e.g. 1700',
+                          hint: 'e.g., 2000',
                           controller: _totalBatchController,
                           suffixText: 'Litres',
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -602,7 +602,7 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                           children: [
                             AppTextField(
                               label: 'Milk Taken',
-                              hint: _autoCalculateMilk ? 'Auto-derived from Target Fat' : 'e.g. 1400',
+                              hint: _autoCalculateMilk ? 'Auto-derived from Target Fat' : 'e.g., 1500',
                               controller: _milkTakenController,
                               suffixText: 'Litres',
                               readOnly: _autoCalculateMilk,
@@ -625,8 +625,6 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                   _autoCalculateMilk = !_autoCalculateMilk;
                                   if (_autoCalculateMilk) {
                                     _milkTakenController.clear();
-                                  } else if (_milkTakenController.text.isEmpty) {
-                                    _milkTakenController.text = '1400';
                                   }
                                 });
                                 _onCalculate();
@@ -650,8 +648,6 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
                                             _autoCalculateMilk = val ?? false;
                                             if (_autoCalculateMilk) {
                                               _milkTakenController.clear();
-                                            } else if (_milkTakenController.text.isEmpty) {
-                                              _milkTakenController.text = '1400';
                                             }
                                           });
                                           _onCalculate();
@@ -1954,7 +1950,14 @@ class _MilkStandardizationPageState extends ConsumerState<MilkStandardizationPag
 
               return InkWell(
                 onTap: () {
-                  ref.read(standardizationProvider.notifier).setSiloId(silo.id);
+                  if (isSelected) {
+                    ref.read(standardizationProvider.notifier).setSiloId(null);
+                  } else {
+                    ref.read(standardizationProvider.notifier).setSiloId(silo.id);
+                  }
+                },
+                onDoubleTap: () {
+                  ref.read(standardizationProvider.notifier).setSiloId(null);
                 },
                 borderRadius: BorderRadius.circular(10),
                 child: Container(
