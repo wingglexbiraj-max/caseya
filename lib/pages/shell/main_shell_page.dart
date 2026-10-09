@@ -18,6 +18,7 @@ import '../dispatch/dispatch_page.dart';
 import '../stock/stock_page.dart';
 import '../reports/reports_page.dart';
 import '../settings/settings_page.dart';
+import '../../providers/auth_provider.dart';
 
 class MainShellPage extends ConsumerStatefulWidget {
   const MainShellPage({super.key});
@@ -67,6 +68,16 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
   ];
 
   void _onNavigate(int index) {
+    if (index == 11 && !ref.read(authProvider).isAdmin) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Access Restricted: Administrator permissions required for System Settings.'),
+          backgroundColor: AppColors.danger,
+          duration: Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
     if (_selectedIndex != index) {
       setState(() {
         _selectedIndex = index;
@@ -154,14 +165,15 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
                   _onNavigate(10);
                 },
               ),
-              ListTile(
-                leading: const Icon(Icons.tune_outlined, color: AppColors.primary),
-                title: const Text('Settings & Roles'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _onNavigate(11);
-                },
-              ),
+              if (ref.read(authProvider).isAdmin)
+                ListTile(
+                  leading: const Icon(Icons.tune_outlined, color: AppColors.primary),
+                  title: const Text('Settings & Roles'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _onNavigate(11);
+                  },
+                ),
             ],
           ),
         ),

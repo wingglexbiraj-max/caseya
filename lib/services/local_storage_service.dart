@@ -104,6 +104,9 @@ class LocalStorageService {
               products[idx].shortCode != canonical.shortCode ||
               products[idx].piecesPerCrate != canonical.piecesPerCrate ||
               products[idx].pricePerPiece != canonical.pricePerPiece ||
+              products[idx].individualSaleUnit != canonical.individualSaleUnit ||
+              products[idx].bulkPackingUnit != canonical.bulkPackingUnit ||
+              products[idx].allowedInputModes.length != canonical.allowedInputModes.length ||
               products[idx].perCrateQty != canonical.perCrateQty) {
             products[idx] = canonical;
             needsResave = true;

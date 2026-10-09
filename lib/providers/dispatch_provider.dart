@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/dispatch_record.dart';
 import '../models/product_model.dart';
 import '../repositories/dispatch_repository.dart';
+import '../core/constants/dairy_products.dart';
 
 final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) {
   return DispatchRepository();
@@ -9,7 +10,11 @@ final dispatchRepositoryProvider = Provider<DispatchRepository>((ref) {
 
 class DispatchState {
   final String selectedDate;
+  final String rangeStartDate;
+  final String rangeEndDate;
+  final String datePreset;
   final String? distributorFilter;
+  final String? productFilter;
   final String searchQuery;
   final List<VehicleDispatch> dispatches;
   final List<ProductModel> products;
@@ -18,7 +23,11 @@ class DispatchState {
 
   const DispatchState({
     required this.selectedDate,
+    required this.rangeStartDate,
+    required this.rangeEndDate,
+    this.datePreset = 'Today',
     this.distributorFilter,
+    this.productFilter,
     this.searchQuery = '',
     this.dispatches = const [],
     this.products = const [],
@@ -28,7 +37,11 @@ class DispatchState {
 
   DispatchState copyWith({
     String? selectedDate,
+    String? rangeStartDate,
+    String? rangeEndDate,
+    String? datePreset,
     String? Function()? distributorFilter,
+    String? Function()? productFilter,
     String? searchQuery,
     List<VehicleDispatch>? dispatches,
     List<ProductModel>? products,
@@ -37,7 +50,11 @@ class DispatchState {
   }) {
     return DispatchState(
       selectedDate: selectedDate ?? this.selectedDate,
+      rangeStartDate: rangeStartDate ?? this.rangeStartDate,
+      rangeEndDate: rangeEndDate ?? this.rangeEndDate,
+      datePreset: datePreset ?? this.datePreset,
       distributorFilter: distributorFilter != null ? distributorFilter() : this.distributorFilter,
+      productFilter: productFilter != null ? productFilter() : this.productFilter,
       searchQuery: searchQuery ?? this.searchQuery,
       dispatches: dispatches ?? this.dispatches,
       products: products ?? this.products,
@@ -58,6 +75,10 @@ class DispatchState {
         if (d.distributorName.toLowerCase() != distributorFilter!.toLowerCase()) {
           return false;
         }
+      }
+      if (productFilter != null && productFilter!.isNotEmpty) {
+        final hasProduct = d.items.any((i) => i.productId == productFilter || i.shortCode == productFilter);
+        if (!hasProduct) return false;
       }
       if (searchQuery.isNotEmpty) {
         final q = searchQuery.toLowerCase();
@@ -83,6 +104,36 @@ class DispatchState {
     }).toList();
   }
 
+  /// Dispatches matching the selected date range and filters
+  List<VehicleDispatch> get dispatchesForDateRange {
+    return dispatches.where((d) {
+      if (d.dispatchDate.compareTo(rangeStartDate) < 0) return false;
+      if (d.dispatchDate.compareTo(rangeEndDate) > 0) return false;
+      if (distributorFilter != null && distributorFilter!.isNotEmpty) {
+        if (d.distributorName.toLowerCase() != distributorFilter!.toLowerCase()) {
+          return false;
+        }
+      }
+      if (productFilter != null && productFilter!.isNotEmpty) {
+        final hasProduct = d.items.any((i) => i.productId == productFilter || i.shortCode == productFilter);
+        if (!hasProduct) return false;
+      }
+      if (searchQuery.isNotEmpty) {
+        final q = searchQuery.toLowerCase();
+        final matchVehicle = d.vehicleNumber.toLowerCase().contains(q);
+        final matchDistributor = d.distributorName.toLowerCase().contains(q);
+        final matchDriver = d.driverName.toLowerCase().contains(q);
+        final matchProducts = d.items.any((i) =>
+            i.productName.toLowerCase().contains(q) ||
+            i.shortCode.toLowerCase().contains(q));
+        if (!matchVehicle && !matchDistributor && !matchDriver && !matchProducts) {
+          return false;
+        }
+      }
+      return true;
+    }).toList();
+  }
+
   /// List of unique distributor names
   List<String> get availableDistributors {
     final set = <String>{};
@@ -91,9 +142,13 @@ class DispatchState {
         set.add(d.distributorName.trim());
       }
     }
-    // Add standard plant distributor templates if not present
     set.addAll(['Distributor A', 'Distributor B', 'City North Hub', 'Dispur Depot', 'Silchar Supply']);
     return set.toList()..sort();
+  }
+
+  /// Available products list
+  List<ProductModel> get catalogProducts {
+    return products.isNotEmpty ? products : DairyProducts.officialProducts;
   }
 
   /// Total unique vehicles dispatched on selected date
@@ -131,20 +186,74 @@ class DispatchState {
     return dispatchesForSelectedDate.fold(0.0, (acc, d) => acc + d.totalKg);
   }
 
+  /// Total Commercial Revenue calculated for the selected date from product sales
+  double get totalRevenueForSelectedDate {
+    return _computeRevenueForList(dispatchesForSelectedDate);
+  }
+
+  /// Total Revenue for the date range
+  double get totalRevenueForDateRange {
+    return _computeRevenueForList(dispatchesForDateRange);
+  }
+
+  double _computeRevenueForList(List<VehicleDispatch> list) {
+    double total = 0.0;
+    final allProducts = catalogProducts;
+    final productById = {for (final p in allProducts) p.productId: p};
+    final productByCode = {for (final p in allProducts) p.itemCode.toLowerCase(): p};
+    final productByShort = {for (final p in allProducts) p.shortCode.toLowerCase(): p};
+    final productByName = {for (final p in allProducts) p.productName.toLowerCase(): p};
+
+    for (final dispatch in list) {
+      for (final item in dispatch.items) {
+        final product = productById[item.productId] ??
+            productByCode[item.itemCode.toLowerCase()] ??
+            productByShort[item.shortCode.toLowerCase()] ??
+            productByName[item.productName.toLowerCase()];
+
+        final price = product?.pricePerPiece ?? 0.0;
+        if (price > 0) {
+          if (item.pieces > 0) {
+            total += item.pieces * price;
+          } else if (item.crates > 0 && (product?.piecesPerCrate ?? 0) > 0) {
+            total += (item.crates * product!.piecesPerCrate) * price;
+          } else if (item.inputQuantity > 0 && item.inputMode.toLowerCase() == 'pieces') {
+            total += item.inputQuantity * price;
+          }
+        }
+      }
+    }
+    return total;
+  }
+
   /// Consolidated product-wise daily summary for the selected date
-  /// Computed dynamically from dispatch items to strictly prevent double counting
   List<DailyDispatchProductSummary> get dailyProductSummaries {
+    return _aggregateProductsForList(dispatchesForSelectedDate);
+  }
+
+  /// Consolidated product-wise summary for the currently active date range
+  List<DailyDispatchProductSummary> get productSummariesForDateRange {
+    return _aggregateProductsForList(dispatchesForDateRange);
+  }
+
+  List<DailyDispatchProductSummary> _aggregateProductsForList(List<VehicleDispatch> list) {
     final Map<String, List<DispatchItem>> groupedByProduct = {};
     final Map<String, Set<String>> productVehicles = {};
     final Map<String, Set<String>> productDistributors = {};
 
-    for (final dispatch in dispatchesForSelectedDate) {
+    for (final dispatch in list) {
       for (final item in dispatch.items) {
         groupedByProduct.putIfAbsent(item.productId, () => []).add(item);
         productVehicles.putIfAbsent(item.productId, () => {}).add(dispatch.vehicleNumber);
         productDistributors.putIfAbsent(item.productId, () => {}).add(dispatch.distributorName);
       }
     }
+
+    final allProducts = catalogProducts;
+    final productById = {for (final p in allProducts) p.productId: p};
+    final productByCode = {for (final p in allProducts) p.itemCode.toLowerCase(): p};
+    final productByShort = {for (final p in allProducts) p.shortCode.toLowerCase(): p};
+    final productByName = {for (final p in allProducts) p.productName.toLowerCase(): p};
 
     final List<DailyDispatchProductSummary> summaries = [];
 
@@ -156,6 +265,13 @@ class DispatchState {
       final double cratesSum = items.fold(0.0, (acc, i) => acc + i.crates);
       final int piecesSum = items.fold(0, (acc, i) => acc + i.pieces);
       final double quantitySum = items.fold(0.0, (acc, i) => acc + i.normalizedQuantity);
+
+      final product = productById[first.productId] ??
+          productByCode[first.itemCode.toLowerCase()] ??
+          productByShort[first.shortCode.toLowerCase()] ??
+          productByName[first.productName.toLowerCase()];
+      final price = product?.pricePerPiece ?? 0.0;
+      final double revenueSum = price > 0 ? piecesSum * price : 0.0;
 
       summaries.add(DailyDispatchProductSummary(
         productId: first.productId,
@@ -169,22 +285,31 @@ class DispatchState {
         normalizedUnit: first.normalizedUnit,
         vehicleCount: productVehicles[entry.key]?.length ?? 1,
         distributorCount: productDistributors[entry.key]?.length ?? 1,
+        revenue: revenueSum,
       ));
     }
 
-    // Sort by total quantity descending
     summaries.sort((a, b) => b.totalQuantity.compareTo(a.totalQuantity));
     return summaries;
   }
 
   /// Consolidated distributor-wise summaries for selected date
   List<DistributorDailySummary> get distributorSummaries {
+    return _aggregateDistributorsForList(dispatchesForSelectedDate);
+  }
+
+  /// Consolidated distributor-wise summaries for date range
+  List<DistributorDailySummary> get distributorSummariesForDateRange {
+    return _aggregateDistributorsForList(dispatchesForDateRange);
+  }
+
+  List<DistributorDailySummary> _aggregateDistributorsForList(List<VehicleDispatch> list) {
     final Map<String, List<VehicleDispatch>> grouped = {};
-    for (final d in dispatchesForSelectedDate) {
+    for (final d in list) {
       grouped.putIfAbsent(d.distributorName, () => []).add(d);
     }
 
-    final List<DistributorDailySummary> list = [];
+    final List<DistributorDailySummary> out = [];
     for (final entry in grouped.entries) {
       final distName = entry.key;
       final distDispatches = entry.value;
@@ -210,7 +335,7 @@ class DispatchState {
       final totalLitres = distDispatches.fold(0.0, (acc, d) => acc + d.totalLitres);
       final totalKg = distDispatches.fold(0.0, (acc, d) => acc + d.totalKg);
 
-      list.add(DistributorDailySummary(
+      out.add(DistributorDailySummary(
         distributorName: distName,
         vehicles: uniqueVehicles,
         dispatches: distDispatches,
@@ -221,8 +346,8 @@ class DispatchState {
       ));
     }
 
-    list.sort((a, b) => b.totalCrates.compareTo(a.totalCrates));
-    return list;
+    out.sort((a, b) => b.dispatches.length.compareTo(a.dispatches.length));
+    return out;
   }
 
   /// Date-wise dispatch history aggregates
@@ -305,6 +430,8 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
   DispatchNotifier(this._repository)
       : super(DispatchState(
           selectedDate: _getTodayDateStr(),
+          rangeStartDate: _getTodayDateStr(),
+          rangeEndDate: _getTodayDateStr(),
           isLoading: true,
         )) {
     loadData();
@@ -313,6 +440,10 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
   static String _getTodayDateStr() {
     final now = DateTime.now();
     return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
+
+  static String _formatDate(DateTime dt) {
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
   }
 
   Future<void> loadData() async {
@@ -337,8 +468,60 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
     state = state.copyWith(selectedDate: date);
   }
 
+  void setDateRange(String start, String end) {
+    state = state.copyWith(
+      rangeStartDate: start,
+      rangeEndDate: end,
+      datePreset: 'Custom',
+    );
+  }
+
+  void setDatePreset(String preset) {
+    final now = DateTime.now();
+    String start = _formatDate(now);
+    String end = _formatDate(now);
+
+    switch (preset) {
+      case 'Today':
+        start = _formatDate(now);
+        end = _formatDate(now);
+        break;
+      case 'Yesterday':
+        final y = now.subtract(const Duration(days: 1));
+        start = _formatDate(y);
+        end = _formatDate(y);
+        break;
+      case 'Last 7 Days':
+        final d7 = now.subtract(const Duration(days: 6));
+        start = _formatDate(d7);
+        end = _formatDate(now);
+        break;
+      case 'Last 30 Days':
+        final d30 = now.subtract(const Duration(days: 29));
+        start = _formatDate(d30);
+        end = _formatDate(now);
+        break;
+      case 'All Time':
+        start = '2020-01-01';
+        end = '2035-12-31';
+        break;
+      default:
+        break;
+    }
+
+    state = state.copyWith(
+      rangeStartDate: start,
+      rangeEndDate: end,
+      datePreset: preset,
+    );
+  }
+
   void setDistributorFilter(String? distributor) {
     state = state.copyWith(distributorFilter: () => distributor);
+  }
+
+  void setProductFilter(String? product) {
+    state = state.copyWith(productFilter: () => product);
   }
 
   void setSearchQuery(String query) {
@@ -376,6 +559,49 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
       state = state.copyWith(error: () => 'Failed to delete vehicle dispatch: $e');
       return false;
     }
+  }
+
+  // --- CSV Generation Helpers ---
+
+  String generateVehicleRecordsCsv(List<VehicleDispatch> dispatches) {
+    final buffer = StringBuffer();
+    buffer.writeln('Dispatch ID,Date,Dispatched At,Vehicle Number,Distributor,Driver,Route,Remarks,Status,Total Crates,Total Pieces,Total Litres,Total Kg,Products Summary');
+
+    for (final d in dispatches) {
+      final productsSummary = d.items.map((i) => '${i.shortCode}: ${i.formattedQuantity}').join('; ');
+      buffer.writeln(
+        '"${d.id}","${d.dispatchDate}","${d.dispatchedAt.toIso8601String()}","${d.vehicleNumber}","${d.distributorName}","${d.driverName}","${d.route}","${d.remarks.replaceAll('"', '""')}","${d.status}",${d.totalCrates},${d.totalPieces},${d.totalLitres},${d.totalKg},"${productsSummary.replaceAll('"', '""')}"',
+      );
+    }
+    return buffer.toString();
+  }
+
+  String generateProductWiseCsv(List<DailyDispatchProductSummary> summaries, String dateRangeLabel) {
+    final buffer = StringBuffer();
+    buffer.writeln('Report Period: $dateRangeLabel');
+    buffer.writeln('Product Code,Product Name,Pack Size,Total Crates,Total Pieces,Base Unit Equivalent,Unit,Vehicles Supplied,Distributors Served,Total Revenue (INR)');
+
+    for (final s in summaries) {
+      buffer.writeln(
+        '"${s.itemCode}","${s.productName}","${s.packSizeDisplay}",${s.totalCrates},${s.totalPieces},${s.totalQuantity},"${s.normalizedUnit}",${s.vehicleCount},${s.distributorCount},${s.revenue}',
+      );
+    }
+    return buffer.toString();
+  }
+
+  String generateDistributorWiseCsv(List<DistributorDailySummary> summaries, String dateRangeLabel) {
+    final buffer = StringBuffer();
+    buffer.writeln('Report Period: $dateRangeLabel');
+    buffer.writeln('Distributor,Total Trips/Dispatches,Vehicles Dispatched,Total Crates,Total Litres,Total Kg,Products Breakdown');
+
+    for (final s in summaries) {
+      final vehicleList = s.vehicles.join(', ');
+      final productsBreakdown = s.productItems.map((p) => '${p.shortCode}: ${p.formattedQuantity}').join('; ');
+      buffer.writeln(
+        '"${s.distributorName}",${s.dispatches.length},"${vehicleList.replaceAll('"', '""')}",${s.totalCrates},${s.totalLitres},${s.totalKg},"${productsBreakdown.replaceAll('"', '""')}"',
+      );
+    }
+    return buffer.toString();
   }
 }
 

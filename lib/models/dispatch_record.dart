@@ -160,6 +160,11 @@ class DispatchItem {
     );
   }
 
+  String get formattedQuantity =>
+      inputMode == 'Pieces'
+          ? formattedPieces
+          : (inputMode == 'Crates' ? formattedCrates : formattedQuantityWithUnit);
+
   String get shortUnit => normalizedUnit == 'Litres' ? 'L' : 'kg';
 
   String get formattedQuantityWithUnit =>
@@ -181,6 +186,7 @@ class VehicleDispatch {
   final String route;
   final String dispatchTime; // e.g. 08:35 AM
   final String remarks;
+  final String status;
   final String createdBy;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -195,11 +201,15 @@ class VehicleDispatch {
     this.route = '',
     required this.dispatchTime,
     this.remarks = '',
+    this.status = 'Dispatched',
     required this.createdBy,
     required this.createdAt,
     required this.updatedAt,
     this.items = const [],
   });
+
+  String get recordedBy => createdBy;
+  DateTime get dispatchedAt => createdAt;
 
   Map<String, dynamic> toJson() {
     return {
@@ -211,6 +221,7 @@ class VehicleDispatch {
       'route': route,
       'dispatch_time': dispatchTime,
       'remarks': remarks,
+      'status': status,
       'created_by': createdBy,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
@@ -228,6 +239,7 @@ class VehicleDispatch {
       route: json['route']?.toString() ?? '',
       dispatchTime: json['dispatch_time']?.toString() ?? '',
       remarks: json['remarks']?.toString() ?? '',
+      status: json['status']?.toString() ?? 'Dispatched',
       createdBy: json['created_by']?.toString() ?? 'Dispatch Officer',
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString()) ?? DateTime.now()
@@ -251,6 +263,7 @@ class VehicleDispatch {
     String? route,
     String? dispatchTime,
     String? remarks,
+    String? status,
     String? createdBy,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -265,6 +278,7 @@ class VehicleDispatch {
       route: route ?? this.route,
       dispatchTime: dispatchTime ?? this.dispatchTime,
       remarks: remarks ?? this.remarks,
+      status: status ?? this.status,
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -309,6 +323,7 @@ class DailyDispatchProductSummary {
   final String normalizedUnit;
   final int vehicleCount;
   final int distributorCount;
+  final double revenue;
 
   const DailyDispatchProductSummary({
     required this.productId,
@@ -322,6 +337,7 @@ class DailyDispatchProductSummary {
     required this.normalizedUnit,
     required this.vehicleCount,
     required this.distributorCount,
+    this.revenue = 0.0,
   });
 
   String get shortUnit => normalizedUnit == 'Litres' ? 'L' : 'kg';
@@ -335,4 +351,7 @@ class DailyDispatchProductSummary {
           : '${Formatters.formatSmart(totalCrates)} crates';
 
   String get formattedPieces => '$totalPieces pcs';
+
+  String get formattedRevenue =>
+      revenue > 0 ? '₹${Formatters.formatSmart(revenue)}' : '—';
 }

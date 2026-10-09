@@ -19,7 +19,7 @@ class SidebarItem {
   });
 }
 
-class AppSidebar extends StatelessWidget {
+class AppSidebar extends ConsumerWidget {
   final int selectedIndex;
   final void Function(int) onItemSelected;
 
@@ -51,7 +51,9 @@ class AppSidebar extends StatelessWidget {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(authProvider);
+
     return Container(
       width: 272,
       decoration: const BoxDecoration(
@@ -129,7 +131,8 @@ class AppSidebar extends StatelessWidget {
               children: [
                 ...primaryItems.map((item) => _buildNavItem(item)),
                 ...operationsItems.map((item) => _buildNavItem(item)),
-                ...adminItems.map((item) => _buildNavItem(item)),
+                if (user.isAdmin)
+                  ...adminItems.map((item) => _buildNavItem(item)),
               ],
             ),
           ),
@@ -317,16 +320,12 @@ class _UserSidebarProfileTile extends ConsumerWidget {
               ),
               icon: const Icon(Icons.logout_rounded, size: 16),
               label: const Text('Log Out'),
-              onPressed: () {
-                ref.read(authProvider.notifier).logout();
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✓ Logged out successfully'),
-                    backgroundColor: AppColors.textPrimary,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+              onPressed: () async {
+                await ref.read(authNotifierProvider.notifier).logout();
+                if (ctx.mounted) Navigator.pop(ctx);
+                if (context.mounted) {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                }
               },
             )
           else
@@ -336,17 +335,10 @@ class _UserSidebarProfileTile extends ConsumerWidget {
                 foregroundColor: Colors.white,
               ),
               icon: const Icon(Icons.login_rounded, size: 16),
-              label: const Text('Sign In as Biraj Goswami'),
+              label: const Text('Sign In to Account'),
               onPressed: () {
-                ref.read(authProvider.notifier).loginDefault();
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('✓ Signed in as Biraj Goswami (Admin)'),
-                    backgroundColor: AppColors.primary,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
               },
             ),
         ],
