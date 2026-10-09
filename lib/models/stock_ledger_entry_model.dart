@@ -28,6 +28,22 @@ class StockLedgerDayRow {
   });
 
   bool get hasActivity => receiptQty > 0.0001 || issuedQty > 0.0001;
+
+  String get time {
+    for (final inEntry in inwardEntries) {
+      if (inEntry.time.trim().isNotEmpty) {
+        return inEntry.time.trim();
+      }
+    }
+    for (final outEntry in deductionEntries) {
+      if (outEntry.time.trim().isNotEmpty) {
+        return outEntry.time.trim();
+      }
+    }
+    return date.day == 1 ? '06:00 AM' : (hasActivity ? '08:00 AM' : '06:00 AM');
+  }
+
+  String get dateTimeDisplay => dateDisplay;
 }
 
 /// Result of monthly ledger computation containing rows and totals
@@ -663,9 +679,10 @@ class StockLedgerCalculator {
     if (sortedDates.isEmpty) {
       final now = DateTime.now();
       final dayDate = DateTime(now.year, now.month, 1);
+      const dayTime = '06:00 AM';
       rows.add(StockLedgerDayRow(
         date: dayDate,
-        dateDisplay: DateFormat('dd/MM/yyyy').format(dayDate),
+        dateDisplay: '${DateFormat('dd/MM/yy').format(dayDate)} • $dayTime',
         particulars: 'Opening Balance (No activity recorded yet)',
         previousStock: item.initialTotalQty,
         receiptQty: 0.0,
@@ -674,9 +691,28 @@ class StockLedgerCalculator {
       ));
     } else {
       for (final dayDate in sortedDates) {
-        final dayDisplay = DateFormat('dd/MM/yyyy').format(dayDate);
         final dayInward = inwardLedger.where((e) => e.itemId == item.id && isSameDay(dayDate, e.date)).toList();
         final dayDeductions = deductionLedger.where((d) => d.inventoryItemId == item.id && isSameDay(dayDate, d.date)).toList();
+
+        String dayTime = '';
+        for (final inEntry in dayInward) {
+          if (inEntry.time.trim().isNotEmpty) {
+            dayTime = inEntry.time.trim();
+            break;
+          }
+        }
+        if (dayTime.isEmpty) {
+          for (final outEntry in dayDeductions) {
+            if (outEntry.time.trim().isNotEmpty) {
+              dayTime = outEntry.time.trim();
+              break;
+            }
+          }
+        }
+        if (dayTime.isEmpty) {
+          dayTime = dayDate.day == 1 ? '06:00 AM' : (dayInward.isNotEmpty || dayDeductions.isNotEmpty ? '08:00 AM' : '06:00 AM');
+        }
+        final dayDisplay = '${DateFormat('dd/MM/yy').format(dayDate)} • $dayTime';
 
         double dayReceiptQty = 0.0;
         for (final inEntry in dayInward) {
@@ -785,7 +821,6 @@ class StockLedgerCalculator {
 
     for (int d = 1; d <= daysInMonth; d++) {
       final dayDate = DateTime(month.year, month.month, d);
-      final dayDisplay = DateFormat('dd/MM/yyyy').format(dayDate);
 
       // Find inward entries on this date
       final dayInward = inwardLedger.where((e) => e.itemId == item.id && isSameDay(dayDate, e.date)).toList();
@@ -796,6 +831,26 @@ class StockLedgerCalculator {
 
       // Find deduction entries on this date
       final dayDeductions = deductionLedger.where((d) => d.inventoryItemId == item.id && isSameDay(dayDate, d.date)).toList();
+
+      String dayTime = '';
+      for (final inEntry in dayInward) {
+        if (inEntry.time.trim().isNotEmpty) {
+          dayTime = inEntry.time.trim();
+          break;
+        }
+      }
+      if (dayTime.isEmpty) {
+        for (final outEntry in dayDeductions) {
+          if (outEntry.time.trim().isNotEmpty) {
+            dayTime = outEntry.time.trim();
+            break;
+          }
+        }
+      }
+      if (dayTime.isEmpty) {
+        dayTime = d == 1 ? '06:00 AM' : (dayInward.isNotEmpty || dayDeductions.isNotEmpty ? '08:00 AM' : '06:00 AM');
+      }
+      final dayDisplay = '${DateFormat('dd/MM/yy').format(dayDate)} • $dayTime';
       double dayIssuedQty = 0.0;
       for (final outEntry in dayDeductions) {
         dayIssuedQty += outEntry.quantityDeducted;

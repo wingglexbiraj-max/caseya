@@ -141,6 +141,14 @@ class BoilerNotifier extends StateNotifier<BoilerState> {
     );
   }
 
+  Future<void> refresh() async {
+    final records = await _repo.getRecords();
+    state = state.copyWith(
+      allRecords: records,
+    );
+    _applyFilters();
+  }
+
   void _recalculate() {
     final result = BoilerCalculator.calculate(
       openingCm: state.openingCm,

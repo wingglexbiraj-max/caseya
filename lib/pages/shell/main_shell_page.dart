@@ -17,7 +17,6 @@ import '../batch_records/batch_records_page.dart';
 import '../dispatch/dispatch_page.dart';
 import '../stock/stock_page.dart';
 import '../reports/reports_page.dart';
-import '../products_master/products_master_page.dart';
 import '../settings/settings_page.dart';
 
 class MainShellPage extends ConsumerStatefulWidget {
@@ -49,7 +48,6 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     'Dispatch Records',
     'Inventory Stocks',
     'Reports & Export',
-    'Products & Standards Master',
     'Settings & Permissions',
   ];
 
@@ -65,7 +63,6 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
     'Finished goods transport distribution with dynamic multi-product consolidation',
     'Finished goods inventory, raw materials, packaging supplies, and cold room holdings',
     'Operational reports, shift filters, and clean CSV/Excel spreadsheet exports',
-    'Plant product catalog, pack sizes, crate capacities, target fat & SNF standards',
     'Configure plant operational formulas, user permissions, and API backend connections',
   ];
 
@@ -158,19 +155,11 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.format_list_bulleted, color: AppColors.primary),
-                title: const Text('Products Master'),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _onNavigate(11);
-                },
-              ),
-              ListTile(
                 leading: const Icon(Icons.tune_outlined, color: AppColors.primary),
                 title: const Text('Settings & Roles'),
                 onTap: () {
                   Navigator.pop(ctx);
-                  _onNavigate(12);
+                  _onNavigate(11);
                 },
               ),
             ],
@@ -206,7 +195,6 @@ class _MainShellPageState extends ConsumerState<MainShellPage> {
         const SelectionArea(child: DispatchPage()),
         const SelectionArea(child: StockPage()),
         const SelectionArea(child: ReportsPage()),
-        const SelectionArea(child: ProductsMasterPage()),
         const SelectionArea(child: SettingsPage()),
       ],
     );

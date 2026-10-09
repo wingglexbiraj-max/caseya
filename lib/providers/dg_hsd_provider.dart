@@ -137,6 +137,14 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
     );
   }
 
+  Future<void> refresh() async {
+    final records = await _repo.getRecords();
+    state = state.copyWith(
+      allRecords: records,
+    );
+    _applyFilters();
+  }
+
   void _recalculate() {
     final result = DgHsdCalculator.calculate(
       fuelAdded: state.fuelAdded,
@@ -307,7 +315,7 @@ class DgHsdNotifier extends StateNotifier<DgHsdState> {
         ? state.fuelConsumption
         : (result.consumedLitres > 0 ? result.consumedLitres : 0.0);
 
-    final dateStr = Formatters.formatDate(state.selectedDate);
+    final dateStr = Formatters.formatIsoDate(state.selectedDate);
     final now = DateTime.now();
     final String timeStr;
     if (state.editingRecord != null) {

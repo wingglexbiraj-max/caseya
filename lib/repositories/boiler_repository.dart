@@ -1,6 +1,5 @@
 import '../models/boiler_record.dart';
 import '../services/api_service.dart';
-import '../services/local_storage_service.dart';
 
 class BoilerRepository {
   Future<List<BoilerRecord>> getRecords() async {
@@ -12,10 +11,10 @@ class BoilerRepository {
   }
 
   Future<void> updateRecord(BoilerRecord record) async {
-    await LocalStorageService.updateBoilerRecord(record);
+    await ApiService.updateBoilerRecord(record);
   }
 
   Future<void> deleteRecord(String recordId) async {
-    await LocalStorageService.deleteBoilerRecord(recordId);
+    await ApiService.deleteBoilerRecord(recordId);
   }
 }

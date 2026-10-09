@@ -172,6 +172,46 @@ class BatchRecordModel {
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
+
+  double get milkQuantity {
+    for (final ing in ingredients) {
+      final n = ing.ingredientName.toLowerCase();
+      if ((n.contains('milk') || n == 'raw milk' || n == 'standardized milk') && !n.contains('smp') && !n.contains('powder')) {
+        return ing.quantity;
+      }
+    }
+    return 0.0;
+  }
+
+  double get smpQuantity {
+    for (final ing in ingredients) {
+      final n = ing.ingredientName.toLowerCase();
+      if (n.contains('smp') || n.contains('skimmed milk powder') || n.contains('powder')) {
+        return ing.quantity;
+      }
+    }
+    return 0.0;
+  }
+
+  double get sugarQuantity {
+    for (final ing in ingredients) {
+      final n = ing.ingredientName.toLowerCase();
+      if (n.contains('sugar')) {
+        return ing.quantity;
+      }
+    }
+    return 0.0;
+  }
+
+  double get waterQuantity {
+    for (final ing in ingredients) {
+      final n = ing.ingredientName.toLowerCase();
+      if (n.contains('water')) {
+        return ing.quantity;
+      }
+    }
+    return 0.0;
+  }
 }
 
 /// Aggregated Daily Summary of all batches on a specific date

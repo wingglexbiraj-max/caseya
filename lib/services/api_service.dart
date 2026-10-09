@@ -7,6 +7,7 @@ import '../models/lab_record.dart';
 import '../models/inventory_item_model.dart';
 import '../models/operations_models.dart' hide DispatchItem, DispatchRecord;
 import '../models/batch_record_model.dart';
+import '../models/dg_hsd_record.dart';
 import 'local_storage_service.dart';
 
 /// Central API Service for CASEYA
@@ -66,6 +67,84 @@ class ApiService {
           Uri.parse('$baseUrl/boiler'),
           headers: {'Content-Type': 'application/json'},
           body: jsonEncode(record.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> updateBoilerRecord(BoilerRecord record) async {
+    await LocalStorageService.updateBoilerRecord(record);
+    if (useBackend) {
+      try {
+        await http.put(
+          Uri.parse('$baseUrl/boiler/${record.recordId}'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(record.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> deleteBoilerRecord(String recordId) async {
+    await LocalStorageService.deleteBoilerRecord(recordId);
+    if (useBackend) {
+      try {
+        await http.delete(
+          Uri.parse('$baseUrl/boiler/$recordId'),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  // ===========================================================================
+  // DG HSD FUEL RECORDS
+  // ===========================================================================
+
+  static Future<List<DgHsdRecord>> fetchDgHsdRecords() async {
+    if (useBackend) {
+      try {
+        final res = await http.get(Uri.parse('$baseUrl/dg')).timeout(const Duration(seconds: 4));
+        if (res.statusCode == 200) {
+          final List<dynamic> data = jsonDecode(res.body);
+          return data.map((e) => DgHsdRecord.fromJson(e as Map<String, dynamic>)).toList();
+        }
+      } catch (_) {}
+    }
+    return LocalStorageService.getDgHsdRecords();
+  }
+
+  static Future<void> saveDgHsdRecord(DgHsdRecord record) async {
+    await LocalStorageService.addDgHsdRecord(record);
+    if (useBackend) {
+      try {
+        await http.post(
+          Uri.parse('$baseUrl/dg'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(record.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> updateDgHsdRecord(DgHsdRecord record) async {
+    await LocalStorageService.updateDgHsdRecord(record);
+    if (useBackend) {
+      try {
+        await http.put(
+          Uri.parse('$baseUrl/dg/${record.recordId}'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode(record.toJson()),
+        ).timeout(const Duration(seconds: 4));
+      } catch (_) {}
+    }
+  }
+
+  static Future<void> deleteDgHsdRecord(String recordId) async {
+    await LocalStorageService.deleteDgHsdRecord(recordId);
+    if (useBackend) {
+      try {
+        await http.delete(
+          Uri.parse('$baseUrl/dg/$recordId'),
         ).timeout(const Duration(seconds: 4));
       } catch (_) {}
     }

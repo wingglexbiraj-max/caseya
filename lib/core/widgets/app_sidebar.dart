@@ -47,8 +47,7 @@ class AppSidebar extends StatelessWidget {
   ];
 
   static const List<SidebarItem> adminItems = [
-    SidebarItem(index: 11, title: 'Products Master', icon: Icons.tune_rounded),
-    SidebarItem(index: 12, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
+    SidebarItem(index: 11, title: 'Settings & Config', icon: Icons.settings_suggest_rounded),
   ];
 
   @override

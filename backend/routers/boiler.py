@@ -43,3 +43,18 @@ def get_boiler_records():
 def save_boiler_record(record: BoilerRecordSchema):
     BOILER_RECORDS.insert(0, record.model_dump())
     return record
+
+@router.put("/{record_id}", response_model=BoilerRecordSchema)
+def update_boiler_record(record_id: str, record: BoilerRecordSchema):
+    for i, r in enumerate(BOILER_RECORDS):
+        if r.get("record_id") == record_id:
+            BOILER_RECORDS[i] = record.model_dump()
+            return record
+    BOILER_RECORDS.insert(0, record.model_dump())
+    return record
+
+@router.delete("/{record_id}")
+def delete_boiler_record(record_id: str):
+    global BOILER_RECORDS
+    BOILER_RECORDS = [r for r in BOILER_RECORDS if r.get("record_id") != record_id]
+    return {"status": "success", "message": f"Record {record_id} deleted"}

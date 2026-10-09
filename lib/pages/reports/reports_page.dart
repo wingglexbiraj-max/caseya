@@ -12,6 +12,11 @@ import '../../models/inventory_item_model.dart';
 import '../../models/stock_ledger_entry_model.dart';
 import '../../models/boiler_record.dart';
 import '../../models/dg_hsd_record.dart';
+import '../../models/batch_record_model.dart';
+import '../../models/operations_models.dart';
+import '../../models/product_model.dart';
+import '../../core/constants/dairy_products.dart';
+import '../../providers/batch_records_provider.dart';
 import '../../providers/inventory_stock_provider.dart';
 import '../../providers/boiler_provider.dart';
 import '../../providers/dg_hsd_provider.dart';
@@ -22,6 +27,8 @@ enum ReportSection {
   stock,
   boiler,
   dg,
+  batch,
+  production,
 }
 
 class ReportsPage extends ConsumerStatefulWidget {
@@ -47,6 +54,59 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   // DG Report State
   DateTime _selectedDgMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   bool _showAllDgDays = true;
+
+  // Batch Report State
+  DateTime _selectedBatchMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  bool _showAllBatchDays = true;
+
+  // Production Report State
+  DateTime _selectedProductionMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  bool _showAllProductionDays = true;
+
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      ref.read(batchRecordsProvider.notifier).loadBatches();
+      ref.read(productionProvider.notifier).init();
+    });
+  }
+
+  DateTime? _parseRecordDate(String dateStr) {
+    try {
+      return DateTime.parse(dateStr);
+    } catch (_) {
+      try {
+        return DateFormat('yyyy-MM-dd').parse(dateStr);
+      } catch (_) {
+        try {
+          return DateFormat('dd/MM/yyyy').parse(dateStr);
+        } catch (_) {
+          try {
+            return DateFormat('dd/MM/yy').parse(dateStr);
+          } catch (_) {
+            return null;
+          }
+        }
+      }
+    }
+  }
+
+  String _formatDateShort(String dateStr) {
+    final dt = _parseRecordDate(dateStr);
+    if (dt != null) {
+      return DateFormat('dd/MM/yy').format(dt);
+    }
+    return dateStr;
+  }
+
+  String _formatDateTimeWithDot(String dateStr, String timeStr) {
+    final formattedDate = _formatDateShort(dateStr);
+    if (timeStr.trim().isNotEmpty) {
+      return '$formattedDate • ${timeStr.trim()}';
+    }
+    return formattedDate;
+  }
 
   static const Map<String, List<Map<String, String>>> _interrelatedMaterials = {
     'cup_lassi_200': [
@@ -465,16 +525,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   void _exportBoilerCsv(List<_BoilerReportRow> rows) {
     final buffer = StringBuffer();
-    buffer.writeln('Date,Time,Opening Level (CM),Closing Level (CM),Level Difference (CM),Fuel Consumption (L),Running Hours (Hrs),Fuel Burnrate (L/hr),Fuel Top-up (L)');
+    buffer.writeln('Date,Time,Opening Level (CM),Closing Level (CM),Level Difference (CM),Fuel Consumption (L),Running Hours (Hrs),Fuel Burnrate (L/hr),Fuel Top-up (L),Logged By');
     for (final r in rows) {
       if (r.hasActivity && r.record != null) {
         final rec = r.record!;
         final double levelDiff = rec.openingCm - rec.closingCm;
         final double fuel = levelDiff > 0 ? ((levelDiff * 900.0) / 70.0) : (rec.calculatedLevelConsumption > 0 ? rec.calculatedLevelConsumption : 0.0);
         final double burnRate = rec.runningHours > 0 ? (fuel / rec.runningHours) : 0.0;
-        buffer.writeln('${rec.date},${rec.time},${rec.openingCm},${rec.closingCm},$levelDiff,${fuel.toStringAsFixed(2)},${rec.runningHours},${burnRate.toStringAsFixed(2)},${rec.fuelTopUp}');
+        buffer.writeln('${rec.date},${rec.time},${rec.openingCm},${rec.closingCm},$levelDiff,${fuel.toStringAsFixed(2)},${rec.runningHours},${burnRate.toStringAsFixed(2)},${rec.fuelTopUp},"${rec.employeeName}"');
       } else {
-        buffer.writeln('${r.date},,,,,,,,');
+        buffer.writeln('${r.date},,,,,,,,,,');
       }
     }
     final filename = 'Boiler_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv';
@@ -490,7 +550,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
   void _exportDgCsv(List<_DgReportRow> rows) {
     final buffer = StringBuffer();
-    buffer.writeln('Date,Time,Start %,End %,Energy Generated (kWh),Total Fuel Consumed (L),Shift Running Hours (Hrs),Level After Top-up (L),Fuel Added (L),Consumption Rate (L/hr)');
+    buffer.writeln('Date,Time,Start %,End %,Energy Generated (kWh),Total Fuel Consumed (L),Shift Running Hours (Hrs),Level After Top-up (L),Fuel Added (L),Consumption Rate (L/hr),Logged By');
     for (final r in rows) {
       if (r.hasActivity && r.record != null) {
         final rec = r.record!;
@@ -498,7 +558,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
         final double openingL = (rec.startPercentage / 100.0) * 380.0;
         final double fuelAfterTopUp = openingL + rec.fuelAdded;
         final double burnRate = rec.runningHours > 0 ? (fuel / rec.runningHours) : (rec.consumptionPerHour > 0 ? rec.consumptionPerHour : 0.0);
-        buffer.writeln('${rec.date},${rec.time},${rec.startPercentage},${rec.endPercentage},${rec.kwh},${fuel.toStringAsFixed(2)},${rec.runningHours},${rec.fuelAdded > 0 ? fuelAfterTopUp.toStringAsFixed(1) : ''},${rec.fuelAdded},${burnRate.toStringAsFixed(2)}');
+        buffer.writeln('${rec.date},${rec.time},${rec.startPercentage},${rec.endPercentage},${rec.kwh},${fuel.toStringAsFixed(2)},${rec.runningHours},${rec.fuelAdded > 0 ? fuelAfterTopUp.toStringAsFixed(1) : ''},${rec.fuelAdded},${burnRate.toStringAsFixed(2)},"${rec.employeeName}"');
       } else {
         buffer.writeln('${r.date},,,,,,,,,');
       }
@@ -514,12 +574,101 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
+  void _exportBatchCsv(List<_BatchReportRow> rows) {
+    final buffer = StringBuffer();
+    buffer.writeln('Date,Time,Product Name,Milk Taken (L),SMP Added (kg),Sugar Added (kg),Water Added (L),Total Batch Volume (L),Logged By,Notes');
+    for (final r in rows) {
+      if (r.hasActivity && r.record != null) {
+        final rec = r.record!;
+        final timeStr = DateFormat('hh:mm a').format(rec.createdAt);
+        buffer.writeln(
+          '${rec.productionDate},$timeStr,"${rec.productName}",'
+          '${rec.milkQuantity.toStringAsFixed(2)},${rec.smpQuantity.toStringAsFixed(2)},'
+          '${rec.sugarQuantity.toStringAsFixed(2)},${rec.waterQuantity.toStringAsFixed(2)},'
+          '${rec.batchQuantity.toStringAsFixed(2)},"${rec.operatorName ?? ''}","${(rec.notes ?? '').replaceAll('"', '""')}"',
+        );
+      } else {
+        buffer.writeln('${r.date},,,,,,,,');
+      }
+    }
+    final filename = 'Daily_Batch_Making_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv';
+    downloadLedgerCsv(filename, buffer.toString());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✓ Exported Daily Batch Making Report ($filename)'),
+        backgroundColor: const Color(0xFF059669),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  double _calculateEstimatedValue(ProductionRecord rec, List<ProductModel> products) {
+    ProductModel? matched;
+    for (final p in products) {
+      if (p.productId.toLowerCase() == rec.productId.toLowerCase() ||
+          p.productName.toLowerCase() == rec.productName.toLowerCase()) {
+        matched = p;
+        break;
+      }
+    }
+    if (matched == null) {
+      for (final p in DairyProducts.officialProducts) {
+        if (p.productId.toLowerCase() == rec.productId.toLowerCase() ||
+            p.productName.toLowerCase() == rec.productName.toLowerCase() ||
+            p.productName.toLowerCase().contains(rec.productName.toLowerCase()) ||
+            rec.productName.toLowerCase().contains(p.productName.toLowerCase())) {
+          matched = p;
+          break;
+        }
+      }
+    }
+    if (matched != null && matched.pricePerPiece > 0) {
+      if (rec.piecesProduced > 0) {
+        return rec.piecesProduced * matched.pricePerPiece;
+      } else if (matched.packSizeInBaseUnit > 0 && rec.quantityProduced > 0) {
+        final pieces = (rec.quantityProduced / matched.packSizeInBaseUnit).round();
+        return pieces * matched.pricePerPiece;
+      }
+    }
+    return 0.0;
+  }
+
+  void _exportProductionCsv(List<_ProductionReportRow> rows, List<ProductModel> products) {
+    final buffer = StringBuffer();
+    buffer.writeln('Date,Time,Product Name,Quantity,Unit,Pieces,Crates Produced,Estimated Value (INR),Logged By');
+    for (final r in rows) {
+      if (r.hasActivity && r.record != null) {
+        final rec = r.record!;
+        final estVal = _calculateEstimatedValue(rec, products);
+        buffer.writeln(
+          '${rec.date},"${rec.time}","${rec.productName}",'
+          '${rec.quantityProduced.toStringAsFixed(2)},"${rec.unit}",${rec.piecesProduced},'
+          '${rec.cratesProduced.toStringAsFixed(2)},${estVal.toStringAsFixed(2)},"${rec.employeeName}"',
+        );
+      } else {
+        buffer.writeln('${r.date},,,,,,,,');
+      }
+    }
+    final filename = 'Production_Register_Report_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv';
+    downloadLedgerCsv(filename, buffer.toString());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✓ Exported Production Report ($filename)'),
+        backgroundColor: const Color(0xFF4F46E5),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final isMobile = ResponsiveLayout.isMobile(context);
     final stockState = ref.watch(inventoryStockProvider);
     final boilerState = ref.watch(boilerProvider);
     final dgState = ref.watch(dgHsdProvider);
+    final batchState = ref.watch(batchRecordsProvider);
+    final productionState = ref.watch(productionProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -532,7 +681,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Chip Tab Bar Navigation
-            _buildReportChipTabBar(stockState, boilerState, dgState, isMobile),
+            _buildReportChipTabBar(stockState, boilerState, dgState, batchState, isMobile),
             const SizedBox(height: 20),
 
             // Active Report Section View
@@ -553,6 +702,18 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 context: context,
                 isMobile: isMobile,
                 dgState: dgState,
+              )
+            else if (_selectedSection == ReportSection.batch)
+              _buildBatchReportSection(
+                context: context,
+                isMobile: isMobile,
+                batchState: batchState,
+              )
+            else if (_selectedSection == ReportSection.production)
+              _buildProductionReportSection(
+                context: context,
+                isMobile: isMobile,
+                productionState: productionState,
               ),
           ],
         ),
@@ -567,6 +728,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     InventoryStockState stockState,
     BoilerState boilerState,
     DgHsdState dgState,
+    BatchRecordsState batchState,
     bool isMobile,
   ) {
     return AppCard(
@@ -637,6 +799,26 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                   setState(() {
                     _selectedSection = ReportSection.dg;
                   });
+                },
+              ),
+              _ReportCatalogueChip(
+                label: 'Daily Batch Making',
+                isSelected: _selectedSection == ReportSection.batch,
+                onTap: () {
+                  setState(() {
+                    _selectedSection = ReportSection.batch;
+                  });
+                  ref.read(batchRecordsProvider.notifier).loadBatches();
+                },
+              ),
+              _ReportCatalogueChip(
+                label: 'Production Report',
+                isSelected: _selectedSection == ReportSection.production,
+                onTap: () {
+                  setState(() {
+                    _selectedSection = ReportSection.production;
+                  });
+                  ref.read(productionProvider.notifier).init();
                 },
               ),
             ],
@@ -1207,8 +1389,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
                       ),
                       columnWidths: const {
-                        0: FlexColumnWidth(1.35),
-                        1: FlexColumnWidth(2.65),
+                        0: FlexColumnWidth(1.5),
+                        1: FlexColumnWidth(2.5),
                         2: FlexColumnWidth(1.4),
                         3: FlexColumnWidth(1.45),
                         4: FlexColumnWidth(1.45),
@@ -1219,7 +1401,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         const TableRow(
                           decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
                           children: [
-                            _LedgerHeaderCell('Date'),
+                            _LedgerHeaderCell('Date / Time'),
                             _LedgerHeaderCell('Particulars'),
                             _LedgerHeaderCell('Previous Stock'),
                             _LedgerHeaderCell('Received Quantity'),
@@ -1246,7 +1428,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           return TableRow(
                             decoration: BoxDecoration(color: rowBg),
                             children: [
-                              // Date Cell
+                              // Date / Time Cell
                               Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
@@ -1265,7 +1447,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                           ),
                                         ),
                                       Text(
-                                        r.dateDisplay,
+                                        r.dateTimeDisplay,
                                         textAlign: TextAlign.center,
                                         style: TextStyle(
                                           fontSize: 12,
@@ -1903,7 +2085,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           else
             LayoutBuilder(
               builder: (context, constraints) {
-                final tableWidth = constraints.maxWidth < 1000 ? 1000.0 : constraints.maxWidth;
+                final tableWidth = constraints.maxWidth < 1120 ? 1120.0 : constraints.maxWidth;
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -1916,236 +2098,335 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     child: SizedBox(
                       width: tableWidth,
                       child: Table(
-                        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                        border: const TableBorder(
-                          horizontalInside: BorderSide(color: Color(0xFFE2E8F0), width: 1),
-                          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
-                        ),
-                        columnWidths: const {
-                          0: FlexColumnWidth(1.3), // Date / Time
-                          1: FlexColumnWidth(1.2), // Opening Level
-                          2: FlexColumnWidth(1.2), // Closing Level
-                          3: FlexColumnWidth(1.2), // Level Difference
-                          4: FlexColumnWidth(1.4), // Fuel Consumption
-                          5: FlexColumnWidth(1.1), // Running Hours
-                          6: FlexColumnWidth(1.3), // Fuel Burnrate
-                          7: FlexColumnWidth(1.2), // Fuel Top-up
-                        },
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    border: const TableBorder(
+                      horizontalInside: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                      bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                    ),
+                    columnWidths: const {
+                      0: FlexColumnWidth(1.4), // Date / Time
+                      1: FlexColumnWidth(1.1), // Opening Level
+                      2: FlexColumnWidth(1.1), // Closing Level
+                      3: FlexColumnWidth(1.1), // Level Difference
+                      4: FlexColumnWidth(1.3), // Fuel Consumption
+                      5: FlexColumnWidth(1.1), // Running Hours
+                      6: FlexColumnWidth(1.2), // Fuel Burnrate
+                      7: FlexColumnWidth(1.1), // Fuel Top-up
+                      8: FlexColumnWidth(1.3), // Logged By
+                    },
+                    children: [
+                      const TableRow(
+                        decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
                         children: [
-                          const TableRow(
-                            decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
-                            children: [
-                              _LedgerHeaderCell('Date / Time'),
-                              _LedgerHeaderCell('Opening Level'),
-                              _LedgerHeaderCell('Closing Level'),
-                              _LedgerHeaderCell('Level Difference'),
-                              _LedgerHeaderCell('Fuel Consumption'),
-                              _LedgerHeaderCell('Running Hours'),
-                              _LedgerHeaderCell('Fuel Burnrate'),
-                              _LedgerHeaderCell('Fuel Top-up'),
-                            ],
-                          ),
-                          ...displayRows.map((r) {
-                            if (r.hasActivity && r.record != null) {
-                              final rec = r.record!;
-                              final double levelDiff = rec.openingCm - rec.closingCm;
-                              final double fuel = computeFuelConsumption(rec);
-                              final double burnRate = rec.runningHours > 0 ? (fuel / rec.runningHours) : 0.0;
+                          _LedgerHeaderCell('Date / Time'),
+                          _LedgerHeaderCell('Opening Level'),
+                          _LedgerHeaderCell('Closing Level'),
+                          _LedgerHeaderCell('Level Difference'),
+                          _LedgerHeaderCell('Fuel Consumption'),
+                          _LedgerHeaderCell('Running Hours'),
+                          _LedgerHeaderCell('Fuel Burnrate'),
+                          _LedgerHeaderCell('Fuel Top-up'),
+                          _LedgerHeaderCell('Logged By'),
+                        ],
+                      ),
+                      ...displayRows.map((r) {
+                        final dt = _parseRecordDate(r.date);
+                        final isToday = dt != null &&
+                            dt.year == DateTime.now().year &&
+                            dt.month == DateTime.now().month &&
+                            dt.day == DateTime.now().day;
 
-                              return TableRow(
-                                children: [
-                                  // 1. Date (below time)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            rec.date,
-                                            style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12),
-                                          ),
-                                          const SizedBox(height: 2),
-                                          Text(
-                                            rec.time.isNotEmpty ? rec.time : '—',
-                                            style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  // 2. Opening Level
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(rec.openingCm)} CM',
-                                        style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium),
-                                      ),
-                                    ),
-                                  ),
-                                  // 3. Closing Level
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(rec.closingCm)} CM',
-                                        style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium),
-                                      ),
-                                    ),
-                                  ),
-                                  // 4. Level Difference
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(levelDiff)} CM',
-                                        style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                  // 5. Fuel Consumption (formula from boiler page)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(fuel)} L',
-                                        style: const TextStyle(
-                                          fontWeight: AppFontWeights.bold,
-                                          fontSize: 12.5,
-                                          color: Color(0xFFD97706),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  // 6. Running Hours
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(rec.runningHours)} Hrs',
-                                        style: const TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                  // 7. Fuel Burnrate
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        rec.runningHours > 0 ? '${Formatters.formatDecimal(burnRate)} L/hr' : '—',
-                                        style: const TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                  // 8. Fuel Top-up
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        rec.fuelTopUp > 0 ? '${Formatters.formatSmart(rec.fuelTopUp)} L' : '—',
-                                        style: TextStyle(
-                                          fontWeight: rec.fuelTopUp > 0 ? AppFontWeights.bold : AppFontWeights.regular,
-                                          fontSize: 12,
-                                          color: rec.fuelTopUp > 0 ? const Color(0xFF7C3AED) : AppColors.textSecondary,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              );
-                            } else {
-                              return TableRow(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: Text(
-                                        r.date,
-                                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                ],
-                              );
-                            }
-                          }),
-                          // Total Summary Row
-                          TableRow(
-                            decoration: const BoxDecoration(color: Color(0xFFFEF3C7)),
+                        Color rowBg = Colors.white;
+                        if (isToday) {
+                          rowBg = AppColors.primaryContainer.withValues(alpha: 0.28);
+                        } else if (r.hasActivity) {
+                          rowBg = const Color(0xFFFAFAFA);
+                        }
+
+                        if (r.hasActivity && r.record != null) {
+                          final rec = r.record!;
+                          final double levelDiff = rec.openingCm - rec.closingCm;
+                          final double fuel = computeFuelConsumption(rec);
+                          final double burnRate = rec.runningHours > 0 ? (fuel / rec.runningHours) : 0.0;
+
+                          return TableRow(
+                            decoration: BoxDecoration(color: rowBg),
                             children: [
+                              // 1. Date (below time)
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    'TOTAL (${monthRecords.length})',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11.5, color: Color(0xFF92400E)),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (isToday)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 5),
+                                          width: 6,
+                                          height: 6,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      Text(
+                                        _formatDateTimeWithDot(rec.date, rec.time),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: isToday ? AppFontWeights.bold : AppFontWeights.medium,
+                                          fontSize: 12,
+                                          color: isToday ? AppColors.primary : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                              const Padding(padding: EdgeInsets.all(8), child: Center(child: Text('—'))),
-                              const Padding(padding: EdgeInsets.all(8), child: Center(child: Text('—'))),
+                              // 2. Opening Level
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatSmart(totalLevelDiff)} CM',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.openingCm)} CM',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textSecondary),
+                                    ),
                                   ),
                                 ),
                               ),
+                              // 3. Closing Level
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatSmart(totalFuel)} L',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12.5, color: Color(0xFFD97706)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.closingCm)} CM',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textSecondary),
+                                    ),
                                   ),
                                 ),
                               ),
+                              // 4. Level Difference
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatSmart(totalHours)} Hrs',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(levelDiff)} CM',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: AppColors.textPrimary),
+                                    ),
                                   ),
                                 ),
                               ),
+                              // 5. Fuel Consumption
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatDecimal(avgBurnRate)} L/hr',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(fuel)} L',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
+                                    ),
                                   ),
                                 ),
                               ),
+                              // 6. Running Hours
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatSmart(totalTopUp)} L',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF7C3AED)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.runningHours)} Hrs',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 7. Fuel Burnrate
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.runningHours > 0 ? '${Formatters.formatDecimal(burnRate)} L/hr' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontWeight: rec.runningHours > 0 ? AppFontWeights.semiBold : AppFontWeights.regular, fontSize: 12, color: rec.runningHours > 0 ? AppColors.textPrimary : AppColors.textMuted),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 8. Fuel Top-up
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.fuelTopUp > 0 ? '+${Formatters.formatSmart(rec.fuelTopUp)} L' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: rec.fuelTopUp > 0 ? AppFontWeights.bold : AppFontWeights.regular,
+                                        fontSize: 12,
+                                        color: rec.fuelTopUp > 0 ? const Color(0xFF16A34A) : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 9. Logged By
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.employeeName.isNotEmpty ? rec.employeeName : '—',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontWeight: AppFontWeights.medium,
+                                        fontSize: 12,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ],
+                          );
+                        } else {
+                          return TableRow(
+                            decoration: BoxDecoration(color: rowBg),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Text(
+                                    _formatDateShort(r.date),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                  ),
+                                ),
+                              ),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                            ],
+                          );
+                        }
+                      }),
+                      // Total Summary Row
+                      TableRow(
+                        decoration: const BoxDecoration(color: Color(0xFFFEF3C7)),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text(
+                                'TOTAL (${monthRecords.length})',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                              ),
+                            ),
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF92400E), fontSize: 12)))),
+                          const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF92400E), fontSize: 12)))),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalLevelDiff)} CM',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalFuel)} L',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFB45309)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalHours)} Hrs',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatDecimal(avgBurnRate)} L/hr',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF92400E)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  totalTopUp > 0 ? '+${Formatters.formatSmart(totalTopUp)} L' : '—',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF16A34A)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF92400E), fontSize: 12)),
+                            ),
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              ),
+            );
+          },
+        ),
         ],
       ),
     );
@@ -2514,7 +2795,1434 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           else
             LayoutBuilder(
               builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth < 1120 ? 1120.0 : constraints.maxWidth;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.cardBorder, width: 1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    border: const TableBorder(
+                      horizontalInside: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                      bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                    ),
+                    columnWidths: const {
+                      0: FlexColumnWidth(1.4), // Date / Time
+                      1: FlexColumnWidth(1.0), // Start %
+                      2: FlexColumnWidth(1.0), // End %
+                      3: FlexColumnWidth(1.3), // Energy Generated (kWh)
+                      4: FlexColumnWidth(1.3), // Total Fuel Consumed (L)
+                      5: FlexColumnWidth(1.2), // Shift Running Hours
+                      6: FlexColumnWidth(1.5), // Level after Topup / Fuel Added
+                      7: FlexColumnWidth(1.2), // Consumption Rate
+                      8: FlexColumnWidth(1.3), // Logged By
+                    },
+                    children: [
+                      const TableRow(
+                        decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                        children: [
+                          _LedgerHeaderCell('Date / Time'),
+                          _LedgerHeaderCell('Start %'),
+                          _LedgerHeaderCell('End %'),
+                          _LedgerHeaderCell('Energy Generated'),
+                          _LedgerHeaderCell('Total Fuel Consumed'),
+                          _LedgerHeaderCell('Shift Running Hours'),
+                          _LedgerHeaderCell('Level after Top-up'),
+                          _LedgerHeaderCell('Consumption Rate'),
+                          _LedgerHeaderCell('Logged By'),
+                        ],
+                      ),
+                      ...displayRows.map((r) {
+                        final dt = _parseRecordDate(r.date);
+                        final isToday = dt != null &&
+                            dt.year == DateTime.now().year &&
+                            dt.month == DateTime.now().month &&
+                            dt.day == DateTime.now().day;
+
+                        Color rowBg = Colors.white;
+                        if (isToday) {
+                          rowBg = AppColors.primaryContainer.withValues(alpha: 0.28);
+                        } else if (r.hasActivity) {
+                          rowBg = const Color(0xFFFAFAFA);
+                        }
+
+                        if (r.hasActivity && r.record != null) {
+                          final rec = r.record!;
+                          final double fuel = computeDgConsumption(rec);
+                          final double burnRate = computeConsumptionRate(rec);
+                          final double openingL = (rec.startPercentage / 100.0) * AppConstants.DG_TANK_CAPACITY;
+                          final double fuelAfterTopUp = openingL + rec.fuelAdded;
+                          final double pctAfterTopUp = (fuelAfterTopUp / AppConstants.DG_TANK_CAPACITY) * 100.0;
+
+                          return TableRow(
+                            decoration: BoxDecoration(color: rowBg),
+                            children: [
+                              // 1. Date / Time
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (isToday)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 5),
+                                          width: 6,
+                                          height: 6,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      Text(
+                                        _formatDateTimeWithDot(rec.date, rec.time),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: isToday ? AppFontWeights.bold : AppFontWeights.medium,
+                                          fontSize: 12,
+                                          color: isToday ? AppColors.primary : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // 2. Start %
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.startPercentage)}%',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 3. End %
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.endPercentage)}%',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 4. Energy Generated (kWh)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.kwh)} kWh',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 5. Total Fuel Consumed
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(fuel)} L',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF2563EB)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 6. Shift Running Hours
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.runningHours)} Hrs',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 7. Level after Topup or Fuel Added
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: rec.fuelAdded > 0
+                                      ? Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          crossAxisAlignment: CrossAxisAlignment.center,
+                                          children: [
+                                            Text(
+                                              '${Formatters.formatDecimal(pctAfterTopUp)}% (${Formatters.formatSmart(fuelAfterTopUp)} L)',
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11.5, color: Color(0xFF2563EB)),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              '+${Formatters.formatSmart(rec.fuelAdded)} L Added',
+                                              textAlign: TextAlign.center,
+                                              style: const TextStyle(fontSize: 10.5, color: Color(0xFF16A34A), fontWeight: AppFontWeights.medium),
+                                            ),
+                                          ],
+                                        )
+                                      : const Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                                ),
+                              ),
+                              // 8. Consumption Rate
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.runningHours > 0 ? '${Formatters.formatDecimal(burnRate)} L/hr' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(fontWeight: rec.runningHours > 0 ? AppFontWeights.semiBold : AppFontWeights.regular, fontSize: 12, color: rec.runningHours > 0 ? AppColors.textPrimary : AppColors.textMuted),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 9. Logged By
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.employeeName.isNotEmpty ? rec.employeeName : '—',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        fontWeight: AppFontWeights.medium,
+                                        fontSize: 12,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return TableRow(
+                            decoration: BoxDecoration(color: rowBg),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Text(
+                                    _formatDateShort(r.date),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                  ),
+                                ),
+                              ),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                            ],
+                          );
+                        }
+                      }),
+                      // Total Summary Row
+                      TableRow(
+                        decoration: const BoxDecoration(color: Color(0xFFDBEAFE)),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text(
+                                'TOTAL (${monthRecords.length})',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  totalFuelAdded > 0 ? '+ L' : '—',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF16A34A)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF1E40AF), fontSize: 12)))),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalKwh)} kWh',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalHsd)} L',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalHours)} Hrs',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF1E40AF), fontSize: 12)))),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatDecimal(avgEfficiency)} L/hr',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF1E40AF), fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4. DAILY BATCH MAKING REPORT SECTION (EXACT DG PARITY)
+  // ---------------------------------------------------------------------------
+  Widget _buildBatchReportSection({
+    required BuildContext context,
+    required bool isMobile,
+    required BatchRecordsState batchState,
+  }) {
+    final currentMonthName = DateFormat('MMMM yyyy').format(_selectedBatchMonth);
+    final daysInMonth = DateTime(_selectedBatchMonth.year, _selectedBatchMonth.month + 1, 0).day;
+
+    final monthRecords = batchState.batches.where((r) {
+      final dt = _parseRecordDate(r.productionDate);
+      if (dt == null) return false;
+      return dt.year == _selectedBatchMonth.year && dt.month == _selectedBatchMonth.month;
+    }).toList();
+
+    final List<_BatchReportRow> allRows = [];
+    for (int d = 1; d <= daysInMonth; d++) {
+      final dateStr = '${_selectedBatchMonth.year}-${_selectedBatchMonth.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+      final dayRecords = monthRecords.where((r) {
+        final dt = _parseRecordDate(r.productionDate);
+        return dt != null && dt.day == d;
+      }).toList();
+
+      if (dayRecords.isNotEmpty) {
+        for (final rec in dayRecords) {
+          allRows.add(_BatchReportRow(
+            date: dateStr,
+            time: DateFormat('hh:mm a').format(rec.createdAt),
+            record: rec,
+            hasActivity: true,
+          ));
+        }
+      } else {
+        allRows.add(_BatchReportRow(
+          date: dateStr,
+          time: '',
+          record: null,
+          hasActivity: false,
+        ));
+      }
+    }
+
+    final displayRows = _showAllBatchDays
+        ? allRows
+        : allRows.where((r) => r.hasActivity).toList();
+
+    final double totalMilk = monthRecords.fold(0.0, (sum, r) => sum + r.milkQuantity);
+    final double totalSmp = monthRecords.fold(0.0, (sum, r) => sum + r.smpQuantity);
+    final double totalSugar = monthRecords.fold(0.0, (sum, r) => sum + r.sugarQuantity);
+    final double totalWater = monthRecords.fold(0.0, (sum, r) => sum + r.waterQuantity);
+    final double totalVolume = monthRecords.fold(0.0, (sum, r) => sum + r.batchQuantity);
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 700;
+              final titleWidget = Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFDCFCE7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.blender_rounded, color: Color(0xFF059669), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Daily Batch Making Report',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.subheading,
+                            fontWeight: AppFontWeights.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Date-wise batches, ingredient formulation & production volume for $currentMonthName (${monthRecords.length} logs)',
+                          style: const TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            color: AppColors.textSecondary,
+                            fontWeight: AppFontWeights.medium,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              final actionsWidget = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: 'Sync / Refresh Batch Records',
+                    child: IconButton(
+                      icon: const Icon(Icons.sync_rounded, size: 20, color: Color(0xFF059669)),
+                      onPressed: () async {
+                        await ref.read(batchRecordsProvider.notifier).loadBatches();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✓ Daily Batch Making records updated live from datastore.'),
+                              backgroundColor: Color(0xFF059669),
+                              duration: Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF059669),
+                      side: const BorderSide(color: Color(0xFF059669)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label: const Text('Print Preview', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                    onPressed: () => _showPrintableBatchDialog(context, displayRows, totalMilk, totalSmp, totalSugar, totalWater, totalVolume),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF059669),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.download_rounded, size: 16),
+                    label: const Text('Export CSV', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                    onPressed: () => _exportBatchCsv(displayRows),
+                  ),
+                ],
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleWidget,
+                    const SizedBox(height: 10),
+                    actionsWidget,
+                  ],
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: titleWidget),
+                  actionsWidget,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Controls & Filters Bar: Month & Year Selector + Days Filter Chips
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.cardBorder, width: 1),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final monthYearSelector = _buildMonthYearSelector(
+                  context: context,
+                  selectedMonth: _selectedBatchMonth,
+                  onMonthChanged: (m) => setState(() => _selectedBatchMonth = m),
+                );
+
+                final daysFilterChips = Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ChoiceChip(
+                      label: Text('All Month Days ($daysInMonth)', style: const TextStyle(fontSize: 11)),
+                      selected: _showAllBatchDays,
+                      selectedColor: const Color(0xFF059669),
+                      labelStyle: TextStyle(
+                        color: _showAllBatchDays ? Colors.white : AppColors.textPrimary,
+                        fontWeight: AppFontWeights.bold,
+                      ),
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            _showAllBatchDays = true;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 6),
+                    ChoiceChip(
+                      label: Text(
+                        'Activity Only (${monthRecords.length})',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      selected: !_showAllBatchDays,
+                      selectedColor: const Color(0xFF059669),
+                      labelStyle: TextStyle(
+                        color: !_showAllBatchDays ? Colors.white : AppColors.textPrimary,
+                        fontWeight: AppFontWeights.bold,
+                      ),
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            _showAllBatchDays = false;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                );
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [
+                    monthYearSelector,
+                    daysFilterChips,
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 4 Metric Cards Strip (Total Batches, Milk Taken, SMP Added, Sugar Added)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 720;
+              final cardBatches = MetricCard(
+                title: 'Total Batches',
+                value: monthRecords.length.toString(),
+                unit: 'Batches',
+                subtitle: 'Formulations logged',
+                icon: Icons.layers_rounded,
+                iconColor: const Color(0xFF059669),
+                iconBgColor: const Color(0xFFECFDF5),
+                cardBgColor: const Color(0xFFF0FDF4),
+              );
+              final cardMilk = MetricCard(
+                title: 'Milk Taken',
+                value: Formatters.formatSmart(totalMilk),
+                unit: 'Litres',
+                subtitle: 'Raw / standardized milk',
+                icon: Icons.water_drop_rounded,
+                iconColor: const Color(0xFF2563EB),
+                iconBgColor: const Color(0xFFEFF6FF),
+                cardBgColor: const Color(0xFFEFF6FF),
+              );
+              final cardSmp = MetricCard(
+                title: 'SMP Added',
+                value: Formatters.formatSmart(totalSmp),
+                unit: 'kg',
+                subtitle: 'Skimmed milk powder',
+                icon: Icons.grain_rounded,
+                iconColor: const Color(0xFFD97706),
+                iconBgColor: const Color(0xFFFEF3C7),
+                cardBgColor: const Color(0xFFFFFBEB),
+              );
+              final cardSugar = MetricCard(
+                title: 'Sugar Added',
+                value: Formatters.formatSmart(totalSugar),
+                unit: 'kg',
+                subtitle: 'Sweetener additions',
+                icon: Icons.cookie_rounded,
+                iconColor: const Color(0xFF9333EA),
+                iconBgColor: const Color(0xFFF3E8FF),
+                cardBgColor: const Color(0xFFFAF5FF),
+              );
+
+              if (isWide) {
+                return IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(child: cardBatches),
+                      const SizedBox(width: 10),
+                      Expanded(child: cardMilk),
+                      const SizedBox(width: 10),
+                      Expanded(child: cardSmp),
+                      const SizedBox(width: 10),
+                      Expanded(child: cardSugar),
+                    ],
+                  ),
+                );
+              }
+              return Column(
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(child: cardBatches),
+                        const SizedBox(width: 10),
+                        Expanded(child: cardMilk),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(child: cardSmp),
+                        const SizedBox(width: 10),
+                        Expanded(child: cardSugar),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Table / Empty State (EXACT DG MIRROR)
+          if (displayRows.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.layers_outlined, size: 48, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No Batch Making Activity for $currentMonthName',
+                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 15, color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Records submitted in the Daily Batch Making module for this month will automatically appear here.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
                 final tableWidth = constraints.maxWidth < 1000 ? 1000.0 : constraints.maxWidth;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    border: Border.all(color: AppColors.cardBorder, width: 1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Table(
+                    defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                    border: const TableBorder(
+                      horizontalInside: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                      bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                    ),
+                    columnWidths: const {
+                      0: FlexColumnWidth(1.2), // Date / Time
+                      1: FlexColumnWidth(1.6), // Product Name
+                      2: FlexColumnWidth(1.1), // Milk Taken (L)
+                      3: FlexColumnWidth(1.0), // SMP Added (kg)
+                      4: FlexColumnWidth(1.0), // Sugar Added (kg)
+                      5: FlexColumnWidth(1.0), // Water Added (L)
+                      6: FlexColumnWidth(1.2), // Total Batch Volume (L)
+                      7: FlexColumnWidth(1.1), // Logged By
+                    },
+                    children: [
+                      const TableRow(
+                        decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                        children: [
+                          _LedgerHeaderCell('Date / Time'),
+                          _LedgerHeaderCell('Product Name'),
+                          _LedgerHeaderCell('Milk Taken (L)'),
+                          _LedgerHeaderCell('SMP Added (kg)'),
+                          _LedgerHeaderCell('Sugar Added (kg)'),
+                          _LedgerHeaderCell('Water Added (L)'),
+                          _LedgerHeaderCell('Total Batch Volume'),
+                          _LedgerHeaderCell('Logged By'),
+                        ],
+                      ),
+                      ...displayRows.map((r) {
+                        final dt = _parseRecordDate(r.date);
+                        final isToday = dt != null &&
+                            dt.year == DateTime.now().year &&
+                            dt.month == DateTime.now().month &&
+                            dt.day == DateTime.now().day;
+
+                        Color rowBg = Colors.white;
+                        if (isToday) {
+                          rowBg = AppColors.primaryContainer.withValues(alpha: 0.28);
+                        } else if (r.hasActivity) {
+                          rowBg = const Color(0xFFFAFAFA);
+                        }
+
+                        if (r.hasActivity && r.record != null) {
+                          final rec = r.record!;
+                          return TableRow(
+                            decoration: BoxDecoration(color: rowBg),
+                            children: [
+                              // 1. Date / Time
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      if (isToday)
+                                        Container(
+                                          margin: const EdgeInsets.only(right: 5),
+                                          width: 6,
+                                          height: 6,
+                                          decoration: const BoxDecoration(
+                                            color: AppColors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      Text(
+                                        _formatDateTimeWithDot(rec.productionDate, r.time),
+                                        textAlign: TextAlign.center,
+                                        style: TextStyle(
+                                          fontWeight: isToday ? AppFontWeights.bold : AppFontWeights.medium,
+                                          fontSize: 12,
+                                          color: isToday ? AppColors.primary : AppColors.textPrimary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // 2. Product Name
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Text(
+                                    rec.productName,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 12,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 3. Milk Taken (L)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.milkQuantity > 0 ? '${Formatters.formatSmart(rec.milkQuantity)} L' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF2563EB)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 4. SMP Added (kg)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.smpQuantity > 0 ? '${Formatters.formatSmart(rec.smpQuantity)} kg' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: rec.smpQuantity > 0 ? AppFontWeights.bold : AppFontWeights.regular,
+                                        fontSize: 12,
+                                        color: rec.smpQuantity > 0 ? const Color(0xFFD97706) : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 5. Sugar Added (kg)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.sugarQuantity > 0 ? '${Formatters.formatSmart(rec.sugarQuantity)} kg' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: rec.sugarQuantity > 0 ? AppFontWeights.bold : AppFontWeights.regular,
+                                        fontSize: 12,
+                                        color: rec.sugarQuantity > 0 ? const Color(0xFF9333EA) : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 6. Water Added (L)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      rec.waterQuantity > 0 ? '${Formatters.formatSmart(rec.waterQuantity)} L' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        fontWeight: rec.waterQuantity > 0 ? AppFontWeights.bold : AppFontWeights.regular,
+                                        fontSize: 12,
+                                        color: rec.waterQuantity > 0 ? const Color(0xFF0284C7) : AppColors.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 7. Total Batch Volume (L)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '${Formatters.formatSmart(rec.batchQuantity)} L',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF047857)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // 8. Logged By
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Text(
+                                    (rec.operatorName != null && rec.operatorName!.trim().isNotEmpty)
+                                        ? rec.operatorName!.trim()
+                                        : '—',
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          return TableRow(
+                            decoration: BoxDecoration(color: rowBg),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: Text(
+                                    _formatDateShort(r.date),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                                  ),
+                                ),
+                              ),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                              const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                            ],
+                          );
+                        }
+                      }),
+                      // Total Summary Row
+                      TableRow(
+                        decoration: const BoxDecoration(color: Color(0xFFDCFCE7)),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text(
+                                'TOTAL (${monthRecords.length})',
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF166534)),
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text(
+                                'Monthly Formulation',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF166534)),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalMilk)} L',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF2563EB)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalSmp)} kg',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalSugar)} kg',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF9333EA)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalWater)} L',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF0284C7)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  '${Formatters.formatSmart(totalVolume)} L',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF166534)),
+                                ),
+                              ),
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                            child: Center(
+                              child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+        ],
+      ),
+    );
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // 5. DATE-WISE PRODUCTION REGISTER REPORT SECTION
+  // ---------------------------------------------------------------------------
+  Widget _buildProductionReportSection({
+    required BuildContext context,
+    required bool isMobile,
+    required ProductionState productionState,
+  }) {
+    final currentMonthName = DateFormat('MMMM yyyy').format(_selectedProductionMonth);
+    final daysInMonth = DateTime(_selectedProductionMonth.year, _selectedProductionMonth.month + 1, 0).day;
+
+    final monthRecords = productionState.allRecords.where((r) {
+      final dt = _parseRecordDate(r.date);
+      if (dt == null) return false;
+      return dt.year == _selectedProductionMonth.year && dt.month == _selectedProductionMonth.month;
+    }).toList();
+
+    final List<_ProductionReportRow> allRows = [];
+    for (int d = 1; d <= daysInMonth; d++) {
+      final dateStr = '${_selectedProductionMonth.year}-${_selectedProductionMonth.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+      final dayRecords = monthRecords.where((r) {
+        final dt = _parseRecordDate(r.date);
+        return dt != null && dt.day == d;
+      }).toList();
+
+      if (dayRecords.isNotEmpty) {
+        for (final rec in dayRecords) {
+          allRows.add(_ProductionReportRow(
+            date: dateStr,
+            time: rec.time,
+            record: rec,
+            hasActivity: true,
+          ));
+        }
+      } else {
+        allRows.add(_ProductionReportRow(
+          date: dateStr,
+          time: '',
+          record: null,
+          hasActivity: false,
+        ));
+      }
+    }
+
+    final displayRows = _showAllProductionDays
+        ? allRows
+        : allRows.where((r) => r.hasActivity).toList();
+
+    final double totalVolume = monthRecords.fold(0.0, (sum, r) => sum + r.quantityProduced);
+    final double totalCrates = monthRecords.fold(0.0, (sum, r) => sum + r.cratesProduced);
+    final int totalPieces = monthRecords.fold(0, (sum, r) => sum + r.piecesProduced);
+    final double totalEstimatedValue = monthRecords.fold(0.0, (sum, r) => sum + _calculateEstimatedValue(r, productionState.products));
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Row
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 700;
+              final titleWidget = Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2FF),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFF4F46E5), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Production Register Report',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.subheading,
+                            fontWeight: AppFontWeights.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        Text(
+                          'Date-wise manufactured products, packing & valuation for $currentMonthName (${monthRecords.length} entries)',
+                          style: const TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            color: AppColors.textSecondary,
+                            fontWeight: AppFontWeights.medium,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              final actionsWidget = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Tooltip(
+                    message: 'Sync / Refresh Production Records',
+                    child: IconButton(
+                      icon: const Icon(Icons.sync_rounded, size: 20, color: Color(0xFF4F46E5)),
+                      onPressed: () async {
+                        await ref.read(productionProvider.notifier).init();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✓ Production records updated live from datastore.'),
+                              backgroundColor: Color(0xFF4F46E5),
+                              duration: Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF4F46E5),
+                      side: const BorderSide(color: Color(0xFF4F46E5)),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label: const Text('Print Preview', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                    onPressed: () => _showPrintableProductionDialog(
+                      context,
+                      displayRows,
+                      totalVolume,
+                      totalCrates,
+                      totalPieces,
+                      totalEstimatedValue,
+                      productionState.products,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4F46E5),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.download_rounded, size: 16),
+                    label: const Text('Export CSV', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                    onPressed: () => _exportProductionCsv(displayRows, productionState.products),
+                  ),
+                ],
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    titleWidget,
+                    const SizedBox(height: 10),
+                    actionsWidget,
+                  ],
+                );
+              }
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: titleWidget),
+                  actionsWidget,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Controls & Filters Bar: Month & Year Selector + Days Filter Chips
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.cardBorder, width: 1),
+            ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final monthYearSelector = _buildMonthYearSelector(
+                  context: context,
+                  selectedMonth: _selectedProductionMonth,
+                  onMonthChanged: (m) => setState(() => _selectedProductionMonth = m),
+                );
+
+                final daysFilterChips = Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: [
+                    ChoiceChip(
+                      label: Text('All Month Days ($daysInMonth)', style: const TextStyle(fontSize: 11)),
+                      selected: _showAllProductionDays,
+                      selectedColor: const Color(0xFF4F46E5),
+                      labelStyle: TextStyle(
+                        color: _showAllProductionDays ? Colors.white : AppColors.textPrimary,
+                        fontWeight: AppFontWeights.bold,
+                      ),
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            _showAllProductionDays = true;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(width: 6),
+                    ChoiceChip(
+                      label: Text(
+                        'Activity Only (${monthRecords.length})',
+                        style: const TextStyle(fontSize: 11),
+                      ),
+                      selected: !_showAllProductionDays,
+                      selectedColor: const Color(0xFF4F46E5),
+                      labelStyle: TextStyle(
+                        color: !_showAllProductionDays ? Colors.white : AppColors.textPrimary,
+                        fontWeight: AppFontWeights.bold,
+                      ),
+                      onSelected: (val) {
+                        if (val) {
+                          setState(() {
+                            _showAllProductionDays = false;
+                          });
+                        }
+                      },
+                    ),
+                  ],
+                );
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: WrapAlignment.spaceBetween,
+                  children: [
+                    monthYearSelector,
+                    daysFilterChips,
+                  ],
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // 4 Metric Cards Strip (Quantity, Pieces, Crates Produced, Estimated Value)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 720;
+              final cardVolume = MetricCard(
+                title: 'Quantity Produced',
+                value: Formatters.formatSmart(totalVolume),
+                unit: 'Litres / Units',
+                subtitle: 'Total bulk volume produced',
+                icon: Icons.water_drop_rounded,
+                iconColor: const Color(0xFF4F46E5),
+                iconBgColor: const Color(0xFFEEF2FF),
+                cardBgColor: const Color(0xFFF5F3FF),
+              );
+              final cardPieces = MetricCard(
+                title: 'Pieces Produced',
+                value: Formatters.formatInt(totalPieces),
+                unit: 'Pouches / Cups',
+                subtitle: 'Individual finished units',
+                icon: Icons.view_in_ar_rounded,
+                iconColor: const Color(0xFF059669),
+                iconBgColor: const Color(0xFFDCFCE7),
+                cardBgColor: const Color(0xFFF0FDF4),
+              );
+              final cardCrates = MetricCard(
+                title: 'Crates Produced',
+                value: Formatters.formatSmart(totalCrates),
+                unit: 'Crates',
+                subtitle: 'Crates packed & stacked',
+                icon: Icons.inventory_2_rounded,
+                iconColor: const Color(0xFFD97706),
+                iconBgColor: const Color(0xFFFEF3C7),
+                cardBgColor: const Color(0xFFFFFBEB),
+              );
+              final cardValuation = MetricCard(
+                title: 'Estimated Value',
+                value: totalEstimatedValue > 0 ? '₹${Formatters.formatSmart(totalEstimatedValue)}' : '—',
+                unit: 'INR',
+                subtitle: 'Product valuation @ retail/mrp',
+                icon: Icons.currency_rupee_rounded,
+                iconColor: const Color(0xFF7C3AED),
+                iconBgColor: const Color(0xFFF3E8FF),
+                cardBgColor: const Color(0xFFFAF5FF),
+              );
+
+              if (isWide) {
+                return IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(child: cardVolume),
+                      const SizedBox(width: 10),
+                      Expanded(child: cardPieces),
+                      const SizedBox(width: 10),
+                      Expanded(child: cardCrates),
+                      const SizedBox(width: 10),
+                      Expanded(child: cardValuation),
+                    ],
+                  ),
+                );
+              }
+              return Column(
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(child: cardVolume),
+                        const SizedBox(width: 10),
+                        Expanded(child: cardPieces),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  IntrinsicHeight(
+                    child: Row(
+                      children: [
+                        Expanded(child: cardCrates),
+                        const SizedBox(width: 10),
+                        Expanded(child: cardValuation),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // Table / Empty State (Exact columns requested: Date/Time, Product Name, Quantity, Pieces, Crates Produced, Estimated Value, Logged By)
+          if (displayRows.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 20),
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.precision_manufacturing_outlined, size: 48, color: AppColors.textMuted),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No Production Activity for $currentMonthName',
+                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 15, color: AppColors.textPrimary),
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Records submitted in the Production Register module for this month will automatically appear here.',
+                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth < 950 ? 950.0 : constraints.maxWidth;
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
@@ -2533,133 +4241,157 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                           bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
                         ),
                         columnWidths: const {
-                          0: FlexColumnWidth(1.3), // Date / Time
-                          1: FlexColumnWidth(1.0), // Start %
-                          2: FlexColumnWidth(1.0), // End %
-                          3: FlexColumnWidth(1.3), // Energy Generated (kWh)
-                          4: FlexColumnWidth(1.3), // Total Fuel Consumed (L)
-                          5: FlexColumnWidth(1.2), // Shift Running Hours
-                          6: FlexColumnWidth(1.6), // Level after Topup / Fuel Added
-                          7: FlexColumnWidth(1.3), // Consumption Rate
+                          0: FlexColumnWidth(1.2), // Date / Time
+                          1: FlexColumnWidth(2.0), // Product Name
+                          2: FlexColumnWidth(1.2), // Quantity
+                          3: FlexColumnWidth(1.1), // Pieces
+                          4: FlexColumnWidth(1.2), // Crates Produced
+                          5: FlexColumnWidth(1.3), // Estimated Value
+                          6: FlexColumnWidth(1.3), // Logged By
                         },
                         children: [
                           const TableRow(
                             decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
                             children: [
                               _LedgerHeaderCell('Date / Time'),
-                              _LedgerHeaderCell('Start %'),
-                              _LedgerHeaderCell('End %'),
-                              _LedgerHeaderCell('Energy Generated'),
-                              _LedgerHeaderCell('Total Fuel Consumed'),
-                              _LedgerHeaderCell('Shift Running Hours'),
-                              _LedgerHeaderCell('Level after Top-up'),
-                              _LedgerHeaderCell('Consumption Rate'),
+                              _LedgerHeaderCell('Product Name'),
+                              _LedgerHeaderCell('Quantity'),
+                              _LedgerHeaderCell('Pieces'),
+                              _LedgerHeaderCell('Crates Produced'),
+                              _LedgerHeaderCell('Estimated Value'),
+                              _LedgerHeaderCell('Logged By'),
                             ],
                           ),
                           ...displayRows.map((r) {
+                            final dt = _parseRecordDate(r.date);
+                            final isToday = dt != null &&
+                                dt.year == DateTime.now().year &&
+                                dt.month == DateTime.now().month &&
+                                dt.day == DateTime.now().day;
+
+                            Color rowBg = Colors.white;
+                            if (isToday) {
+                              rowBg = AppColors.primaryContainer.withValues(alpha: 0.28);
+                            } else if (r.hasActivity) {
+                              rowBg = const Color(0xFFFAFAFA);
+                            }
+
                             if (r.hasActivity && r.record != null) {
                               final rec = r.record!;
-                              final double fuel = computeDgConsumption(rec);
-                              final double burnRate = computeConsumptionRate(rec);
-                              final double openingL = (rec.startPercentage / 100.0) * AppConstants.DG_TANK_CAPACITY;
-                              final double fuelAfterTopUp = openingL + rec.fuelAdded;
-                              final double pctAfterTopUp = (fuelAfterTopUp / AppConstants.DG_TANK_CAPACITY) * 100.0;
-
+                              final estVal = _calculateEstimatedValue(rec, productionState.products);
                               return TableRow(
+                                decoration: BoxDecoration(color: rowBg),
                                 children: [
-                                  // 1. Date (below give time)
+                                  // 1. Date / Time
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
-                                      child: Column(
+                                      child: Row(
                                         mainAxisSize: MainAxisSize.min,
+                                        mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Text(rec.date, style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12)),
-                                          const SizedBox(height: 2),
-                                          Text(rec.time.isNotEmpty ? rec.time : '—', style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary)),
+                                          if (isToday)
+                                            Container(
+                                              margin: const EdgeInsets.only(right: 5),
+                                              width: 6,
+                                              height: 6,
+                                              decoration: const BoxDecoration(
+                                                color: AppColors.primary,
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                          Text(
+                                            _formatDateTimeWithDot(rec.date, r.time),
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              fontWeight: isToday ? AppFontWeights.bold : AppFontWeights.medium,
+                                              fontSize: 12,
+                                              color: isToday ? AppColors.primary : AppColors.textPrimary,
+                                            ),
+                                          ),
                                         ],
                                       ),
                                     ),
                                   ),
-                                  // 2. Start %
+                                  // 2. Product Name
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
                                       child: Text(
-                                        '${Formatters.formatSmart(rec.startPercentage)}%',
-                                        style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium),
+                                        rec.productName,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                          fontWeight: AppFontWeights.bold,
+                                          fontSize: 12,
+                                          color: AppColors.textPrimary,
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  // 3. End %
+                                  // 3. Quantity
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(rec.endPercentage)}%',
-                                        style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          rec.quantityProduced > 0 ? '${Formatters.formatSmart(rec.quantityProduced)} ${rec.unit}' : '—',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF4F46E5)),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  // 4. Energy Generated (kWh)
+                                  // 4. Pieces
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(rec.kwh)} kWh',
-                                        style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          rec.piecesProduced > 0 ? Formatters.formatInt(rec.piecesProduced) : '—',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12, color: Color(0xFF059669)),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  // 5. Total Fuel Consumed
+                                  // 5. Crates Produced
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(fuel)} L',
-                                        style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12.5, color: Color(0xFF2563EB)),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          rec.cratesProduced > 0 ? Formatters.formatSmart(rec.cratesProduced) : '—',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12, color: Color(0xFFD97706)),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  // 6. Shift Running Hours
+                                  // 6. Estimated Value
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
-                                      child: Text(
-                                        '${Formatters.formatSmart(rec.runningHours)} Hrs',
-                                        style: const TextStyle(fontSize: 12),
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        child: Text(
+                                          estVal > 0 ? '₹${Formatters.formatSmart(estVal)}' : '—',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF7C3AED)),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  // 7. Level after Topup or Fuel Added
+                                  // 7. Logged By
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                    child: Center(
-                                      child: rec.fuelAdded > 0
-                                          ? Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  '${Formatters.formatDecimal(pctAfterTopUp)}% (${Formatters.formatSmart(fuelAfterTopUp)} L)',
-                                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11.5, color: Color(0xFF2563EB)),
-                                                ),
-                                                const SizedBox(height: 2),
-                                                Text(
-                                                  '+${Formatters.formatSmart(rec.fuelAdded)} L Added',
-                                                  style: const TextStyle(fontSize: 10.5, color: Color(0xFF16A34A), fontWeight: AppFontWeights.medium),
-                                                ),
-                                              ],
-                                            )
-                                          : const Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                                    ),
-                                  ),
-                                  // 8. Consumption Rate (Formula from DG HSD page)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
                                       child: Text(
-                                        rec.runningHours > 0 ? '${Formatters.formatDecimal(burnRate)} L/hr' : '—',
-                                        style: const TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12),
+                                        rec.employeeName.isNotEmpty ? rec.employeeName : '—',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary),
                                       ),
                                     ),
                                   ),
@@ -2667,86 +4399,107 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                               );
                             } else {
                               return TableRow(
+                                decoration: BoxDecoration(color: rowBg),
                                 children: [
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                     child: Center(
                                       child: Text(
-                                        r.date,
+                                        _formatDateShort(r.date),
+                                        textAlign: TextAlign.center,
                                         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                                       ),
                                     ),
                                   ),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
-                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 8, vertical: 10), child: Center(child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
+                                  const Padding(padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10), child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12)))),
                                 ],
                               );
                             }
                           }),
                           // Total summary row
                           TableRow(
-                            decoration: const BoxDecoration(color: Color(0xFFDBEAFE)),
+                            decoration: const BoxDecoration(color: Color(0xFFEEF2FF)),
                             children: [
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
                                   child: Text(
                                     'TOTAL (${monthRecords.length})',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11.5, color: Color(0xFF1E40AF)),
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF3730A3)),
                                   ),
                                 ),
                               ),
-                              const Padding(padding: EdgeInsets.all(8), child: Center(child: Text('—'))),
-                              const Padding(padding: EdgeInsets.all(8), child: Center(child: Text('—'))),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
                                   child: Text(
-                                    '${Formatters.formatSmart(totalKwh)} kWh',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
-                                  ),
-                                ),
-                              ),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                child: Center(
-                                  child: Text(
-                                    '${Formatters.formatSmart(totalHsd)} L',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12.5, color: Color(0xFF2563EB)),
+                                    'Monthly Total',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF3730A3)),
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatSmart(totalHours)} Hrs',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      Formatters.formatSmart(totalVolume),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF4F46E5)),
+                                    ),
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    totalFuelAdded > 0 ? '+${Formatters.formatSmart(totalFuelAdded)} L Added' : '—',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11.5, color: Color(0xFF15803D)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      Formatters.formatInt(totalPieces),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF059669)),
+                                    ),
                                   ),
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                                 child: Center(
-                                  child: Text(
-                                    '${Formatters.formatDecimal(avgConsumptionRate)} L/hr',
-                                    style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF1E40AF)),
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      Formatters.formatSmart(totalCrates),
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFFD97706)),
+                                    ),
                                   ),
                                 ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      totalEstimatedValue > 0 ? '₹${Formatters.formatSmart(totalEstimatedValue)}' : '—',
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF7C3AED)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+                                child: Center(child: Text('—', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 12))),
                               ),
                             ],
                           ),
@@ -2761,7 +4514,6 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
       ),
     );
   }
-
   // ---------------------------------------------------------------------------
   // PRINTABLE DIALOGS
   // ---------------------------------------------------------------------------
@@ -2806,7 +4558,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 'Boiler Report',
                                 style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold),
                               ),
-                              Text('CASEYA • Purabi Dairy, Silchar Plant', style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
+                              Text('CASEYA • Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
                             ],
                           ),
                         ],
@@ -2849,8 +4601,21 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         ),
                         child: Column(
                           children: [
-                            const Center(
-                              child: Text('CASEYA\nPurabi Dairy, Silchar Plant\nBoiler Report', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            Center(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Boiler Register', style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5), textAlign: TextAlign.center),
+                                  const SizedBox(height: 4),
+                                  Text(DateFormat('MMMM yyyy').format(_selectedBoilerMonth), style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  Text('Generated on: ${DateFormat('dd/MM/yy • hh:mm a').format(DateTime.now())}', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Container(
@@ -2881,6 +4646,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                     _PrintTableHeader('Running Hours'),
                                     _PrintTableHeader('Fuel Burnrate'),
                                     _PrintTableHeader('Fuel Top-up'),
+                                    _PrintTableHeader('Logged By'),
                                   ],
                                 ),
                                 ...rows.map((r) {
@@ -2891,7 +4657,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                     final double burnRate = rec.runningHours > 0 ? (fuel / rec.runningHours) : 0.0;
                                     return TableRow(
                                       children: [
-                                        _PrintTableCell('${rec.date}${rec.time.isNotEmpty ? '\n${rec.time}' : ''}', isBold: true),
+                                        _PrintTableCell(_formatDateTimeWithDot(rec.date, rec.time), isBold: true),
                                         _PrintTableCell('${Formatters.formatSmart(rec.openingCm)} CM'),
                                         _PrintTableCell('${Formatters.formatSmart(rec.closingCm)} CM'),
                                         _PrintTableCell('${Formatters.formatSmart(levelDiff)} CM', isBold: true),
@@ -2899,12 +4665,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                         _PrintTableCell('${Formatters.formatSmart(rec.runningHours)} Hrs'),
                                         _PrintTableCell(rec.runningHours > 0 ? '${Formatters.formatDecimal(burnRate)} L/hr' : '—'),
                                         _PrintTableCell(rec.fuelTopUp > 0 ? '${Formatters.formatSmart(rec.fuelTopUp)} L' : '—'),
+                                        _PrintTableCell(rec.employeeName.isNotEmpty ? rec.employeeName : '—'),
                                       ],
                                     );
                                   } else {
                                     return TableRow(
                                       children: [
-                                        _PrintTableCell(r.date, isBold: true),
+                                        _PrintTableCell(_formatDateShort(r.date), isBold: true),
+                                        const _PrintTableCell('—'),
                                         const _PrintTableCell('—'),
                                         const _PrintTableCell('—'),
                                         const _PrintTableCell('—'),
@@ -2922,7 +4690,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: const [
-                                _PrintSignature(name: 'Biraj Goswami', title: 'Boiler Incharge'),
+                                _PrintSignature(name: 'Biraj Goswami', title: 'Caseya Developer'),
                                 _PrintSignature(title: 'Verified by'),
                                 _PrintSignature(title: 'Plant Head'),
                               ],
@@ -2983,7 +4751,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 'DG Report',
                                 style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold),
                               ),
-                              Text('CASEYA • Purabi Dairy, Silchar Plant', style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
+                              Text('CASEYA • Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
                             ],
                           ),
                         ],
@@ -3026,8 +4794,21 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                         ),
                         child: Column(
                           children: [
-                            const Center(
-                              child: Text('CASEYA\nPurabi Dairy, Silchar Plant\nDG Report', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+                            Center(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('DG HSD Register', style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5), textAlign: TextAlign.center),
+                                  const SizedBox(height: 4),
+                                  Text(DateFormat('MMMM yyyy').format(_selectedDgMonth), style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  Text('Generated on: ${DateFormat('dd/MM/yy • hh:mm a').format(DateTime.now())}', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 16),
                             Container(
@@ -3058,6 +4839,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                     _PrintTableHeader('Running Hours'),
                                     _PrintTableHeader('Level After Top-up'),
                                     _PrintTableHeader('Burn Rate'),
+                                    _PrintTableHeader('Logged By'),
                                   ],
                                 ),
                                 ...rows.map((r) {
@@ -3071,7 +4853,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
 
                                     return TableRow(
                                       children: [
-                                        _PrintTableCell('${rec.date}${rec.time.isNotEmpty ? '\n${rec.time}' : ''}', isBold: true),
+                                        _PrintTableCell(_formatDateTimeWithDot(rec.date, rec.time), isBold: true),
                                         _PrintTableCell('${Formatters.formatSmart(rec.startPercentage)}%'),
                                         _PrintTableCell('${Formatters.formatSmart(rec.endPercentage)}%'),
                                         _PrintTableCell('${Formatters.formatSmart(rec.kwh)} kWh', isBold: true, color: const Color(0xFFD97706)),
@@ -3079,12 +4861,14 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                         _PrintTableCell('${Formatters.formatSmart(rec.runningHours)} Hrs'),
                                         _PrintTableCell(rec.fuelAdded > 0 ? '${Formatters.formatDecimal(pctAfterTopUp)}%\n(+${Formatters.formatSmart(rec.fuelAdded)}L)' : '—'),
                                         _PrintTableCell(rec.runningHours > 0 ? '${Formatters.formatDecimal(burnRate)} L/hr' : '—'),
+                                        _PrintTableCell(rec.employeeName.isNotEmpty ? rec.employeeName : '—'),
                                       ],
                                     );
                                   } else {
                                     return TableRow(
                                       children: [
-                                        _PrintTableCell(r.date, isBold: true),
+                                        _PrintTableCell(_formatDateShort(r.date), isBold: true),
+                                        const _PrintTableCell('—'),
                                         const _PrintTableCell('—'),
                                         const _PrintTableCell('—'),
                                         const _PrintTableCell('—'),
@@ -3102,7 +4886,399 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceAround,
                               children: const [
-                                _PrintSignature(name: 'Biraj Goswami', title: 'Electrical Supervisor'),
+                                _PrintSignature(name: 'Biraj Goswami', title: 'Caseya Developer'),
+                                _PrintSignature(title: 'Verified by'),
+                                _PrintSignature(title: 'Plant Head'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+
+  void _showPrintableProductionDialog(
+    BuildContext context,
+    List<_ProductionReportRow> rows,
+    double totalVolume,
+    double totalCrates,
+    int totalPieces,
+    double totalEstimatedValue,
+    List<ProductModel> products,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960, maxHeight: 780),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEEF2FF),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.print_rounded, color: Color(0xFF4F46E5), size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Production Register — Print Preview',
+                            style: TextStyle(fontSize: 16, fontWeight: AppFontWeights.bold, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF4F46E5),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.download_rounded, size: 16),
+                            label: const Text('Export CSV', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                            onPressed: () {
+                              Navigator.pop(dialogCtx);
+                              _exportProductionCsv(rows, products);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => Navigator.pop(dialogCtx),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.black26),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Production Register', style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5), textAlign: TextAlign.center),
+                                  const SizedBox(height: 4),
+                                  Text(DateFormat('MMMM yyyy').format(_selectedProductionMonth), style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  Text('Generated on: ${DateFormat('dd/MM/yy • hh:mm a').format(DateTime.now())}', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                border: Border.all(color: Colors.black12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Text('Total Logs: ${rows.where((r) => r.hasActivity).length}', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11)),
+                                  Text('Quantity: ${Formatters.formatSmart(totalVolume)} L', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFF4F46E5))),
+                                  Text('Pieces: ${Formatters.formatInt(totalPieces)}', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFF059669))),
+                                  Text('Crates: ${Formatters.formatSmart(totalCrates)}', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFFD97706))),
+                                  Text('Est. Value: ₹${Formatters.formatSmart(totalEstimatedValue)}', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFF7C3AED))),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Table(
+                              border: TableBorder.all(color: Colors.black38, width: 0.8),
+                              columnWidths: const {
+                                0: FixedColumnWidth(95),
+                                1: FixedColumnWidth(160),
+                                2: FixedColumnWidth(90),
+                                3: FixedColumnWidth(75),
+                                4: FixedColumnWidth(80),
+                                5: FixedColumnWidth(100),
+                                6: FixedColumnWidth(110),
+                              },
+                              children: [
+                                const TableRow(
+                                  decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
+                                  children: [
+                                    _PrintTableHeader('Date / Time'),
+                                    _PrintTableHeader('Product Name'),
+                                    _PrintTableHeader('Quantity'),
+                                    _PrintTableHeader('Pieces'),
+                                    _PrintTableHeader('Crates'),
+                                    _PrintTableHeader('Estimated Value'),
+                                    _PrintTableHeader('Logged By'),
+                                  ],
+                                ),
+                                ...rows.map((r) {
+                                  if (r.hasActivity && r.record != null) {
+                                    final rec = r.record!;
+                                    final estVal = _calculateEstimatedValue(rec, products);
+                                    return TableRow(
+                                      children: [
+                                        _PrintTableCell(_formatDateTimeWithDot(rec.date, r.time), isBold: true),
+                                        _PrintTableCell(rec.productName, isBold: true),
+                                        _PrintTableCell(rec.quantityProduced > 0 ? '${Formatters.formatSmart(rec.quantityProduced)} ${rec.unit}' : '—', isBold: true, color: const Color(0xFF4F46E5)),
+                                        _PrintTableCell(rec.piecesProduced > 0 ? Formatters.formatInt(rec.piecesProduced) : '—'),
+                                        _PrintTableCell(rec.cratesProduced > 0 ? Formatters.formatSmart(rec.cratesProduced) : '—'),
+                                        _PrintTableCell(estVal > 0 ? '₹${Formatters.formatSmart(estVal)}' : '—', isBold: true, color: const Color(0xFF7C3AED)),
+                                        _PrintTableCell(rec.employeeName.isNotEmpty ? rec.employeeName : '—'),
+                                      ],
+                                    );
+                                  } else {
+                                    return TableRow(
+                                      children: [
+                                        _PrintTableCell(_formatDateShort(r.date), isBold: true),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                      ],
+                                    );
+                                  }
+                                }),
+                              ],
+                            ),
+                            const SizedBox(height: 36),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: const [
+                                _PrintSignature(name: 'Biraj Goswami', title: 'Caseya Developer'),
+                                _PrintSignature(title: 'Verified by'),
+                                _PrintSignature(title: 'Plant Head'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+    void _showPrintableBatchDialog(
+    BuildContext context,
+    List<_BatchReportRow> rows,
+    double totalMilk,
+    double totalSmp,
+    double totalSugar,
+    double totalWater,
+    double totalVolume,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960, maxHeight: 780),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFDCFCE7),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.print_rounded, color: Color(0xFF059669), size: 20),
+                          ),
+                          const SizedBox(width: 10),
+                          const Text(
+                            'Daily Batch Making Register — Print Preview',
+                            style: TextStyle(fontSize: 16, fontWeight: AppFontWeights.bold, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF059669),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.download_rounded, size: 16),
+                            label: const Text('Export CSV', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                            onPressed: () {
+                              Navigator.pop(dialogCtx);
+                              _exportBatchCsv(rows);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 20),
+                            onPressed: () => Navigator.pop(dialogCtx),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.black26),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Center(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 3),
+                                  const Text('Daily Batch Making Register', style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5), textAlign: TextAlign.center),
+                                  const SizedBox(height: 4),
+                                  Text(DateFormat('MMMM yyyy').format(_selectedBatchMonth), style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  Text('Generated on: ${DateFormat('dd/MM/yy • hh:mm a').format(DateTime.now())}', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                border: Border.all(color: Colors.black12),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                children: [
+                                  Text('Total Batches: ${rows.where((r) => r.hasActivity).length}', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11)),
+                                  Text('Milk: ${Formatters.formatSmart(totalMilk)} L', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFF2563EB))),
+                                  Text('SMP: ${Formatters.formatSmart(totalSmp)} kg', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFFD97706))),
+                                  Text('Sugar: ${Formatters.formatSmart(totalSugar)} kg', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFF9333EA))),
+                                  Text('Water: ${Formatters.formatSmart(totalWater)} L', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 11, color: Color(0xFF0284C7))),
+                                  Text('Batch Volume: ${Formatters.formatSmart(totalVolume)} L', style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF047857))),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Table(
+                              border: TableBorder.all(color: Colors.black38, width: 0.8),
+                              columnWidths: const {
+                                0: FixedColumnWidth(95),
+                                1: FixedColumnWidth(130),
+                                2: FixedColumnWidth(90),
+                                3: FixedColumnWidth(80),
+                                4: FixedColumnWidth(80),
+                                5: FixedColumnWidth(80),
+                                6: FixedColumnWidth(95),
+                                7: FixedColumnWidth(100),
+                              },
+                              children: [
+                                const TableRow(
+                                  decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
+                                  children: [
+                                    _PrintTableHeader('Date / Time'),
+                                    _PrintTableHeader('Product Name'),
+                                    _PrintTableHeader('Milk (L)'),
+                                    _PrintTableHeader('SMP (kg)'),
+                                    _PrintTableHeader('Sugar (kg)'),
+                                    _PrintTableHeader('Water (L)'),
+                                    _PrintTableHeader('Total (L)'),
+                                    _PrintTableHeader('Logged By'),
+                                  ],
+                                ),
+                                ...rows.map((r) {
+                                  if (r.hasActivity && r.record != null) {
+                                    final rec = r.record!;
+                                    return TableRow(
+                                      children: [
+                                        _PrintTableCell(_formatDateTimeWithDot(rec.productionDate, r.time), isBold: true),
+                                        _PrintTableCell(rec.productName, isBold: true),
+                                        _PrintTableCell(rec.milkQuantity > 0 ? '${Formatters.formatSmart(rec.milkQuantity)} L' : '—'),
+                                        _PrintTableCell(rec.smpQuantity > 0 ? '${Formatters.formatSmart(rec.smpQuantity)} kg' : '—', color: const Color(0xFFD97706)),
+                                        _PrintTableCell(rec.sugarQuantity > 0 ? '${Formatters.formatSmart(rec.sugarQuantity)} kg' : '—', color: const Color(0xFF9333EA)),
+                                        _PrintTableCell(rec.waterQuantity > 0 ? '${Formatters.formatSmart(rec.waterQuantity)} L' : '—', color: const Color(0xFF0284C7)),
+                                        _PrintTableCell('${Formatters.formatSmart(rec.batchQuantity)} L', isBold: true, color: const Color(0xFF047857)),
+                                        _PrintTableCell((rec.operatorName != null && rec.operatorName!.trim().isNotEmpty) ? rec.operatorName!.trim() : '—'),
+                                      ],
+                                    );
+                                  } else {
+                                    return TableRow(
+                                      children: [
+                                        _PrintTableCell(_formatDateShort(r.date), isBold: true),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                        const _PrintTableCell('—'),
+                                      ],
+                                    );
+                                  }
+                                }),
+                              ],
+                            ),
+                            const SizedBox(height: 36),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: const [
+                                _PrintSignature(name: 'Biraj Goswami', title: 'Caseya Developer'),
                                 _PrintSignature(title: 'Verified by'),
                                 _PrintSignature(title: 'Plant Head'),
                               ],
@@ -3241,11 +5417,13 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 children: [
                                   const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
-                                  const Text('Purabi Dairy, Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
+                                  const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
-                                  const Text('Monthly Material Stock Register', style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5), textAlign: TextAlign.center),
+                                  const Text('Inventory Stock Register', style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5), textAlign: TextAlign.center),
                                   const SizedBox(height: 4),
                                   Text('$currentMonthName • ${result.item.name}', style: const TextStyle(fontSize: 12, fontWeight: AppFontWeights.medium, color: AppColors.textPrimary), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  Text('Generated on: ${DateFormat('dd/MM/yy • hh:mm a').format(DateTime.now())}', style: const TextStyle(fontSize: 11, color: Colors.black54), textAlign: TextAlign.center),
                                 ],
                               ),
                             ),
@@ -3267,18 +5445,18 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                             Table(
                               border: TableBorder.all(color: const Color(0xFFCBD5E1), width: 1),
                               columnWidths: const {
-                                0: FixedColumnWidth(95),
+                                0: FixedColumnWidth(130),
                                 1: FlexColumnWidth(3),
-                                2: FixedColumnWidth(120),
-                                3: FixedColumnWidth(115),
-                                4: FixedColumnWidth(115),
-                                5: FixedColumnWidth(125),
+                                2: FixedColumnWidth(115),
+                                3: FixedColumnWidth(110),
+                                4: FixedColumnWidth(110),
+                                5: FixedColumnWidth(120),
                               },
                               children: [
                                 const TableRow(
                                   decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
                                   children: [
-                                    _PrintTableHeader('Date'),
+                                    _PrintTableHeader('Date / Time'),
                                     _PrintTableHeader('Particulars'),
                                     _PrintTableHeader('Previous Stock'),
                                     _PrintTableHeader('Received Qty'),
@@ -3291,7 +5469,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                   return TableRow(
                                     decoration: BoxDecoration(color: bg),
                                     children: [
-                                      _PrintTableCell(r.dateDisplay, isBold: true),
+                                      _PrintTableCell(r.dateTimeDisplay, isBold: true),
                                       _PrintTableCell(r.particulars),
                                       _PrintTableCell('${Formatters.formatSmart(r.previousStock)} ${result.item.baseUnit}'),
                                       _PrintTableCell(r.receiptQty > 0 ? '+${Formatters.formatSmart(r.receiptQty)} ${result.item.baseUnit}' : '—', color: r.receiptQty > 0 ? const Color(0xFF16A34A) : null),
@@ -4175,9 +6353,10 @@ class _PrintTableHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: Text(
         text,
+        textAlign: TextAlign.center,
         style: const TextStyle(
           fontSize: 11,
           fontWeight: AppFontWeights.bold,
@@ -4199,9 +6378,10 @@ class _PrintTableCell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-      alignment: Alignment.centerLeft,
+      alignment: Alignment.center,
       child: Text(
         text,
+        textAlign: TextAlign.center,
         style: TextStyle(
           fontSize: 11,
           fontWeight: isBold ? AppFontWeights.bold : AppFontWeights.regular,
@@ -4303,6 +6483,34 @@ class _DgReportRow {
   final bool hasActivity;
 
   const _DgReportRow({
+    required this.date,
+    required this.time,
+    this.record,
+    required this.hasActivity,
+  });
+}
+
+class _BatchReportRow {
+  final String date;
+  final String time;
+  final BatchRecordModel? record;
+  final bool hasActivity;
+
+  const _BatchReportRow({
+    required this.date,
+    required this.time,
+    this.record,
+    required this.hasActivity,
+  });
+}
+
+class _ProductionReportRow {
+  final String date;
+  final String time;
+  final ProductionRecord? record;
+  final bool hasActivity;
+
+  const _ProductionReportRow({
     required this.date,
     required this.time,
     this.record,

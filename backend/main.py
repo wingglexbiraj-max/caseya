@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import products, boiler, standardization, lab, dashboard
+from routers import products, boiler, standardization, lab, dashboard, dg_hsd
 
 app = FastAPI(
     title="CASEYA Dairy Plant Operations API",
@@ -23,6 +23,7 @@ app.add_middleware(
 # Register Routers
 app.include_router(products.router, prefix="/api/v1")
 app.include_router(boiler.router, prefix="/api/v1")
+app.include_router(dg_hsd.router, prefix="/api/v1")
 app.include_router(standardization.router, prefix="/api/v1")
 app.include_router(lab.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")

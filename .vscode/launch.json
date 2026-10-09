@@ -20,7 +20,7 @@
                 "--web-port",
                 "8080",
                 "--web-hostname",
-                "localhost"
+                "127.0.0.1"
             ]
         },
         {

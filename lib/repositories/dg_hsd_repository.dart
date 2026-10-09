@@ -1,20 +1,20 @@
 import '../models/dg_hsd_record.dart';
-import '../services/local_storage_service.dart';
+import '../services/api_service.dart';
 
 class DgHsdRepository {
   Future<List<DgHsdRecord>> getRecords() async {
-    return LocalStorageService.getDgHsdRecords();
+    return ApiService.fetchDgHsdRecords();
   }
 
   Future<void> saveRecord(DgHsdRecord record) async {
-    await LocalStorageService.addDgHsdRecord(record);
+    await ApiService.saveDgHsdRecord(record);
   }
 
   Future<void> updateRecord(DgHsdRecord record) async {
-    await LocalStorageService.updateDgHsdRecord(record);
+    await ApiService.updateDgHsdRecord(record);
   }
 
   Future<void> deleteRecord(String recordId) async {
-    await LocalStorageService.deleteDgHsdRecord(recordId);
+    await ApiService.deleteDgHsdRecord(recordId);
   }
 }

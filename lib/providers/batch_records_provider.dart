@@ -149,6 +149,8 @@ class BatchRecordsNotifier extends StateNotifier<BatchRecordsState> {
     }
   }
 
+  Future<void> refresh() async => loadBatches();
+
   Future<bool> createBatch(BatchRecordModel batch) async {
     state = state.copyWith(isLoading: true, clearMessages: true);
     try {

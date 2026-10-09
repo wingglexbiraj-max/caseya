@@ -57,6 +57,26 @@ class BoilerRecordSchema(BaseModel):
     remarks: str = ""
     created_at: Optional[datetime] = None
 
+class DgHsdRecordSchema(BaseModel):
+    record_id: str
+    date: str
+    time: str
+    shift: str
+    employee_id: str
+    employee_name: str
+    fuel_added: float = 0.0
+    start_percentage: float = 0.0
+    end_percentage: float = 0.0
+    percentage_drop: float = 0.0
+    fuel_consumption: float = 0.0
+    kwh: float = 0.0
+    running_hours: float = 0.0
+    consumption_per_hour: float = 0.0
+    units_per_litre: float = 0.0
+    remarks: str = ""
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
 class StandardizationCalculateRequest(BaseModel):
     milk_quantity: float = Field(..., gt=0)
     milk_fat: float = Field(..., gt=0, le=15.0)
