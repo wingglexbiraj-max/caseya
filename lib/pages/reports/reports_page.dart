@@ -22,6 +22,7 @@ import '../../providers/boiler_provider.dart';
 import '../../providers/dg_hsd_provider.dart';
 import '../../providers/production_provider.dart';
 import '../../providers/navigation_provider.dart';
+import '../../providers/dispatch_provider.dart';
 
 enum ReportSection {
   stock,
@@ -29,6 +30,7 @@ enum ReportSection {
   dg,
   batch,
   production,
+  dispatch,
 }
 
 class ReportsPage extends ConsumerStatefulWidget {
@@ -67,8 +69,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      final targetSec = ref.read(targetReportSectionProvider);
+      if (targetSec == 'dispatch') {
+        setState(() {
+          _selectedSection = ReportSection.dispatch;
+        });
+        ref.read(targetReportSectionProvider.notifier).state = null;
+      }
       ref.read(batchRecordsProvider.notifier).loadBatches();
       ref.read(productionProvider.notifier).init();
+      ref.read(dispatchProvider.notifier).loadData();
     });
   }
 
@@ -669,6 +679,7 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     final dgState = ref.watch(dgHsdProvider);
     final batchState = ref.watch(batchRecordsProvider);
     final productionState = ref.watch(productionProvider);
+    final dispatchState = ref.watch(dispatchProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -714,6 +725,12 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 context: context,
                 isMobile: isMobile,
                 productionState: productionState,
+              )
+            else if (_selectedSection == ReportSection.dispatch)
+              _buildDispatchReportSection(
+                context: context,
+                isMobile: isMobile,
+                dispatchState: dispatchState,
               ),
           ],
         ),
@@ -819,6 +836,16 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                     _selectedSection = ReportSection.production;
                   });
                   ref.read(productionProvider.notifier).init();
+                },
+              ),
+              _ReportCatalogueChip(
+                label: 'Dispatch Report',
+                isSelected: _selectedSection == ReportSection.dispatch,
+                onTap: () {
+                  setState(() {
+                    _selectedSection = ReportSection.dispatch;
+                  });
+                  ref.read(dispatchProvider.notifier).loadData();
                 },
               ),
             ],
@@ -6341,6 +6368,710 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
           },
         );
       },
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6. DISPATCH OPERATIONS & CATALOGUE SUMMARY REPORT SECTION
+  // ---------------------------------------------------------------------------
+  Widget _buildDispatchReportSection({
+    required BuildContext context,
+    required bool isMobile,
+    required DispatchState dispatchState,
+  }) {
+    final summaries = dispatchState.dailyProductSummaries;
+    final dispatches = dispatchState.dispatchesForSelectedDate;
+    final distributorSummaries = dispatchState.distributorSummaries;
+
+    return AppCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Header Row
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 750;
+              final headerInfo = Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryContainer,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.local_shipping_rounded,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Dispatch Operations & Catalogue Summary',
+                          style: TextStyle(
+                            fontSize: AppTextSizes.subheading,
+                            fontWeight: AppFontWeights.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Daily product catalogue rollup, vehicle departure logs & commercial values',
+                          style: const TextStyle(
+                            fontSize: AppTextSizes.caption,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+
+              final controls = Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  // Date Picker Button
+                  InkWell(
+                    onTap: () async {
+                      DateTime initial = DateTime.now();
+                      try {
+                        final parts = dispatchState.selectedDate.split('-');
+                        if (parts.length == 3) {
+                          initial = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+                        }
+                      } catch (_) {}
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: initial,
+                        firstDate: DateTime(2025, 1, 1),
+                        lastDate: DateTime(2030, 12, 31),
+                      );
+                      if (picked != null) {
+                        final dateStr =
+                            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+                        ref.read(dispatchProvider.notifier).setSelectedDate(dateStr);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.cardBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today_rounded, size: 15, color: AppColors.primary),
+                          const SizedBox(width: 8),
+                          Text(
+                            dispatchState.selectedDate,
+                            style: const TextStyle(
+                              fontWeight: AppFontWeights.bold,
+                              fontSize: 13,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.arrow_drop_down, size: 18, color: AppColors.textSecondary),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Quick Jump to Today
+                  TextButton.icon(
+                    onPressed: () {
+                      final now = DateTime.now();
+                      final todayStr =
+                          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+                      ref.read(dispatchProvider.notifier).setSelectedDate(todayStr);
+                    },
+                    icon: const Icon(Icons.today_rounded, size: 15),
+                    label: const Text('Today'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    ),
+                  ),
+
+                  // CSV Export Menu Button
+                  PopupMenuButton<String>(
+                    onSelected: (val) {
+                      if (val == 'products') {
+                        final csv = ref.read(dispatchProvider.notifier).generateProductWiseCsv(
+                              summaries,
+                              dispatchState.selectedDate,
+                            );
+                        downloadLedgerCsv('dispatch_catalogue_summary_${dispatchState.selectedDate}.csv', csv);
+                      } else if (val == 'vehicles') {
+                        final csv = ref.read(dispatchProvider.notifier).generateVehicleRecordsCsv(dispatches);
+                        downloadLedgerCsv('dispatch_vehicles_${dispatchState.selectedDate}.csv', csv);
+                      } else if (val == 'distributors') {
+                        final csv = ref.read(dispatchProvider.notifier).generateDistributorWiseCsv(
+                              distributorSummaries,
+                              dispatchState.selectedDate,
+                            );
+                        downloadLedgerCsv('dispatch_distributors_${dispatchState.selectedDate}.csv', csv);
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(
+                        value: 'products',
+                        child: Row(
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.primary),
+                            SizedBox(width: 8),
+                            Text('Export Product Totals (CSV)', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'vehicles',
+                        child: Row(
+                          children: [
+                            Icon(Icons.local_shipping_outlined, size: 16, color: Color(0xFF0F766E)),
+                            SizedBox(width: 8),
+                            Text('Export Vehicle Records (CSV)', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'distributors',
+                        child: Row(
+                          children: [
+                            Icon(Icons.storefront_outlined, size: 16, color: Color(0xFF2563EB)),
+                            SizedBox(width: 8),
+                            Text('Export Distributor Summary (CSV)', style: TextStyle(fontSize: 13)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.download_rounded, size: 15, color: Colors.white),
+                          SizedBox(width: 6),
+                          Text(
+                            'Export Report (CSV)',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: AppFontWeights.bold,
+                            ),
+                          ),
+                          SizedBox(width: 4),
+                          Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              );
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    headerInfo,
+                    const SizedBox(height: 12),
+                    controls,
+                  ],
+                );
+              }
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(child: headerInfo),
+                  const SizedBox(width: 16),
+                  controls,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1),
+          const SizedBox(height: 16),
+
+          // KPI Summary Metrics Grid
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              _buildDispatchReportMetricTile(
+                title: 'Vehicles Dispatched',
+                value: '${dispatchState.totalVehiclesForSelectedDate}',
+                subtitle: 'Plant Gate Out',
+                icon: Icons.local_shipping_rounded,
+                color: AppColors.primary,
+              ),
+              _buildDispatchReportMetricTile(
+                title: 'Total Crates',
+                value: Formatters.formatSmart(dispatchState.totalCratesForSelectedDate),
+                subtitle: 'Standard Crates',
+                icon: Icons.inventory_2_rounded,
+                color: const Color(0xFF0F766E),
+              ),
+              _buildDispatchReportMetricTile(
+                title: 'Total Pieces',
+                value: Formatters.formatInt(dispatchState.totalPiecesForSelectedDate),
+                subtitle: 'Packets Dispatched',
+                icon: Icons.format_list_bulleted_rounded,
+                color: const Color(0xFF2563EB),
+              ),
+              _buildDispatchReportMetricTile(
+                title: 'Liquid Milk / Lassi',
+                value: '${Formatters.formatSmart(dispatchState.totalLitresForSelectedDate)} L',
+                subtitle: 'Fluid Volume',
+                icon: Icons.water_drop_rounded,
+                color: const Color(0xFF0284C7),
+              ),
+              _buildDispatchReportMetricTile(
+                title: 'Curd / Solids',
+                value: '${Formatters.formatSmart(dispatchState.totalKgForSelectedDate)} kg',
+                subtitle: 'Solid Products',
+                icon: Icons.takeout_dining_rounded,
+                color: const Color(0xFFD97706),
+              ),
+              _buildDispatchReportMetricTile(
+                title: 'Total Sales Revenue',
+                value: '₹${Formatters.formatSmart(dispatchState.totalRevenueForSelectedDate)}',
+                subtitle: 'Commercial Value',
+                icon: Icons.currency_rupee_rounded,
+                color: const Color(0xFF059669),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Primary Section: TODAY'S DISPATCH SUMMARY (Product Catalogue Rollup)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryLight,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Icon(Icons.table_chart_rounded, size: 16, color: AppColors.primary),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Today\'s Dispatch Summary (Catalogue Rollup for ${dispatchState.selectedDate})',
+                    style: const TextStyle(
+                      fontSize: AppTextSizes.subheading,
+                      fontWeight: AppFontWeights.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Text(
+                  '${summaries.length} Products Active',
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: AppFontWeights.bold,
+                    color: Color(0xFF065F46),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          if (summaries.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.cardBorder),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.inbox_outlined, size: 44, color: AppColors.textSecondary),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'No Dispatches Recorded for this Date',
+                    style: TextStyle(
+                      fontSize: AppTextSizes.body,
+                      fontWeight: AppFontWeights.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Select another date above or record vehicle dispatches in the Dispatch Records page.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
+                  ),
+                ],
+              ),
+            )
+          else
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(minWidth: 800),
+                child: Table(
+                  border: TableBorder(
+                    horizontalInside: BorderSide(
+                      color: AppColors.divider.withValues(alpha: 0.6),
+                      width: 1,
+                    ),
+                  ),
+                  columnWidths: const {
+                    0: FlexColumnWidth(1.2), // Item Code
+                    1: FlexColumnWidth(3.0), // Product Name
+                    2: FlexColumnWidth(1.2), // Pack Size
+                    3: FlexColumnWidth(1.2), // Crates
+                    4: FlexColumnWidth(1.2), // Pieces
+                    5: FlexColumnWidth(1.6), // Quantity
+                    6: FlexColumnWidth(1.2), // Vehicles
+                    7: FlexColumnWidth(1.5), // Revenue
+                  },
+                  children: [
+                    TableRow(
+                      decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
+                      children: [
+                        _buildDispatchTableHeaderCell('Item Code'),
+                        _buildDispatchTableHeaderCell('Product Name'),
+                        _buildDispatchTableHeaderCell('Pack Size'),
+                        _buildDispatchTableHeaderCell('Total Crates', alignRight: true),
+                        _buildDispatchTableHeaderCell('Total Pieces', alignRight: true),
+                        _buildDispatchTableHeaderCell('Volume / Solids', alignRight: true),
+                        _buildDispatchTableHeaderCell('Vehicles', alignRight: true),
+                        _buildDispatchTableHeaderCell('Sales Value (₹)', alignRight: true),
+                      ],
+                    ),
+                    ...summaries.map((s) {
+                      final isLiquid = s.normalizedUnit.toLowerCase().startsWith('l');
+                      return TableRow(
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Text(
+                              s.itemCode,
+                              style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Text(
+                              s.productName,
+                              style: const TextStyle(
+                                fontWeight: AppFontWeights.bold,
+                                fontSize: 13,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Text(s.packSizeDisplay, style: const TextStyle(fontSize: 12)),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                s.formattedCrates,
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                s.formattedPieces,
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                s.formattedQuantity,
+                                style: TextStyle(
+                                  fontWeight: AppFontWeights.bold,
+                                  fontSize: 13,
+                                  color: isLiquid ? const Color(0xFF0369A1) : const Color(0xFFB45309),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                '${s.vehicleCount}',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                            child: Align(
+                              alignment: Alignment.centerRight,
+                              child: Text(
+                                s.formattedRevenue,
+                                style: const TextStyle(
+                                  fontWeight: AppFontWeights.bold,
+                                  fontSize: 13,
+                                  color: Color(0xFF047857),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ],
+                ),
+              ),
+            ),
+          const SizedBox(height: 28),
+
+          // Secondary Section: VEHICLE DISPATCH LOG
+          if (dispatches.isNotEmpty) ...[
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEFF6FF),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Icon(Icons.local_shipping_outlined, size: 16, color: Color(0xFF2563EB)),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Vehicles Dispatched (${dispatches.length} Gate Out Records)',
+                  style: const TextStyle(
+                    fontSize: AppTextSizes.subheading,
+                    fontWeight: AppFontWeights.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: dispatches.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 8),
+              itemBuilder: (context, index) {
+                final d = dispatches[index];
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF8FAFC),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: AppColors.cardBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  d.vehicleNumber,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: AppFontWeights.bold,
+                                    fontSize: 13,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                d.distributorName,
+                                style: const TextStyle(
+                                  fontWeight: AppFontWeights.bold,
+                                  fontSize: 14,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              if (d.driverName.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  '• Driver: ${d.driverName}',
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ],
+                          ),
+                          Row(
+                            children: [
+                              Text(
+                                '${Formatters.formatSmart(d.totalCrates)} Crates',
+                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                d.dispatchTime,
+                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      // Product Chips
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: d.items.map((item) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFCBD5E1)),
+                            ),
+                            child: Text(
+                              '${item.productName}: ${Formatters.formatSmart(item.crates)} crt (${Formatters.formatInt(item.pieces)} pcs)',
+                              style: const TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDispatchReportMetricTile({
+    required String title,
+    required String value,
+    required String subtitle,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      width: 190,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 18, color: color),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: AppFontWeights.medium,
+                    color: AppColors.textSecondary,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: AppFontWeights.bold,
+                    color: color,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDispatchTableHeaderCell(String text, {bool alignRight = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      child: Align(
+        alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: AppTextSizes.caption,
+            fontWeight: AppFontWeights.bold,
+            letterSpacing: 0.5,
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
     );
   }
 }

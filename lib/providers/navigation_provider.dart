@@ -12,6 +12,9 @@ final stockLedgerTargetMonthProvider = StateProvider<DateTime?>((ref) => null);
 /// Tracks specific date to highlight in the stock ledger
 final stockLedgerHighlightDateProvider = StateProvider<DateTime?>((ref) => null);
 
+/// Tracks target report section in Reports Catalogue ('stock', 'boiler', 'dg', 'batch', 'production', 'dispatch')
+final targetReportSectionProvider = StateProvider<String?>((ref) => null);
+
 /// Represents the consumption and packaging details right after recording a production entry
 class ProductionConsumptionEvent {
   final String recordId;

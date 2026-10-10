@@ -68,6 +68,7 @@ class CalculationService {
       case 'PACKETS':
       case 'CUPS':
       case 'BOTTLES':
+      case 'QUANTITY':
         pieces = inputQuantity.round();
         if (piecesPerCrate > 0) {
           crates = pieces / piecesPerCrate;

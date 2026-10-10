@@ -12,7 +12,7 @@ import '../../models/dispatch_record.dart';
 import '../../models/product_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/dispatch_provider.dart';
-import '../../services/calculation_service.dart';
+import '../../providers/navigation_provider.dart';
 
 class DispatchPage extends ConsumerStatefulWidget {
   const DispatchPage({super.key});
@@ -46,13 +46,10 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
   }
 
   void _initDefaultProductRow() {
-    final defaultProduct = DairyProducts.officialProducts.first;
     _inlineProductRows.add(
       _ProductRowDraft(
-        productId: defaultProduct.productId,
-        inputMode: defaultProduct.allowedInputModes.contains('Pieces')
-            ? 'Pieces'
-            : defaultProduct.allowedInputModes.first,
+        productId: null,
+        inputMode: 'Pieces',
         initialQty: '',
       ),
     );
@@ -67,7 +64,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
     _inlineDriverController.dispose();
     _inlineRemarksController.dispose();
     for (final r in _inlineProductRows) {
-      r.quantityController.dispose();
+      r.dispose();
     }
     super.dispose();
   }
@@ -158,14 +155,27 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
 
   // Add Product row dynamically in Tab 1
   void _addInlineProductRow(List<ProductModel> catalog) {
+    final selectedProductIds = _inlineProductRows
+        .map((r) => r.productId)
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+
+    if (selectedProductIds.length >= catalog.length) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All products from the catalogue have already been added.'),
+          backgroundColor: Color(0xFFD97706),
+        ),
+      );
+      return;
+    }
+
     setState(() {
-      final first = catalog.isNotEmpty ? catalog.first : DairyProducts.officialProducts.first;
       _inlineProductRows.add(
         _ProductRowDraft(
-          productId: first.productId,
-          inputMode: first.allowedInputModes.contains('Pieces')
-              ? 'Pieces'
-              : first.allowedInputModes.first,
+          productId: null,
+          inputMode: 'Pieces',
           initialQty: '',
         ),
       );
@@ -175,13 +185,13 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
   void _removeInlineProductRow(int index) {
     if (_inlineProductRows.length > 1) {
       setState(() {
-        _inlineProductRows[index].quantityController.dispose();
+        _inlineProductRows[index].dispose();
         _inlineProductRows.removeAt(index);
       });
     } else {
       // Clear the single row
       setState(() {
-        _inlineProductRows[0].quantityController.clear();
+        _inlineProductRows[0].clear();
       });
     }
   }
@@ -193,10 +203,103 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
     _inlineDriverController.clear();
     _inlineRemarksController.clear();
     for (final r in _inlineProductRows) {
-      r.quantityController.dispose();
+      r.dispose();
     }
     _inlineProductRows.clear();
     _initDefaultProductRow();
+    setState(() {});
+  }
+
+  String _getPieceUnitSuffix(ProductModel? p) {
+    if (p == null) return 'pcs';
+    final unit = p.individualSaleUnit.toLowerCase().trim();
+    if (unit == 'cup') return 'cups';
+    if (unit == 'packet') return 'pkts';
+    if (unit == 'bottle') return 'btls';
+    return 'pcs';
+  }
+
+  String _getBaseUnitSuffix(ProductModel? p) {
+    if (p == null) return '';
+    return p.baseUnitLabel == 'Litres' ? 'L' : 'kg';
+  }
+
+  String _getBulkUnitSuffix(ProductModel? p) {
+    if (p == null) return 'crt';
+    if (!p.hasCrateConfiguration) return 'N/A';
+    if (p.bulkPackingUnit == 'Boxes') return 'box';
+    return 'crt';
+  }
+
+  double _getRowCostValue(_ProductRowDraft row, ProductModel? p) {
+    if (p == null || !p.hasPriceConfiguration) return 0.0;
+    final pieces = double.tryParse(row.piecesController.text.trim()) ?? 0.0;
+    return pieces * p.pricePerPiece;
+  }
+
+  String _formatRowCost(_ProductRowDraft row, ProductModel? p) {
+    if (p == null) return '₹0.00';
+    if (p.priceCustomLabel != null && p.priceCustomLabel!.isNotEmpty) {
+      return p.priceCustomLabel!;
+    }
+    final cost = _getRowCostValue(row, p);
+    if (cost <= 0) return '₹0.00';
+    return '₹${Formatters.formatDecimal(cost)}';
+  }
+
+  void _syncRowCalculations(_ProductRowDraft row, ProductModel? product, String sourceField) {
+    row.lastEditedField = sourceField;
+    if (product == null) {
+      setState(() {});
+      return;
+    }
+
+    final piecesPerCrate = product.piecesPerCrate > 0 ? product.piecesPerCrate : 0;
+    final packBase = product.packSizeInBaseUnit > 0 ? product.packSizeInBaseUnit : 1.0;
+
+    if (sourceField == 'crates') {
+      final cText = row.cratesController.text.trim();
+      if (cText.isEmpty) {
+        row.piecesController.clear();
+        row.baseQtyController.clear();
+        row.quantityController.clear();
+      } else {
+        final c = double.tryParse(cText) ?? 0.0;
+        final pieces = (c * piecesPerCrate).round();
+        final baseQty = pieces * packBase;
+        row.piecesController.text = pieces > 0 ? pieces.toString() : '';
+        row.baseQtyController.text = baseQty > 0 ? Formatters.formatSmart(baseQty) : '';
+        row.quantityController.text = pieces > 0 ? pieces.toString() : '';
+      }
+    } else if (sourceField == 'pieces') {
+      final pText = row.piecesController.text.trim();
+      if (pText.isEmpty) {
+        row.cratesController.clear();
+        row.baseQtyController.clear();
+        row.quantityController.clear();
+      } else {
+        final p = double.tryParse(pText) ?? 0.0;
+        final c = piecesPerCrate > 0 ? (p / piecesPerCrate) : 0.0;
+        final baseQty = p * packBase;
+        row.cratesController.text = (c > 0 && piecesPerCrate > 0) ? Formatters.formatSmart(c) : '';
+        row.baseQtyController.text = baseQty > 0 ? Formatters.formatSmart(baseQty) : '';
+        row.quantityController.text = p > 0 ? Formatters.formatSmart(p) : '';
+      }
+    } else if (sourceField == 'baseQty') {
+      final qText = row.baseQtyController.text.trim();
+      if (qText.isEmpty) {
+        row.piecesController.clear();
+        row.cratesController.clear();
+        row.quantityController.clear();
+      } else {
+        final q = double.tryParse(qText) ?? 0.0;
+        final pieces = (q / packBase).round();
+        final c = piecesPerCrate > 0 ? (pieces / piecesPerCrate) : 0.0;
+        row.piecesController.text = pieces > 0 ? pieces.toString() : '';
+        row.cratesController.text = (c > 0 && piecesPerCrate > 0) ? Formatters.formatSmart(c) : '';
+        row.quantityController.text = pieces > 0 ? pieces.toString() : '';
+      }
+    }
     setState(() {});
   }
 
@@ -204,22 +307,22 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
   Future<void> _submitInlineVehicle() async {
     if (!_inlineFormKey.currentState!.validate()) return;
 
-    final vehicleNo = _inlineVehicleController.text.trim();
-    if (vehicleNo.isEmpty) {
+    final distributor = _inlineDistributorController.text.trim();
+    if (distributor.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Vehicle Number is required.'),
+          content: Text('Distributor Name is required.'),
           backgroundColor: Color(0xFF991B1B),
         ),
       );
       return;
     }
 
-    final distributor = _inlineDistributorController.text.trim();
-    if (distributor.isEmpty) {
+    final vehicleNo = _inlineVehicleController.text.trim();
+    if (vehicleNo.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Distributor is required. Please select or enter a distributor.'),
+          content: Text('Vehicle Number is required.'),
           backgroundColor: Color(0xFF991B1B),
         ),
       );
@@ -237,9 +340,22 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
       final draft = _inlineProductRows[i];
       if (draft.productId == null || draft.productId!.isEmpty) continue;
 
-      final qty = double.tryParse(draft.quantityController.text.trim()) ?? 0.0;
-      if (qty <= 0) {
-        // Skip or warn if zero/negative
+      double pieces = double.tryParse(draft.piecesController.text.trim()) ?? 0.0;
+      if (pieces <= 0) {
+        final crates = double.tryParse(draft.cratesController.text.trim()) ?? 0.0;
+        final product = catalog.firstWhere(
+          (p) => p.productId == draft.productId,
+          orElse: () => DairyProducts.officialProducts.first,
+        );
+        if (crates > 0 && product.piecesPerCrate > 0) {
+          pieces = crates * product.piecesPerCrate;
+        } else {
+          pieces = double.tryParse(draft.quantityController.text.trim()) ?? 0.0;
+        }
+      }
+
+      if (pieces <= 0) {
+        // Skip zero/empty rows
         continue;
       }
 
@@ -254,8 +370,8 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
           id: '$dispatchId-ITEM-${i + 1}',
           dispatchId: dispatchId,
           product: product,
-          inputMode: draft.inputMode,
-          inputQuantity: qty,
+          inputMode: 'Pieces',
+          inputQuantity: pieces,
         ),
       );
     }
@@ -379,13 +495,9 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Header & Date Navigation
+            // Top Date Navigation Bar
             _buildHeader(isMobile, isViewingToday, todayStr),
             const SizedBox(height: 16),
-
-            // Top Summary Metrics Grid
-            _buildMetricsGrid(state, isMobile),
-            const SizedBox(height: 20),
 
             // 5 Tabs as explicitly specified
             Container(
@@ -408,11 +520,11 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                 tabs: [
                   const Tab(
                     icon: Icon(Icons.add_shopping_cart_rounded, size: 18),
-                    text: 'Enter Dispatch',
+                    text: 'New Entry',
                   ),
                   Tab(
                     icon: const Icon(Icons.local_shipping_rounded, size: 18),
-                    text: 'Dispatch Records (${state.dispatchesForSelectedDate.length})',
+                    text: 'Vehicle Records (${state.dispatchesForSelectedDate.length})',
                   ),
                   Tab(
                     icon: const Icon(Icons.inventory_2_rounded, size: 18),
@@ -424,7 +536,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                   ),
                   const Tab(
                     icon: Icon(Icons.analytics_rounded, size: 18),
-                    text: 'Reports',
+                    text: 'Reports & Export',
                   ),
                 ],
               ),
@@ -457,647 +569,556 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
   }
 
   // ===========================================================================
-  // TOP EXECUTIVE HEADER & DATE BAR
+  // TOP DATE NAVIGATION BAR
   // ===========================================================================
 
   Widget _buildHeader(bool isMobile, bool isViewingToday, String todayStr) {
     final state = ref.watch(dispatchProvider);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.headerBackground,
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F2448), Color(0xFF1E3A8A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.headerBorder, width: 1.2),
-        boxShadow: [
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.cardBorder, width: 1.1),
+        boxShadow: const [
           BoxShadow(
-            color: const Color(0xFF0F2448).withValues(alpha: 0.22),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
+            color: Color(0x06000000),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.goldAccent.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.goldAccent.withValues(alpha: 0.4)),
-                    ),
-                    child: const Icon(
-                      Icons.local_shipping_rounded,
-                      color: AppColors.goldAccent,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'CASEYA DISPATCH MANAGEMENT',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: AppTextSizes.caption,
-                          letterSpacing: 1.2,
-                          fontWeight: AppFontWeights.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Vehicle-Wise Plant Distribution',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: isMobile ? 18 : 22,
-                          fontWeight: AppFontWeights.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: () => _openDispatchDialog(),
-                icon: const Icon(Icons.add_rounded, size: 18),
-                label: Text(isMobile ? 'New' : 'New Vehicle Entry'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          const Divider(color: Colors.white12, height: 1),
-          const SizedBox(height: 12),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 600;
 
-          // Date Navigator Controls
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.chevron_left_rounded, color: Colors.white70),
-                tooltip: 'Previous Day',
-                onPressed: () => _shiftDate(-1),
-              ),
-              InkWell(
-                onTap: () => _pickDate(state.selectedDate),
-                borderRadius: BorderRadius.circular(8),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.white24),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.calendar_today_rounded, color: Color(0xFFFDE68A), size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatDisplayDate(state.selectedDate),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: AppFontWeights.bold,
-                          fontSize: AppTextSizes.body,
+          final dateControls = Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.cardBorder),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left_rounded, size: 20, color: AppColors.textPrimary),
+                  tooltip: 'Previous Day',
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _shiftDate(-1),
+                ),
+                InkWell(
+                  onTap: () => _pickDate(state.selectedDate),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          _formatDisplayDate(state.selectedDate),
+                          style: const TextStyle(
+                            fontWeight: AppFontWeights.bold,
+                            fontSize: 13,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 18),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.chevron_right_rounded, color: Colors.white70),
-                tooltip: 'Next Day',
-                onPressed: () => _shiftDate(1),
-              ),
-              const SizedBox(width: 8),
-              if (!isViewingToday)
+                IconButton(
+                  icon: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textPrimary),
+                  tooltip: 'Next Day',
+                  padding: const EdgeInsets.all(6),
+                  constraints: const BoxConstraints(),
+                  onPressed: () => _shiftDate(1),
+                ),
+              ],
+            ),
+          );
+
+          final rightActions = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!isViewingToday) ...[
                 TextButton(
                   onPressed: _jumpToToday,
                   style: TextButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: 0.1),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    foregroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   ),
-                  child: const Text(
-                    'Jump to Today',
-                    style: TextStyle(
-                      color: Color(0xFFFDE68A),
-                      fontWeight: AppFontWeights.bold,
-                      fontSize: AppTextSizes.caption,
-                    ),
-                  ),
+                  child: const Text('Today', style: TextStyle(fontWeight: AppFontWeights.bold)),
                 ),
-              const Spacer(),
-              if (!isMobile)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: isViewingToday
-                        ? const Color(0xFF10B981).withValues(alpha: 0.2)
-                        : Colors.white.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(
-                      color: isViewingToday ? const Color(0xFF34D399) : Colors.white24,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        isViewingToday ? Icons.check_circle_rounded : Icons.history_rounded,
-                        color: isViewingToday ? const Color(0xFF34D399) : Colors.white70,
-                        size: 13,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        isViewingToday ? 'LIVE TODAY DISPATCH' : 'HISTORICAL ARCHIVE',
-                        style: TextStyle(
-                          color: isViewingToday ? const Color(0xFF34D399) : Colors.white70,
-                          fontSize: AppTextSizes.caption,
-                          fontWeight: AppFontWeights.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
+                const SizedBox(width: 8),
+              ],
+              OutlinedButton.icon(
+                onPressed: () {
+                  ref.read(targetReportSectionProvider.notifier).state = 'dispatch';
+                  ref.read(shellNavigationIndexProvider.notifier).state = 10;
+                },
+                icon: const Icon(Icons.analytics_outlined, size: 15),
+                label: const Text('Reports Catalogue'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  side: const BorderSide(color: AppColors.primary),
                 ),
+              ),
             ],
-          ),
-        ],
-      ),
-    );
-  }
+          );
 
-  Widget _buildMetricsGrid(DispatchState state, bool isMobile) {
-    final double revenue = state.totalRevenueForSelectedDate;
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: dateControls),
+                const SizedBox(height: 8),
+                Center(child: rightActions),
+              ],
+            );
+          }
 
-    final metrics = [
-      _MetricTile(
-        title: 'Vehicles Dispatched',
-        value: '${state.totalVehiclesForSelectedDate}',
-        subtitle: 'Plant Gate Out',
-        icon: Icons.local_shipping_rounded,
-        color: AppColors.primary,
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              dateControls,
+              rightActions,
+            ],
+          );
+        },
       ),
-      _MetricTile(
-        title: 'Total Crates',
-        value: Formatters.formatSmart(state.totalCratesForSelectedDate),
-        subtitle: 'Standard Crates',
-        icon: Icons.inventory_2_rounded,
-        color: const Color(0xFF0F766E),
-      ),
-      _MetricTile(
-        title: 'Total Pieces',
-        value: Formatters.formatInt(state.totalPiecesForSelectedDate),
-        subtitle: 'Individual Packets',
-        icon: Icons.format_list_bulleted_rounded,
-        color: const Color(0xFF2563EB),
-      ),
-      _MetricTile(
-        title: 'Total Sales Revenue',
-        value: '₹${Formatters.formatSmart(revenue)}',
-        subtitle: 'Commercial Value',
-        icon: Icons.currency_rupee_rounded,
-        color: const Color(0xFF059669),
-      ),
-    ];
-
-    if (isMobile) {
-      return GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 1.45,
-        children: metrics,
-      );
-    }
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - (3 * 14)) / 4;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: metrics
-              .map((m) => SizedBox(width: itemWidth, child: m))
-              .toList(),
-        );
-      },
     );
   }
 
   // ===========================================================================
-  // TAB 1: ENTER DISPATCH (VEHICLE ENTRY FORM + TODAY'S DISPATCH SUMMARY)
+  // TAB 1: ENTER DISPATCH (SIMPLIFIED & INTUITIVE VEHICLE ENTRY FORM)
   // ===========================================================================
 
   Widget _buildEnterDispatchTab(DispatchState state, bool isMobile) {
-    if (isMobile) {
-      return SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildVehicleEntryFormCard(state),
-            const SizedBox(height: 16),
-            _buildTodaysSummaryCard(state),
-          ],
-        ),
-      );
-    }
-
-    // Desktop: Split 2-Column Responsive Layout
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Left Column: Vehicle Entry Form (50% width)
-        Expanded(
-          flex: 6,
-          child: _buildVehicleEntryFormCard(state),
-        ),
-        const SizedBox(width: 16),
-        // Right Column: Live Daily Dispatch Summary (50% width)
-        Expanded(
-          flex: 5,
-          child: _buildTodaysSummaryCard(state),
-        ),
-      ],
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: _buildVehicleEntryFormCard(state, isMobile),
     );
   }
 
-  Widget _buildVehicleEntryFormCard(DispatchState state) {
+  Widget _buildVehicleEntryFormCard(DispatchState state, bool isMobile) {
     final catalog = state.catalogProducts;
     final distributors = state.availableDistributors;
 
     return AppCard(
+      padding: const EdgeInsets.all(22),
       child: Form(
         key: _inlineFormKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // 1. Top Header: Icon + Title & Subtitle + Date Picker
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      width: 44,
+                      height: 44,
                       decoration: BoxDecoration(
-                        color: AppColors.primaryLight,
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFFE8F5E9),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Icon(Icons.add_shopping_cart_rounded, color: AppColors.primary, size: 20),
+                      child: const Icon(
+                        Icons.local_shipping_outlined,
+                        color: Color(0xFF1B5E20),
+                        size: 24,
+                      ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 14),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'VEHICLE DISPATCH ENTRY',
+                      children: const [
+                        Text(
+                          'New Vehicle Dispatch',
                           style: TextStyle(
-                            fontSize: AppTextSizes.caption,
-                            fontWeight: AppFontWeights.bold,
-                            letterSpacing: 1.1,
-                            color: AppColors.textSecondary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF0F172A),
                           ),
                         ),
+                        SizedBox(height: 2),
                         Text(
-                          'Date: ${_formatDisplayDate(state.selectedDate)}',
-                          style: const TextStyle(
-                            fontSize: AppTextSizes.subheading,
-                            fontWeight: AppFontWeights.bold,
-                            color: AppColors.textPrimary,
+                          'Record outgoing vehicle details and supplied products',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF64748B),
                           ),
                         ),
                       ],
                     ),
                   ],
                 ),
-                StatusBadge.info('Fast Morning Entry'),
+                InkWell(
+                  onTap: () => _pickDate(state.selectedDate),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 16, color: Color(0xFF334155)),
+                        const SizedBox(width: 8),
+                        Text(
+                          _formatDisplayDate(state.selectedDate),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.keyboard_arrow_down_rounded, size: 18, color: Color(0xFF64748B)),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 14),
-            const Divider(height: 1),
-            const SizedBox(height: 14),
 
-            // Vehicle Number & Distributor Inputs
-            Row(
-              children: [
-                Expanded(
-                  flex: 3,
+            const SizedBox(height: 22),
+
+            // 2. Four Top Form Fields (Distributor, Vehicle Number, Driver, Remarks)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final distributorField = _buildFieldWithTopLabel(
+                  label: 'Distributor Name',
+                  isRequired: true,
+                  child: TextFormField(
+                    controller: _inlineDistributorController,
+                    onChanged: (_) => setState(() {}),
+                    decoration: _boxedInputDecoration(
+                      hint: 'Select distributor',
+                      icon: Icons.storefront_outlined,
+                      suffixIcon: PopupMenuButton<String>(
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF64748B)),
+                        tooltip: 'Select Distributor',
+                        onSelected: (val) {
+                          setState(() {
+                            _inlineDistributorController.text = val;
+                          });
+                        },
+                        itemBuilder: (context) {
+                          return distributors.map((d) {
+                            return PopupMenuItem<String>(
+                              value: d,
+                              child: Text(d, style: const TextStyle(fontSize: 13)),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+                    validator: (val) =>
+                        (val == null || val.trim().isEmpty) ? 'Required' : null,
+                  ),
+                );
+
+                final vehicleField = _buildFieldWithTopLabel(
+                  label: 'Vehicle Number',
+                  isRequired: true,
                   child: TextFormField(
                     controller: _inlineVehicleController,
                     textCapitalization: TextCapitalization.characters,
-                    decoration: InputDecoration(
-                      labelText: 'Vehicle Number *',
-                      hintText: 'e.g. AS-01-EC-4421 / Vehicle A',
-                      prefixIcon: const Icon(Icons.directions_car_rounded, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
+                    decoration: _boxedInputDecoration(
+                      hint: 'e.g. BR01AB1234',
+                      icon: Icons.local_shipping_outlined,
                     ),
-                    validator: (val) {
-                      if (val == null || val.trim().isEmpty) {
-                        return 'Required';
-                      }
-                      return null;
-                    },
+                    validator: (val) =>
+                        (val == null || val.trim().isEmpty) ? 'Required' : null,
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  flex: 4,
-                  child: Autocomplete<String>(
-                    optionsBuilder: (TextEditingValue textEditingValue) {
-                      if (textEditingValue.text.isEmpty) {
-                        return distributors;
-                      }
-                      return distributors.where((d) =>
-                          d.toLowerCase().contains(textEditingValue.text.toLowerCase()));
-                    },
-                    onSelected: (String selection) {
-                      _inlineDistributorController.text = selection;
-                    },
-                    fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                      // Keep in sync
-                      if (_inlineDistributorController.text.isNotEmpty && controller.text.isEmpty) {
-                        controller.text = _inlineDistributorController.text;
-                      }
-                      controller.addListener(() {
-                        _inlineDistributorController.text = controller.text;
-                      });
-                      return TextFormField(
-                        controller: controller,
-                        focusNode: focusNode,
-                        onEditingComplete: onEditingComplete,
-                        decoration: InputDecoration(
-                          labelText: 'Distributor *',
-                          hintText: 'Select or enter distributor',
-                          prefixIcon: const Icon(Icons.storefront_rounded, size: 18),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                          isDense: true,
-                        ),
-                        validator: (val) {
-                          if (val == null || val.trim().isEmpty) {
-                            return 'Required';
-                          }
-                          return null;
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                );
 
-            // Driver Name & Remarks
-            Row(
-              children: [
-                Expanded(
+                final driverField = _buildFieldWithTopLabel(
+                  label: 'Driver Name',
                   child: TextFormField(
                     controller: _inlineDriverController,
-                    decoration: InputDecoration(
-                      labelText: 'Driver Name (Optional)',
-                      hintText: 'e.g. Ramesh Bora',
-                      prefixIcon: const Icon(Icons.person_outline, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
+                    decoration: _boxedInputDecoration(
+                      hint: 'e.g. Ramesh Kumar',
+                      icon: Icons.person_outline,
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
+                );
+
+                final remarksField = _buildFieldWithTopLabel(
+                  label: 'Remarks (Optional)',
                   child: TextFormField(
                     controller: _inlineRemarksController,
-                    decoration: InputDecoration(
-                      labelText: 'Remarks (Optional)',
-                      hintText: 'e.g. Morning Route 1',
-                      prefixIcon: const Icon(Icons.notes_rounded, size: 18),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      isDense: true,
+                    decoration: _boxedInputDecoration(
+                      hint: 'e.g. Morning supply',
+                      icon: Icons.description_outlined,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
+                );
 
-            // Section: Products Supplied in This Vehicle
+                if (constraints.maxWidth >= 850) {
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: distributorField),
+                      const SizedBox(width: 14),
+                      Expanded(child: vehicleField),
+                      const SizedBox(width: 14),
+                      Expanded(child: driverField),
+                      const SizedBox(width: 14),
+                      Expanded(child: remarksField),
+                    ],
+                  );
+                } else if (constraints.maxWidth >= 550) {
+                  return Column(
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: distributorField),
+                          const SizedBox(width: 12),
+                          Expanded(child: vehicleField),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: driverField),
+                          const SizedBox(width: 12),
+                          Expanded(child: remarksField),
+                        ],
+                      ),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    children: [
+                      distributorField,
+                      const SizedBox(height: 12),
+                      vehicleField,
+                      const SizedBox(height: 12),
+                      driverField,
+                      const SizedBox(height: 12),
+                      remarksField,
+                    ],
+                  );
+                }
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // 3. Products Supplied Header
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Products Supplied in This Vehicle',
+                  'Products Supplied',
                   style: TextStyle(
-                    fontWeight: AppFontWeights.bold,
-                    fontSize: AppTextSizes.body,
-                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
                   ),
                 ),
-                TextButton.icon(
-                  onPressed: () => _addInlineProductRow(catalog),
-                  icon: const Icon(Icons.add_circle_outline, size: 16),
-                  label: const Text('Add Product', style: TextStyle(fontWeight: AppFontWeights.bold)),
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.primary,
+                const SizedBox(width: 8),
+                Text(
+                  '(${_inlineProductRows.length} item${_inlineProductRows.length == 1 ? '' : 's'})',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    color: Color(0xFF64748B),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
 
-            // Dynamic Product Line Items
-            Expanded(
-              child: ListView.separated(
-                itemCount: _inlineProductRows.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 8),
-                itemBuilder: (context, index) {
-                  final row = _inlineProductRows[index];
-                  final selectedProduct = catalog.firstWhere(
-                    (p) => p.productId == row.productId,
-                    orElse: () => catalog.isNotEmpty ? catalog.first : DairyProducts.officialProducts.first,
-                  );
+            const SizedBox(height: 14),
 
-                  // Compute real-time conversion preview
-                  final double enteredQty = double.tryParse(row.quantityController.text.trim()) ?? 0.0;
-                  String equivalentPreview = '';
-                  if (enteredQty > 0) {
-                    final calc = CalculationService.calculateProduct(
-                      product: selectedProduct,
-                      inputMode: row.inputMode,
-                      inputQuantity: enteredQty,
-                    );
-                    final saleUnit = selectedProduct.individualSaleUnitPlural;
-                    final bulkUnit = selectedProduct.bulkPackingUnit ?? 'crates';
-                    final isBulkInput = row.inputMode == 'Crates' || row.inputMode == 'Boxes';
+            // 4. Products Table
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final isWide = constraints.maxWidth >= 720;
 
-                    if (isBulkInput) {
-                      equivalentPreview = '= ${calc.pieces} $saleUnit (${Formatters.formatSmart(calc.totalQuantity)} ${selectedProduct.baseUnitLabel}) • ${calc.totalPriceDisplay}';
-                    } else if (selectedProduct.hasCrateConfiguration) {
-                      equivalentPreview = '= ${Formatters.formatSmart(calc.crates)} $bulkUnit (${Formatters.formatSmart(calc.totalQuantity)} ${selectedProduct.baseUnitLabel}) • ${calc.totalPriceDisplay}';
-                    } else {
-                      equivalentPreview = '= ${Formatters.formatSmart(calc.totalQuantity)} ${selectedProduct.baseUnitLabel} • ${calc.totalPriceDisplay}';
-                    }
-                  }
-
-                  return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8FAFC),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.cardBorder),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Product Selector
-                        Expanded(
-                          flex: 4,
-                          child: DropdownButtonFormField<String>(
-                            initialValue: row.productId,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Product',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(),
-                            ),
-                            items: catalog.map((p) {
-                              return DropdownMenuItem<String>(
-                                value: p.productId,
-                                child: Text(
-                                  '${p.productName} (${p.packSizeDisplay})',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() {
-                                  row.productId = val;
-                                  final np = catalog.firstWhere((p) => p.productId == val);
-                                  if (!np.allowedInputModes.contains(row.inputMode)) {
-                                    row.inputMode = np.allowedInputModes.first;
-                                  }
-                                });
-                              }
-                            },
-                          ),
+                return Column(
+                  children: [
+                    // Desktop Table Header
+                    if (isWide)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 10),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F3),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFCBD5E1)),
                         ),
-                        const SizedBox(width: 8),
-
-                        // Unit Selector (Restricted to units supported by selected product)
-                        Expanded(
-                          flex: 2,
-                          child: DropdownButtonFormField<String>(
-                            key: ValueKey('${row.productId}_${row.inputMode}'),
-                            initialValue: selectedProduct.allowedInputModes.contains(row.inputMode)
-                                ? row.inputMode
-                                : selectedProduct.allowedInputModes.first,
-                            decoration: const InputDecoration(
-                              labelText: 'Unit',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(),
-                            ),
-                            items: selectedProduct.allowedInputModes.map((u) {
-                              return DropdownMenuItem<String>(
-                                value: u,
-                                child: Text(u, style: const TextStyle(fontSize: 13)),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() => row.inputMode = val);
-                              }
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Quantity Input
-                        Expanded(
-                          flex: 2,
-                          child: TextFormField(
-                            controller: row.quantityController,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            onChanged: (_) => setState(() {}),
-                            decoration: const InputDecoration(
-                              labelText: 'Quantity',
-                              hintText: 'Qty',
-                              isDense: true,
-                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-
-                        // Real-time Equivalent Preview Pill
-                        if (equivalentPreview.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFECFDF5),
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFFA7F3D0)),
-                            ),
-                            child: Text(
-                              equivalentPreview,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: AppFontWeights.bold,
-                                color: Color(0xFF047857),
+                        child: Row(
+                          children: [
+                            const SizedBox(
+                              width: 36,
+                              child: Center(
+                                child: Text('#', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
                               ),
                             ),
-                          ),
-
-                        const SizedBox(width: 6),
-                        // Remove Row Button
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFDC2626)),
-                          tooltip: 'Remove Row',
-                          onPressed: () => _removeInlineProductRow(index),
+                            Container(width: 1, height: 16, color: const Color(0xFFCBD5E1)),
+                            const Expanded(
+                              flex: 4,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 10),
+                                child: Text('Product', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                              ),
+                            ),
+                            Container(width: 1, height: 16, color: const Color(0xFFCBD5E1)),
+                            const Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('Crates', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                              ),
+                            ),
+                            Container(width: 1, height: 16, color: const Color(0xFFCBD5E1)),
+                            const Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('Pieces', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                              ),
+                            ),
+                            Container(width: 1, height: 16, color: const Color(0xFFCBD5E1)),
+                            const Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('Quantity', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                              ),
+                            ),
+                            Container(width: 1, height: 16, color: const Color(0xFFCBD5E1)),
+                            const Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text('Cost', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                              ),
+                            ),
+                            Container(width: 1, height: 16, color: const Color(0xFFCBD5E1)),
+                            const SizedBox(
+                              width: 50,
+                              child: Center(
+                                child: Text('Action', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Color(0xFF334155))),
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
+
+                    // Product Item Rows (each entry is a single clean card with 14px separation)
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: _inlineProductRows.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 14),
+                      itemBuilder: (context, index) {
+                        final row = _inlineProductRows[index];
+                        final ProductModel? selectedProduct = row.productId != null
+                            ? catalog.cast<ProductModel?>().firstWhere(
+                                (p) => p?.productId == row.productId,
+                                orElse: () => null,
+                              )
+                            : null;
+
+                        // Exclude products already selected in other rows to prevent duplicate entries
+                        final otherSelectedIds = _inlineProductRows
+                            .asMap()
+                            .entries
+                            .where((entry) => entry.key != index && entry.value.productId != null)
+                            .map((entry) => entry.value.productId!)
+                            .toSet();
+
+                        final availableCatalog = catalog.where((p) {
+                          return p.productId == row.productId || !otherSelectedIds.contains(p.productId);
+                        }).toList();
+
+                        if (!isWide) {
+                          return _buildMobileProductRowCard(
+                            index: index,
+                            row: row,
+                            selectedProduct: selectedProduct,
+                            catalog: catalog,
+                            availableCatalog: availableCatalog,
+                          );
+                        }
+
+                        return _buildDesktopProductRow(
+                          index: index,
+                          row: row,
+                          selectedProduct: selectedProduct,
+                          catalog: catalog,
+                          availableCatalog: availableCatalog,
+                        );
+                      },
                     ),
-                  );
-                },
+                  ],
+                );
+              },
+            ),
+
+            const SizedBox(height: 14),
+
+            // Long bar "+ Add Product" button (above reset & save dispatch buttons)
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _addInlineProductRow(catalog),
+                icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
+                label: const Text(
+                  '+ Add Product',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF166534),
+                  backgroundColor: const Color(0xFFF0FDF4),
+                  side: const BorderSide(color: Color(0xFF86EFAC), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
               ),
             ),
-            const SizedBox(height: 12),
 
-            // Action Row: Prominent "Add to Today's Dispatch" Button
+            const SizedBox(height: 24),
+
+            // 5. Action Buttons (Reset Form + Save Vehicle Dispatch)
             Row(
               children: [
                 OutlinedButton.icon(
                   onPressed: _resetInlineForm,
-                  icon: const Icon(Icons.restart_alt_rounded, size: 16),
-                  label: const Text('Reset Form'),
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text(
+                    'Reset Form',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.textSecondary,
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    foregroundColor: const Color(0xFF166534),
+                    side: const BorderSide(color: Color(0xFF166534)),
+                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 14),
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: _isInlineSaving ? null : _submitInlineVehicle,
@@ -1107,20 +1128,20 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                             height: 18,
                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                           )
-                        : const Icon(Icons.add_task_rounded, size: 20),
+                        : const Icon(Icons.save_outlined, size: 20),
                     label: Text(
-                      _isInlineSaving ? 'Saving Vehicle to Dispatch...' : 'Add to Today\'s Dispatch',
+                      _isInlineSaving ? 'Saving Vehicle Dispatch...' : 'Save Vehicle Dispatch',
                       style: const TextStyle(
-                        fontSize: AppTextSizes.body,
-                        fontWeight: AppFontWeights.bold,
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
+                      backgroundColor: const Color(0xFF166534),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 2,
+                      elevation: 1,
                     ),
                   ),
                 ),
@@ -1132,260 +1153,610 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
     );
   }
 
-  Widget _buildTodaysSummaryCard(DispatchState state) {
-    final summaries = state.dailyProductSummaries;
+  // ===========================================================================
+  // HELPER METHODS FOR NEW VEHICLE ENTRY FORM
+  // ===========================================================================
 
-    return AppCard(
+  Widget _buildFieldWithTopLabel({
+    required String label,
+    required Widget child,
+    bool isRequired = false,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            if (isRequired)
+              const Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFFEF4444),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildDesktopProductRow({
+    required int index,
+    required _ProductRowDraft row,
+    required ProductModel? selectedProduct,
+    required List<ProductModel> catalog,
+    required List<ProductModel> availableCatalog,
+  }) {
+    final bulkSuffix = _getBulkUnitSuffix(selectedProduct);
+    final pieceSuffix = _getPieceUnitSuffix(selectedProduct);
+    final baseSuffix = _getBaseUnitSuffix(selectedProduct);
+    final hasCrates = selectedProduct == null || selectedProduct.hasCrateConfiguration;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // 1. Index Cell
+          SizedBox(
+            width: 36,
+            child: Center(
+              child: Text(
+                '#${index + 1}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF64748B),
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+
+          // 2. Product Selector Cell
+          Expanded(
+            flex: 4,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              child: DropdownButtonFormField<String>(
+                initialValue: row.productId,
+                isExpanded: true,
+                decoration: _desktopTableCellInputDecoration(hint: 'Select product'),
+                hint: const Text(
+                  'Select product',
+                  style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                selectedItemBuilder: (context) {
+                  return availableCatalog.map((p) {
+                    return Text.rich(
+                      TextSpan(
+                        text: p.productName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1E293B),
+                        ),
+                        children: [
+                          if (p.packSizeDisplay.isNotEmpty)
+                            TextSpan(
+                              text: ' (${p.packSizeDisplay})',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.normal,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                        ],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    );
+                  }).toList();
+                },
+                items: availableCatalog.map((p) {
+                  return DropdownMenuItem<String>(
+                    value: p.productId,
+                    child: Text.rich(
+                      TextSpan(
+                        text: p.productName,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF1E293B),
+                        ),
+                        children: [
+                          if (p.packSizeDisplay.isNotEmpty)
+                            TextSpan(
+                              text: ' (${p.packSizeDisplay})',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.normal,
+                                color: Color(0xFF64748B),
+                              ),
+                            ),
+                        ],
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setState(() {
+                      row.productId = val;
+                      final np = catalog.firstWhere((p) => p.productId == val);
+                      if (row.lastEditedField == 'crates' && row.cratesController.text.isNotEmpty) {
+                        _syncRowCalculations(row, np, 'crates');
+                      } else if (row.piecesController.text.isNotEmpty) {
+                        _syncRowCalculations(row, np, 'pieces');
+                      } else if (row.baseQtyController.text.isNotEmpty) {
+                        _syncRowCalculations(row, np, 'baseQty');
+                      } else {
+                        _syncRowCalculations(row, np, 'crates');
+                      }
+                    });
+                  }
+                },
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+
+          // 3. Crates Input Cell
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TextFormField(
+                controller: row.cratesController,
+                focusNode: row.cratesFocusNode,
+                enabled: hasCrates,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _syncRowCalculations(row, selectedProduct, 'crates'),
+                decoration: _desktopTableCellInputDecoration(
+                  hint: hasCrates ? '0' : 'N/A',
+                  suffixText: bulkSuffix,
+                ),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: hasCrates ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+
+          // 4. Pieces Input Cell
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TextFormField(
+                controller: row.piecesController,
+                focusNode: row.piecesFocusNode,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => _syncRowCalculations(row, selectedProduct, 'pieces'),
+                decoration: _desktopTableCellInputDecoration(
+                  hint: '0',
+                  suffixText: pieceSuffix,
+                ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+
+          // 5. Quantity (L / kg) Input Cell
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: TextFormField(
+                controller: row.baseQtyController,
+                focusNode: row.baseQtyFocusNode,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                onChanged: (_) => _syncRowCalculations(row, selectedProduct, 'baseQty'),
+                decoration: _desktopTableCellInputDecoration(
+                  hint: '0',
+                  suffixText: baseSuffix,
+                ),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+
+          // 6. Cost (₹) Live Cell
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    _formatRowCost(row, selectedProduct),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF15803D),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (selectedProduct != null && selectedProduct.hasPriceConfiguration)
+                    Text(
+                      '₹${Formatters.formatSmart(selectedProduct.pricePerPiece)} / $pieceSuffix',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Color(0xFF64748B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                ],
+              ),
+            ),
+          ),
+          Container(width: 1, height: 32, color: const Color(0xFFE2E8F0)),
+
+          // 7. Action Cell
+          SizedBox(
+            width: 50,
+            child: Center(
+              child: IconButton(
+                tooltip: 'Delete product',
+                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                onPressed: () => _removeInlineProductRow(index),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                splashRadius: 18,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileProductRowCard({
+    required int index,
+    required _ProductRowDraft row,
+    required ProductModel? selectedProduct,
+    required List<ProductModel> catalog,
+    required List<ProductModel> availableCatalog,
+  }) {
+    final bulkSuffix = _getBulkUnitSuffix(selectedProduct);
+    final pieceSuffix = _getPieceUnitSuffix(selectedProduct);
+    final baseSuffix = _getBaseUnitSuffix(selectedProduct);
+    final hasCrates = selectedProduct == null || selectedProduct.hasCrateConfiguration;
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x06000000),
+            blurRadius: 4,
+            offset: Offset(0, 1),
+          ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'TODAY\'S DISPATCH SUMMARY',
-                    style: TextStyle(
-                      fontSize: AppTextSizes.caption,
-                      fontWeight: AppFontWeights.bold,
-                      letterSpacing: 1.1,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Daily Totals for ${_formatDisplayDate(state.selectedDate)}',
+              Text(
+                'Item #${index + 1}',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Delete product',
+                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: Color(0xFFEF4444)),
+                onPressed: () => _removeInlineProductRow(index),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                splashRadius: 18,
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          DropdownButtonFormField<String>(
+            initialValue: row.productId,
+            isExpanded: true,
+            decoration: _tableCellInputDecoration(hint: 'Select product'),
+            hint: const Text(
+              'Select product',
+              style: TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+              overflow: TextOverflow.ellipsis,
+            ),
+            selectedItemBuilder: (context) {
+              return availableCatalog.map((p) {
+                return Text.rich(
+                  TextSpan(
+                    text: p.productName,
                     style: const TextStyle(
-                      fontSize: AppTextSizes.subheading,
-                      fontWeight: AppFontWeights.bold,
-                      color: AppColors.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1E293B),
                     ),
+                    children: [
+                      if (p.packSizeDisplay.isNotEmpty)
+                        TextSpan(
+                          text: ' (${p.packSizeDisplay})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                    ],
                   ),
-                ],
-              ),
-              StatusBadge.success('Live Dynamic Rollup'),
-            ],
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                );
+              }).toList();
+            },
+            items: availableCatalog.map((p) {
+              return DropdownMenuItem<String>(
+                value: p.productId,
+                child: Text.rich(
+                  TextSpan(
+                    text: p.productName,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1E293B),
+                    ),
+                    children: [
+                      if (p.packSizeDisplay.isNotEmpty)
+                        TextSpan(
+                          text: ' (${p.packSizeDisplay})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                    ],
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+              );
+            }).toList(),
+            onChanged: (val) {
+              if (val != null) {
+                setState(() {
+                  row.productId = val;
+                  final np = catalog.firstWhere((p) => p.productId == val);
+                  if (row.lastEditedField == 'crates' && row.cratesController.text.isNotEmpty) {
+                    _syncRowCalculations(row, np, 'crates');
+                  } else if (row.piecesController.text.isNotEmpty) {
+                    _syncRowCalculations(row, np, 'pieces');
+                  } else if (row.baseQtyController.text.isNotEmpty) {
+                    _syncRowCalculations(row, np, 'baseQty');
+                  } else {
+                    _syncRowCalculations(row, np, 'crates');
+                  }
+                });
+              }
+            },
           ),
-          const SizedBox(height: 12),
-          const Divider(height: 1),
           const SizedBox(height: 10),
-
-          // Mini Daily Metric Chips
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              _buildMiniSummaryChip(
-                label: 'Vehicles',
-                value: '${state.totalVehiclesForSelectedDate}',
-                icon: Icons.local_shipping_outlined,
-                color: AppColors.primary,
-              ),
-              _buildMiniSummaryChip(
-                label: 'Crates',
-                value: Formatters.formatSmart(state.totalCratesForSelectedDate),
-                icon: Icons.inventory_2_outlined,
-                color: const Color(0xFF0F766E),
-              ),
-              _buildMiniSummaryChip(
-                label: 'Pieces',
-                value: Formatters.formatInt(state.totalPiecesForSelectedDate),
-                icon: Icons.format_list_bulleted,
-                color: const Color(0xFF2563EB),
-              ),
-              _buildMiniSummaryChip(
-                label: 'Liquid Milk/Lassi',
-                value: '${Formatters.formatSmart(state.totalLitresForSelectedDate)} L',
-                icon: Icons.water_drop_outlined,
-                color: const Color(0xFF0284C7),
-              ),
-              _buildMiniSummaryChip(
-                label: 'Curd/Solids',
-                value: '${Formatters.formatSmart(state.totalKgForSelectedDate)} kg',
-                icon: Icons.takeout_dining_outlined,
-                color: const Color(0xFFD97706),
-              ),
-              _buildMiniSummaryChip(
-                label: 'Revenue',
-                value: '₹${Formatters.formatSmart(state.totalRevenueForSelectedDate)}',
-                icon: Icons.currency_rupee_rounded,
-                color: const Color(0xFF059669),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-
-          // Table of Product Summaries
-          if (summaries.isEmpty)
-            Expanded(
-              child: Center(
+              Expanded(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.inbox_outlined, size: 44, color: AppColors.textSecondary),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'No Dispatches Yet Today',
+                    const Text('Crates', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      controller: row.cratesController,
+                      focusNode: row.cratesFocusNode,
+                      enabled: hasCrates,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => _syncRowCalculations(row, selectedProduct, 'crates'),
+                      decoration: _tableCellInputDecoration(
+                        hint: hasCrates ? '0' : 'N/A',
+                        suffixText: bulkSuffix,
+                      ),
                       style: TextStyle(
-                        fontSize: AppTextSizes.body,
-                        fontWeight: AppFontWeights.bold,
-                        color: AppColors.textPrimary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: hasCrates ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Enter vehicle number and products on the left, then click "Add to Today\'s Dispatch".',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
-                    ),
                   ],
                 ),
               ),
-            )
-          else ...[
-            Expanded(
-              child: SingleChildScrollView(
-                child: Table(
-                  border: TableBorder(
-                    horizontalInside: BorderSide(
-                      color: AppColors.divider.withValues(alpha: 0.6),
-                      width: 1,
-                    ),
-                  ),
-                  columnWidths: const {
-                    0: FlexColumnWidth(3.0),
-                    1: FlexColumnWidth(1.2),
-                    2: FlexColumnWidth(1.2),
-                    3: FlexColumnWidth(1.5),
-                    4: FlexColumnWidth(1.4),
-                  },
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Header Row
-                    TableRow(
-                      decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                      children: [
-                        _buildTableHeaderCell('Product Description'),
-                        _buildTableHeaderCell('Crates', alignRight: true),
-                        _buildTableHeaderCell('Pieces', alignRight: true),
-                        _buildTableHeaderCell('Equivalent (L/kg)', alignRight: true),
-                        _buildTableHeaderCell('Value (₹)', alignRight: true),
-                      ],
+                    Text('Pieces ($pieceSuffix)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      controller: row.piecesController,
+                      focusNode: row.piecesFocusNode,
+                      keyboardType: TextInputType.number,
+                      onChanged: (_) => _syncRowCalculations(row, selectedProduct, 'pieces'),
+                      decoration: _tableCellInputDecoration(
+                        hint: '0',
+                        suffixText: pieceSuffix,
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                     ),
-                    // Product Rows
-                    ...summaries.map((s) {
-                      final isLiquid = s.normalizedUnit.toLowerCase().startsWith('l');
-                      return TableRow(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  s.productName,
-                                  style: const TextStyle(
-                                    fontWeight: AppFontWeights.bold,
-                                    fontSize: 13,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  '${s.itemCode} • ${s.packSizeDisplay} • ${s.vehicleCount} veh',
-                                  style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedCrates,
-                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedPieces,
-                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedQuantity,
-                                style: TextStyle(
-                                  fontWeight: AppFontWeights.bold,
-                                  fontSize: 13,
-                                  color: isLiquid ? const Color(0xFF0369A1) : const Color(0xFFB45309),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedRevenue,
-                                style: const TextStyle(
-                                  fontWeight: AppFontWeights.bold,
-                                  fontSize: 13,
-                                  color: Color(0xFF047857),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Qty ($baseSuffix)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B))),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      controller: row.baseQtyController,
+                      focusNode: row.baseQtyFocusNode,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      onChanged: (_) => _syncRowCalculations(row, selectedProduct, 'baseQty'),
+                      decoration: _tableCellInputDecoration(
+                        hint: '0',
+                        suffixText: baseSuffix,
+                      ),
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(6),
             ),
-          ],
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                if (selectedProduct != null && selectedProduct.hasCrateConfiguration)
+                  Text(
+                    '${selectedProduct.piecesPerCrate} $pieceSuffix / $bulkSuffix',
+                    style: const TextStyle(fontSize: 11, color: Color(0xFF64748B)),
+                  )
+                else
+                  const SizedBox.shrink(),
+                Text(
+                  'Cost: ${_formatRowCost(row, selectedProduct)}',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF15803D),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildMiniSummaryChip({
-    required String label,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
+  InputDecoration _desktopTableCellInputDecoration({required String hint, String? suffixText}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+      suffixText: suffixText,
+      suffixStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      filled: false,
+      border: InputBorder.none,
+      enabledBorder: InputBorder.none,
+      focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Color(0xFF166534), width: 1.5),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: color),
-          const SizedBox(width: 5),
-          Text(
-            '$label: ',
-            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-          ),
-          Text(
-            value,
-            style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.bold, color: color),
-          ),
-        ],
+    );
+  }
+
+  InputDecoration _boxedInputDecoration({
+    required String hint,
+    IconData? icon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+      prefixIcon: icon != null ? Icon(icon, size: 18, color: const Color(0xFF64748B)) : null,
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: Colors.white,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFF166534), width: 1.5),
+      ),
+    );
+  }
+
+  InputDecoration _tableCellInputDecoration({required String hint, String? suffixText}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8)),
+      suffixText: suffixText,
+      suffixStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B)),
+      isDense: true,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFF166534), width: 1.5),
       ),
     );
   }
@@ -1607,6 +1978,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                                   runSpacing: 4,
                                   children: d.items.map((item) {
                                     return Container(
+                                      constraints: const BoxConstraints(maxWidth: 160),
                                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: const Color(0xFFF1F5F9),
@@ -1615,6 +1987,8 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
                                       ),
                                       child: Text(
                                         '${item.shortCode}: ${item.formattedQuantity}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
                                           fontSize: 11,
                                           fontWeight: AppFontWeights.bold,
@@ -2112,6 +2486,51 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Banner directing to Reports Catalogue
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.analytics_rounded, color: AppColors.primary, size: 24),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Looking for Consolidated Dispatch Reports & Catalogue?',
+                        style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13, color: Color(0xFF065F46)),
+                      ),
+                      Text(
+                        'Today\'s full summary rollup, product catalogue totals & sales analytics are now located in the Reports Catalogue section.',
+                        style: TextStyle(fontSize: 12, color: Color(0xFF047857)),
+                      ),
+                    ],
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    ref.read(targetReportSectionProvider.notifier).state = 'dispatch';
+                    ref.read(shellNavigationIndexProvider.notifier).state = 10;
+                  },
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 15),
+                  label: const Text('Open in Reports'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
           // Filter presets
           AppCard(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -2445,90 +2864,7 @@ class _DispatchPageState extends ConsumerState<DispatchPage>
   }
 }
 
-// =============================================================================
-// METRIC TILE WIDGET
-// =============================================================================
 
-class _MetricTile extends StatelessWidget {
-  final String title;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final Color color;
-
-  const _MetricTile({
-    required this.title,
-    required this.value,
-    required this.subtitle,
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.cardBorder, width: 1.1),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x06000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: AppTextSizes.caption,
-                    fontWeight: AppFontWeights.bold,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: AppFontWeights.bold,
-                    color: color,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 10,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 // =============================================================================
 // PRODUCT ROW DRAFT FOR VEHICLE FORM
@@ -2537,13 +2873,49 @@ class _MetricTile extends StatelessWidget {
 class _ProductRowDraft {
   String? productId;
   String inputMode;
+  String lastEditedField = 'crates'; // 'crates', 'pieces', 'baseQty'
   final TextEditingController quantityController;
+  final FocusNode quantityFocusNode;
+  final TextEditingController cratesController;
+  final FocusNode cratesFocusNode;
+  final TextEditingController piecesController;
+  final FocusNode piecesFocusNode;
+  final TextEditingController baseQtyController;
+  final FocusNode baseQtyFocusNode;
 
   _ProductRowDraft({
     this.productId,
     this.inputMode = 'Pieces',
     String initialQty = '',
-  }) : quantityController = TextEditingController(text: initialQty);
+    String initialCrates = '',
+    String initialPieces = '',
+    String initialBaseQty = '',
+  })  : quantityController = TextEditingController(text: initialQty.isNotEmpty ? initialQty : initialPieces),
+        quantityFocusNode = FocusNode(),
+        cratesController = TextEditingController(text: initialCrates),
+        cratesFocusNode = FocusNode(),
+        piecesController = TextEditingController(text: initialPieces.isNotEmpty ? initialPieces : initialQty),
+        piecesFocusNode = FocusNode(),
+        baseQtyController = TextEditingController(text: initialBaseQty),
+        baseQtyFocusNode = FocusNode();
+
+  void dispose() {
+    quantityController.dispose();
+    quantityFocusNode.dispose();
+    cratesController.dispose();
+    cratesFocusNode.dispose();
+    piecesController.dispose();
+    piecesFocusNode.dispose();
+    baseQtyController.dispose();
+    baseQtyFocusNode.dispose();
+  }
+
+  void clear() {
+    quantityController.clear();
+    cratesController.clear();
+    piecesController.clear();
+    baseQtyController.clear();
+  }
 }
 
 // =============================================================================
@@ -2627,6 +2999,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
     _remarksController.dispose();
     for (final row in _productDrafts) {
       row.quantityController.dispose();
+      row.quantityFocusNode.dispose();
     }
     super.dispose();
   }
@@ -2649,6 +3022,7 @@ class _VehicleDispatchDialogState extends ConsumerState<_VehicleDispatchDialog> 
     if (_productDrafts.length > 1) {
       setState(() {
         _productDrafts[index].quantityController.dispose();
+        _productDrafts[index].quantityFocusNode.dispose();
         _productDrafts.removeAt(index);
       });
     }
