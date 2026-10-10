@@ -6,6 +6,7 @@ class MetricCard extends StatefulWidget {
   final String value;
   final String? unit;
   final String? subtitle;
+  final Widget? subtitleWidget;
   final IconData icon;
   final Color? iconColor;
   final Color? iconBgColor;
@@ -21,6 +22,7 @@ class MetricCard extends StatefulWidget {
     required this.value,
     this.unit,
     this.subtitle,
+    this.subtitleWidget,
     required this.icon,
     this.iconColor,
     this.iconBgColor,
@@ -173,7 +175,10 @@ class _MetricCardState extends State<MetricCard> {
             ],
           ],
         ),
-        if (widget.subtitle != null) ...[
+        if (widget.subtitleWidget != null) ...[
+          const SizedBox(height: 5),
+          widget.subtitleWidget!,
+        ] else if (widget.subtitle != null) ...[
           const SizedBox(height: 4),
           Text(
             widget.subtitle!,

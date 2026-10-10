@@ -71,16 +71,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   AuthNotifier()
       : super(const AuthState(
-          user: UserModel(
-            userId: 'EMP-0101',
-            employeeCode: 'ADMIN-01',
-            name: 'Biraj Goswami',
-            email: 'biraj.goswami@caseya-plant.com',
-            role: 'Admin',
-            department: 'Processing & Operations',
-            accountStatus: 'active',
-            active: true,
-          ),
+          user: UserModel.guest,
           status: AuthStatus.initial,
         )) {
     init();
@@ -121,24 +112,22 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Standalone fallback when Supabase credentials are not yet configured
     final localUser = await LocalStorageService.getCurrentUser();
-    final effectiveUser = localUser.userId.isNotEmpty && localUser.active
-        ? localUser
-        : const UserModel(
-            userId: 'EMP-0101',
-            employeeCode: 'ADMIN-01',
-            name: 'Biraj Goswami',
-            email: 'biraj.goswami@caseya-plant.com',
-            role: 'Admin',
-            department: 'Processing & Operations',
-            accountStatus: 'active',
-            active: true,
-          );
-
-    state = state.copyWith(
-      user: effectiveUser,
-      status: AuthStatus.authenticated,
-      isConfigured: false,
-    );
+    if (localUser.userId.isNotEmpty &&
+        localUser.active &&
+        !localUser.isSuspended &&
+        !localUser.isGuest) {
+      state = state.copyWith(
+        user: localUser,
+        status: AuthStatus.authenticated,
+        isConfigured: false,
+      );
+    } else {
+      state = state.copyWith(
+        user: UserModel.guest,
+        status: AuthStatus.unauthenticated,
+        isConfigured: false,
+      );
+    }
   }
 
   void _handleAuthStateChange(sb.AuthState authState) async {
@@ -297,55 +286,79 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Register a new employee account
-  Future<bool> register({
+  Future<SignUpResult> register({
     required String fullName,
     required String email,
     required String password,
     String department = 'Processing & Operations',
   }) async {
+    // If already authenticated, do not register on top of existing session
+    if (state.isAuthenticated) {
+      return SignUpResult(
+        isSessionEstablished: false,
+        isEmailConfirmationRequired: false,
+        user: state.user,
+        message: 'A session is already active for ${state.user.name}. Please sign out first to create a new employee account.',
+      );
+    }
+
     state = state.copyWith(isSubmitting: true, errorMessage: null);
 
     if (SupabaseService.isInitialized) {
       try {
-        final profile = await SupabaseService.signUp(
+        final result = await SupabaseService.signUp(
           fullName: fullName.trim(),
           email: email.trim(),
           password: password,
           department: department.trim(),
         );
 
-        if (profile.accountStatus == 'invited') {
-          // Email confirmation required or invitation state
+        if (result.isSessionEstablished) {
           state = state.copyWith(
+            user: result.user,
+            status: AuthStatus.authenticated,
             isSubmitting: false,
             errorMessage: null,
           );
-          return true;
+          await LocalStorageService.saveCurrentUser(result.user);
+        } else {
+          // Unconfirmed signup or email verification required
+          // Deliberately keep unauthenticated state! Do not treat unconfirmed signup as active session.
+          state = state.copyWith(
+            user: UserModel.guest,
+            status: AuthStatus.unauthenticated,
+            isSubmitting: false,
+            errorMessage: null,
+          );
         }
-
-        state = state.copyWith(
-          user: profile,
-          status: AuthStatus.authenticated,
-          isSubmitting: false,
-          errorMessage: null,
-        );
-        await LocalStorageService.saveCurrentUser(profile);
-        return true;
+        return result;
       } catch (e) {
+        final errorMsg = e.toString().replaceFirst('Exception: ', '');
         state = state.copyWith(
           isSubmitting: false,
-          errorMessage: e.toString().replaceFirst('Exception: ', ''),
+          errorMessage: errorMsg,
         );
-        return false;
+        return SignUpResult(
+          isSessionEstablished: false,
+          isEmailConfirmationRequired: false,
+          user: UserModel.guest,
+          message: errorMsg,
+        );
       }
     } else {
       // Standalone mode demo registration
       if (fullName.trim().isEmpty || email.trim().isEmpty || password.isEmpty) {
+        const errorMsg = 'Please fill in all required fields.';
         state = state.copyWith(
           isSubmitting: false,
-          errorMessage: 'Please fill in all required fields.',
+          errorMessage: errorMsg,
         );
-        return false;
+        return const SignUpResult(
+          isSessionEstablished: false,
+          isEmailConfirmationRequired: false,
+          user: UserModel.guest,
+          message: errorMsg,
+        );
       }
 
       final profile = UserModel(
@@ -366,7 +379,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         errorMessage: null,
       );
       await LocalStorageService.saveCurrentUser(profile);
-      return true;
+      return SignUpResult(
+        isSessionEstablished: true,
+        isEmailConfirmationRequired: false,
+        user: profile,
+        message: 'Account created and authenticated successfully.',
+      );
     }
   }
 
@@ -374,8 +392,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> logout() async {
     state = state.copyWith(isSubmitting: true);
     try {
-      await SupabaseService.signOut();
+      if (SupabaseService.isInitialized) {
+        await SupabaseService.signOut();
+      }
     } catch (_) {}
+
+    await LocalStorageService.clearCurrentUser();
 
     state = state.copyWith(
       user: UserModel.guest,
@@ -383,7 +405,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       isSubmitting: false,
       errorMessage: null,
     );
-    await LocalStorageService.saveCurrentUser(UserModel.guest);
   }
 
   /// Send password recovery email

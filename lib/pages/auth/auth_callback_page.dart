@@ -32,15 +32,21 @@ class _AuthCallbackPageState extends ConsumerState<AuthCallbackPage> {
 
       debugPrint('[AuthCallback] Uri: $uri | fragment: $fragment');
 
-      // Check for password recovery or invite flags
+      // Check for password recovery or employee invitation flags
       final isRecovery = fragment.contains('type=recovery') ||
           queryParams['type'] == 'recovery' ||
           ref.read(authStateProvider).status == AuthStatus.passwordRecovery;
 
-      if (isRecovery) {
+      final isInvite = fragment.contains('type=invite') ||
+          queryParams['type'] == 'invite' ||
+          fragment.contains('type=signup_invite');
+
+      if (isRecovery || isInvite) {
         if (mounted) {
           setState(() {
-            _statusText = 'Verified recovery token. Directing to password setup...';
+            _statusText = isInvite
+                ? 'Employee invitation verified! Directing to password setup...'
+                : 'Verified recovery token. Directing to password setup...';
           });
           Navigator.of(context).pushReplacementNamed('/reset-password');
         }

@@ -191,6 +191,8 @@ class VehicleDispatch {
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<DispatchItem> items;
+  final int productCrates;
+  final int milkCrates;
 
   const VehicleDispatch({
     required this.id,
@@ -206,6 +208,8 @@ class VehicleDispatch {
     required this.createdAt,
     required this.updatedAt,
     this.items = const [],
+    this.productCrates = 0,
+    this.milkCrates = 0,
   });
 
   String get recordedBy => createdBy;
@@ -226,6 +230,8 @@ class VehicleDispatch {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'items': items.map((i) => i.toJson()).toList(),
+      'product_crates': productCrates,
+      'milk_crates': milkCrates,
     };
   }
 
@@ -251,6 +257,8 @@ class VehicleDispatch {
               ?.map((i) => DispatchItem.fromJson(i as Map<String, dynamic>))
               .toList() ??
           [],
+      productCrates: (json['product_crates'] as num?)?.toInt() ?? (json['productCrates'] as num?)?.toInt() ?? 0,
+      milkCrates: (json['milk_crates'] as num?)?.toInt() ?? (json['milkCrates'] as num?)?.toInt() ?? 0,
     );
   }
 
@@ -268,6 +276,8 @@ class VehicleDispatch {
     DateTime? createdAt,
     DateTime? updatedAt,
     List<DispatchItem>? items,
+    int? productCrates,
+    int? milkCrates,
   }) {
     return VehicleDispatch(
       id: id ?? this.id,
@@ -283,11 +293,15 @@ class VehicleDispatch {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       items: items ?? this.items,
+      productCrates: productCrates ?? this.productCrates,
+      milkCrates: milkCrates ?? this.milkCrates,
     );
   }
 
   /// Aggregated metrics for this vehicle
-  double get totalCrates => items.fold(0.0, (acc, item) => acc + item.crates);
+  double get totalCrates => (productCrates + milkCrates) > 0
+      ? (productCrates + milkCrates).toDouble()
+      : items.fold(0.0, (acc, item) => acc + item.crates);
   int get totalPieces => items.fold(0, (acc, item) => acc + item.pieces);
 
   /// Liquid total in Litres
@@ -343,14 +357,58 @@ class DailyDispatchProductSummary {
   String get shortUnit => normalizedUnit == 'Litres' ? 'L' : 'kg';
 
   String get formattedQuantity =>
-      '${Formatters.formatSmart(totalQuantity)} $shortUnit';
+      totalQuantity > 0 ? '${Formatters.formatSmart(totalQuantity)} $shortUnit' : '—';
 
   String get formattedCrates =>
-      totalCrates == totalCrates.roundToDouble()
-          ? '${totalCrates.toInt()} crates'
-          : '${Formatters.formatSmart(totalCrates)} crates';
+      totalCrates > 0
+          ? (totalCrates == totalCrates.roundToDouble()
+              ? '${totalCrates.toInt()} crates'
+              : '${Formatters.formatSmart(totalCrates)} crates')
+          : '—';
 
-  String get formattedPieces => '$totalPieces pcs';
+  String get formattedPieces => totalPieces > 0 ? '$totalPieces pcs' : '—';
+
+  /// Standard pieces per box according to packaging specifications:
+  /// - P80 & S80: 24 pcs / box
+  /// - P200 & S200: 12 pcs / box
+  /// - P400 & S400: 6 pcs / box
+  /// - Paneer: 20 pcs / box
+  int? get piecesPerBox {
+    final name = productName.trim().toLowerCase();
+    final code = shortCode.trim().toLowerCase();
+
+    if (code == 'p80' || code == 's80' || name == 'p80' || name == 's80' || name.startsWith('p80 ') || name.startsWith('s80 ') || name.contains('s80') || name.contains('p80')) {
+      return 24;
+    }
+    if (code == 'p200' || code == 's200' || name == 'p200' || name == 's200' || name.startsWith('p200 ') || name.startsWith('s200 ') || name.contains('s200') || name.contains('p200')) {
+      return 12;
+    }
+    if (code == 'p400' || code == 's400' || name == 'p400' || name == 's400' || name.startsWith('p400 ') || name.startsWith('s400 ') || name.contains('s400') || name.contains('p400')) {
+      return 6;
+    }
+    if (code == 'paneer' || name == 'paneer' || name.contains('paneer')) {
+      return 20;
+    }
+    return null;
+  }
+
+  /// Calculates total boxes based on total pieces and packaging standard
+  double? get totalBoxes {
+    final ppb = piecesPerBox;
+    if (ppb == null || totalPieces <= 0) return null;
+    return totalPieces / ppb;
+  }
+
+  /// Formatted box display string (e.g. "10 boxes" or "—")
+  String get formattedBoxes {
+    final ppb = piecesPerBox;
+    if (ppb == null || totalPieces <= 0) return '—';
+    final boxes = totalPieces / ppb;
+    if (boxes <= 0) return '—';
+    return boxes == boxes.roundToDouble()
+        ? '${boxes.toInt()} boxes'
+        : '${Formatters.formatSmart(boxes)} boxes';
+  }
 
   String get formattedRevenue =>
       revenue > 0 ? '₹${Formatters.formatSmart(revenue)}' : '—';

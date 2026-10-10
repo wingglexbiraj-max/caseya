@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/constants/app_colors.dart';
@@ -40,6 +41,26 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      try {
+        final queryParams = Uri.base.queryParameters;
+        if (queryParams['email'] != null && queryParams['email']!.isNotEmpty) {
+          _emailController.text = queryParams['email']!;
+        }
+        if (queryParams['name'] != null && queryParams['name']!.isNotEmpty) {
+          _nameController.text = queryParams['name']!;
+        }
+        if (queryParams['department'] != null &&
+            _departments.contains(queryParams['department'])) {
+          _selectedDepartment = queryParams['department']!;
+        }
+      } catch (_) {}
+    }
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
@@ -68,7 +89,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    final success = await ref.read(authNotifierProvider.notifier).register(
+    final result = await ref.read(authNotifierProvider.notifier).register(
       fullName: name,
       email: email,
       password: password,
@@ -80,18 +101,15 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         _isSubmitting = false;
       });
 
-      if (success) {
-        final authState = ref.read(authStateProvider);
-        if (authState.isAuthenticated) {
-          // Auto logged in
-          Navigator.of(context).pushReplacementNamed('/');
-        } else {
-          // Confirmation email sent
-          setState(() {
-            _successMessage =
-                'Account registered successfully! If email verification is enabled, please check your inbox to activate your account, then sign in.';
-          });
-        }
+      if (result.isSessionEstablished) {
+        // Legitimate new authenticated session
+        Navigator.of(context).pushReplacementNamed('/');
+      } else if (result.isEmailConfirmationRequired) {
+        // Confirmation email required
+        setState(() {
+          _successMessage = result.message ??
+              'Account registration received! A verification link has been sent to $email. Please check your inbox and verify your email before signing in.';
+        });
       }
     }
   }
@@ -100,6 +118,12 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authStateProvider);
     final isMobile = ResponsiveLayout.isMobile(context);
+
+    // If already authenticated, do not silently reuse session or redirect.
+    // Present deliberate account context and sign out options.
+    if (authState.isAuthenticated) {
+      return _buildAlreadyAuthenticatedView(authState, isMobile);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -129,6 +153,194 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 ],
               ),
               child: _buildForm(authState),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlreadyAuthenticatedView(AuthState authState, bool isMobile) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Center(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 16 : 24,
+            vertical: 24,
+          ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 520),
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: isMobile ? 24 : 36,
+                vertical: 36,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: AppColors.cardBorder, width: 1.2),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    blurRadius: 32,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _buildLogoIcon(size: 54),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Active Session Detected',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: AppFontWeights.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'You are currently signed in with an active employee account.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13.5,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Current Logged In User Card
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                          child: Text(
+                            authState.user.name.isNotEmpty
+                                ? authState.user.name[0].toUpperCase()
+                                : 'U',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                authState.user.name,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                '${authState.user.role} • ${authState.user.department}',
+                                style: const TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColors.textSecondary,
+                                ),
+                              ),
+                              if (authState.user.email.isNotEmpty)
+                                Text(
+                                  authState.user.email,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Notice
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBEB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFFDE68A)),
+                    ),
+                    child: const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline, color: Color(0xFFD97706), size: 20),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'To register a different employee or accept an invitation for another account, please sign out of your current session first.',
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: Color(0xFF92400E),
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Action Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(context).pushReplacementNamed('/');
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Back to Dashboard'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            await ref.read(authNotifierProvider.notifier).logout();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.danger,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text('Sign Out & Register'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -203,7 +415,35 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               ),
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
+
+          // Dairy ERP Internal Onboarding Notice
+          Container(
+            margin: const EdgeInsets.only(bottom: 18),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFCBD5E1)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.shield_outlined, size: 18, color: Color(0xFF475569)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'CASEYA is an internal dairy plant ERP. Accounts require employee invitation or provisioning by plant administration. Register with your assigned plant email to complete account setup.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF334155),
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           // Success Message Banner if email confirmation is required
           if (_successMessage != null)
@@ -404,6 +644,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           ),
           const SizedBox(height: 6),
           DropdownButtonFormField<String>(
+            isExpanded: true,
             initialValue: _selectedDepartment,
             decoration: InputDecoration(
               prefixIcon: const Icon(Icons.business_outlined, size: 20, color: AppColors.textSecondary),

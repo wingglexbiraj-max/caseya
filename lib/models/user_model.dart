@@ -46,6 +46,7 @@ class UserModel {
   bool get isSuspended =>
       accountStatus.trim().toLowerCase() == 'disabled' || !active;
   bool get isInvited => accountStatus.trim().toLowerCase() == 'invited';
+  bool get isGuest => userId.isEmpty || employeeCode.trim().toUpperCase() == 'GUEST';
 
   // Permission Capabilities
   bool get canManageUsers => isAdmin;

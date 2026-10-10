@@ -86,13 +86,9 @@ class CaseyaApp extends ConsumerWidget {
         }
 
         // 5. Sign Up Route
+        // Never automatically redirect /signup even if a session exists.
+        // SignUpPage deliberately shows current session status with explicit sign-out / switch account options.
         if (path == '/signup') {
-          if (authState.isAuthenticated) {
-            return MaterialPageRoute(
-              builder: (_) => const MainShellPage(),
-              settings: const RouteSettings(name: '/'),
-            );
-          }
           return MaterialPageRoute(
             builder: (_) => const SignUpPage(),
             settings: settings,
@@ -107,8 +103,8 @@ class CaseyaApp extends ConsumerWidget {
           );
         }
 
-        // 7. Authenticated State: If navigating to /login, /signup, or /forgot-password, redirect to Home
-        if (path == '/login' || path == '/signup' || path == '/forgot-password') {
+        // 7. Authenticated State: If navigating to /login while authenticated, redirect to Home
+        if (path == '/login') {
           return MaterialPageRoute(
             builder: (_) => const MainShellPage(),
             settings: const RouteSettings(name: '/'),

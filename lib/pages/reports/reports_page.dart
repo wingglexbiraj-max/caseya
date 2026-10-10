@@ -13,6 +13,7 @@ import '../../models/stock_ledger_entry_model.dart';
 import '../../models/boiler_record.dart';
 import '../../models/dg_hsd_record.dart';
 import '../../models/batch_record_model.dart';
+import '../../models/dispatch_record.dart';
 import '../../models/operations_models.dart';
 import '../../models/product_model.dart';
 import '../../core/constants/dairy_products.dart';
@@ -64,6 +65,11 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
   // Production Report State
   DateTime _selectedProductionMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
   bool _showAllProductionDays = true;
+
+  // Dispatch Report State
+  DateTime _selectedDispatchMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
+  String _dispatchDatePreset = 'Selected Month';
+  DateTime? _selectedDispatchCustomDate;
 
   @override
   void initState() {
@@ -4633,6 +4639,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  const Text('a digital solution by biraj goswami', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, fontWeight: AppFontWeights.medium, color: Color(0xFF64748B), letterSpacing: 0.3), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
                                   const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
@@ -4826,6 +4834,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  const Text('a digital solution by biraj goswami', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, fontWeight: AppFontWeights.medium, color: Color(0xFF64748B), letterSpacing: 0.3), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
                                   const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
@@ -5018,6 +5028,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  const Text('a digital solution by biraj goswami', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, fontWeight: AppFontWeights.medium, color: Color(0xFF64748B), letterSpacing: 0.3), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
                                   const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
@@ -5211,6 +5223,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  const Text('a digital solution by biraj goswami', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, fontWeight: AppFontWeights.medium, color: Color(0xFF64748B), letterSpacing: 0.3), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
                                   const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
@@ -5443,6 +5457,8 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
                                   const Text('CASEYA', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)), textAlign: TextAlign.center),
+                                  const SizedBox(height: 2),
+                                  const Text('a digital solution by biraj goswami', style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, fontWeight: AppFontWeights.medium, color: Color(0xFF64748B), letterSpacing: 0.3), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
                                   const Text('Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)), textAlign: TextAlign.center),
                                   const SizedBox(height: 3),
@@ -6371,43 +6387,81 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // 6. DISPATCH OPERATIONS & CATALOGUE SUMMARY REPORT SECTION
+    // ---------------------------------------------------------------------------
+  // 6. DISPATCH OPERATIONS - PRODUCT WISE TABULATION REPORT SECTION
   // ---------------------------------------------------------------------------
   Widget _buildDispatchReportSection({
     required BuildContext context,
     required bool isMobile,
     required DispatchState dispatchState,
   }) {
-    final summaries = dispatchState.dailyProductSummaries;
-    final dispatches = dispatchState.dispatchesForSelectedDate;
-    final distributorSummaries = dispatchState.distributorSummaries;
+    final now = DateTime.now();
+    final todayStr = DateFormat('yyyy-MM-dd').format(now);
+    final yesterdayStr = DateFormat('yyyy-MM-dd').format(now.subtract(const Duration(days: 1)));
+    final currentMonthName = DateFormat('MMMM yyyy').format(_selectedDispatchMonth);
+
+    // Filter dispatches based on active date preset
+    List<VehicleDispatch> filteredDispatches;
+    String periodDisplayTitle;
+
+    if (_dispatchDatePreset == 'Today') {
+      filteredDispatches = dispatchState.dispatches.where((d) => d.dispatchDate == todayStr).toList();
+      periodDisplayTitle = DateFormat('EEE, dd MMM yyyy').format(now);
+    } else if (_dispatchDatePreset == 'Yesterday') {
+      filteredDispatches = dispatchState.dispatches.where((d) => d.dispatchDate == yesterdayStr).toList();
+      periodDisplayTitle = DateFormat('EEE, dd MMM yyyy').format(now.subtract(const Duration(days: 1)));
+    } else if (_dispatchDatePreset == 'Custom') {
+      final customDate = _selectedDispatchCustomDate ?? now;
+      final customDateStr = DateFormat('yyyy-MM-dd').format(customDate);
+      filteredDispatches = dispatchState.dispatches.where((d) => d.dispatchDate == customDateStr).toList();
+      periodDisplayTitle = DateFormat('EEE, dd MMM yyyy').format(customDate);
+    } else if (_dispatchDatePreset == 'All Time') {
+      filteredDispatches = dispatchState.dispatches;
+      periodDisplayTitle = 'All Time Records';
+    } else {
+      // Default: 'Selected Month'
+      filteredDispatches = dispatchState.dispatches.where((d) {
+        final dt = DateTime.tryParse(d.dispatchDate);
+        if (dt == null) return false;
+        return dt.year == _selectedDispatchMonth.year && dt.month == _selectedDispatchMonth.month;
+      }).toList();
+      periodDisplayTitle = currentMonthName;
+    }
+
+    final summaries = dispatchState.aggregateProductsForList(filteredDispatches);
+
+    int totalProductCratesSum = 0;
+    int totalMilkCratesSum = 0;
+    for (final d in filteredDispatches) {
+      totalProductCratesSum += d.productCrates;
+      totalMilkCratesSum += d.milkCrates;
+    }
+    final totalExplicitCrates = totalProductCratesSum + totalMilkCratesSum;
+    final totalCratesSum = summaries.fold<double>(0.0, (sum, s) => sum + s.totalCrates);
+    final displayReportCrates = totalExplicitCrates > 0 ? totalExplicitCrates.toDouble() : totalCratesSum;
+    final totalBoxesSum = summaries.fold<double>(0.0, (sum, s) => sum + (s.totalBoxes ?? 0.0));
+    final totalPiecesSum = summaries.fold<int>(0, (sum, s) => sum + s.totalPieces);
+    final totalLiquidSum = summaries.where((s) => s.normalizedUnit.toLowerCase().startsWith('l')).fold<double>(0.0, (sum, s) => sum + s.totalQuantity);
+    final totalSolidSum = summaries.where((s) => !s.normalizedUnit.toLowerCase().startsWith('l')).fold<double>(0.0, (sum, s) => sum + s.totalQuantity);
+    final totalRevenueSum = summaries.fold<double>(0.0, (sum, s) => sum + s.revenue);
 
     return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section Header Row
+          // 1. Header Row
           LayoutBuilder(
             builder: (context, constraints) {
-              final isNarrow = constraints.maxWidth < 750;
-              final headerInfo = Row(
+              final isNarrow = constraints.maxWidth < 700;
+              final titleWidget = Row(
                 children: [
                   Container(
-                    width: 40,
-                    height: 40,
+                    padding: const EdgeInsets.all(9),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryContainer,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                      ),
+                      color: AppColors.primaryContainer.withValues(alpha: 0.6),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
-                      Icons.local_shipping_rounded,
-                      color: AppColors.primary,
-                      size: 22,
-                    ),
+                    child: const Icon(Icons.inventory_2_rounded, color: AppColors.primary, size: 22),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
@@ -6415,20 +6469,21 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Dispatch Operations & Catalogue Summary',
+                          'Product Wise Dispatch Report',
                           style: TextStyle(
                             fontSize: AppTextSizes.subheading,
                             fontWeight: AppFontWeights.bold,
                             color: AppColors.textPrimary,
                           ),
                         ),
-                        const SizedBox(height: 2),
                         Text(
-                          'Daily product catalogue rollup, vehicle departure logs & commercial values',
+                          'Product-wise dispatched volume, packaging conversions (crates & boxes) & sales valuation for $periodDisplayTitle (${filteredDispatches.length} vehicle trips)',
                           style: const TextStyle(
                             fontSize: AppTextSizes.caption,
                             color: AppColors.textSecondary,
+                            fontWeight: AppFontWeights.medium,
                           ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
@@ -6436,153 +6491,61 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 ],
               );
 
-              final controls = Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
+              final actionsWidget = Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Date Picker Button
-                  InkWell(
-                    onTap: () async {
-                      DateTime initial = DateTime.now();
-                      try {
-                        final parts = dispatchState.selectedDate.split('-');
-                        if (parts.length == 3) {
-                          initial = DateTime(int.parse(parts[0]), int.parse(parts[1]), int.parse(parts[2]));
+                  Tooltip(
+                    message: 'Sync / Refresh Dispatch Records',
+                    child: IconButton(
+                      icon: const Icon(Icons.sync_rounded, size: 20, color: AppColors.primary),
+                      onPressed: () async {
+                        await ref.read(dispatchProvider.notifier).loadData();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('✓ Dispatch records updated live from datastore.'),
+                              backgroundColor: AppColors.primary,
+                              duration: Duration(seconds: 1),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
                         }
-                      } catch (_) {}
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: initial,
-                        firstDate: DateTime(2025, 1, 1),
-                        lastDate: DateTime(2030, 12, 31),
-                      );
-                      if (picked != null) {
-                        final dateStr =
-                            '${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
-                        ref.read(dispatchProvider.notifier).setSelectedDate(dateStr);
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(8),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.cardBorder),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.calendar_today_rounded, size: 15, color: AppColors.primary),
-                          const SizedBox(width: 8),
-                          Text(
-                            dispatchState.selectedDate,
-                            style: const TextStyle(
-                              fontWeight: AppFontWeights.bold,
-                              fontSize: 13,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(Icons.arrow_drop_down, size: 18, color: AppColors.textSecondary),
-                        ],
-                      ),
+                      },
                     ),
                   ),
-
-                  // Quick Jump to Today
-                  TextButton.icon(
-                    onPressed: () {
-                      final now = DateTime.now();
-                      final todayStr =
-                          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-                      ref.read(dispatchProvider.notifier).setSelectedDate(todayStr);
-                    },
-                    icon: const Icon(Icons.today_rounded, size: 15),
-                    label: const Text('Today'),
-                    style: TextButton.styleFrom(
+                  const SizedBox(width: 4),
+                  OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primary,
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      side: const BorderSide(color: AppColors.primary),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label: const Text('Print Preview', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                    onPressed: () => _showPrintableDispatchProductWiseDialog(
+                      context,
+                      summaries,
+                      periodDisplayTitle,
+                      totalCratesSum,
+                      totalBoxesSum,
+                      totalPiecesSum,
+                      totalLiquidSum,
+                      totalSolidSum,
+                      totalRevenueSum,
                     ),
                   ),
-
-                  // CSV Export Menu Button
-                  PopupMenuButton<String>(
-                    onSelected: (val) {
-                      if (val == 'products') {
-                        final csv = ref.read(dispatchProvider.notifier).generateProductWiseCsv(
-                              summaries,
-                              dispatchState.selectedDate,
-                            );
-                        downloadLedgerCsv('dispatch_catalogue_summary_${dispatchState.selectedDate}.csv', csv);
-                      } else if (val == 'vehicles') {
-                        final csv = ref.read(dispatchProvider.notifier).generateVehicleRecordsCsv(dispatches);
-                        downloadLedgerCsv('dispatch_vehicles_${dispatchState.selectedDate}.csv', csv);
-                      } else if (val == 'distributors') {
-                        final csv = ref.read(dispatchProvider.notifier).generateDistributorWiseCsv(
-                              distributorSummaries,
-                              dispatchState.selectedDate,
-                            );
-                        downloadLedgerCsv('dispatch_distributors_${dispatchState.selectedDate}.csv', csv);
-                      }
-                    },
-                    itemBuilder: (ctx) => [
-                      const PopupMenuItem(
-                        value: 'products',
-                        child: Row(
-                          children: [
-                            Icon(Icons.inventory_2_outlined, size: 16, color: AppColors.primary),
-                            SizedBox(width: 8),
-                            Text('Export Product Totals (CSV)', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'vehicles',
-                        child: Row(
-                          children: [
-                            Icon(Icons.local_shipping_outlined, size: 16, color: Color(0xFF0F766E)),
-                            SizedBox(width: 8),
-                            Text('Export Vehicle Records (CSV)', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'distributors',
-                        child: Row(
-                          children: [
-                            Icon(Icons.storefront_outlined, size: 16, color: Color(0xFF2563EB)),
-                            SizedBox(width: 8),
-                            Text('Export Distributor Summary (CSV)', style: TextStyle(fontSize: 13)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.download_rounded, size: 15, color: Colors.white),
-                          SizedBox(width: 6),
-                          Text(
-                            'Export Report (CSV)',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: AppFontWeights.bold,
-                            ),
-                          ),
-                          SizedBox(width: 4),
-                          Icon(Icons.arrow_drop_down, size: 16, color: Colors.white),
-                        ],
-                      ),
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
+                    icon: const Icon(Icons.download_rounded, size: 16),
+                    label: const Text('Export CSV', style: TextStyle(fontSize: 12, fontWeight: AppFontWeights.semiBold)),
+                    onPressed: () => _exportDispatchProductWiseCsv(summaries, periodDisplayTitle),
                   ),
                 ],
               );
@@ -6591,404 +6554,486 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    headerInfo,
-                    const SizedBox(height: 12),
-                    controls,
+                    titleWidget,
+                    const SizedBox(height: 10),
+                    actionsWidget,
                   ],
                 );
               }
-
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(child: headerInfo),
-                  const SizedBox(width: 16),
-                  controls,
+                  Expanded(child: titleWidget),
+                  actionsWidget,
                 ],
               );
             },
           ),
-          const SizedBox(height: 16),
-          const Divider(height: 1),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
 
-          // KPI Summary Metrics Grid
-          Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: [
-              _buildDispatchReportMetricTile(
-                title: 'Vehicles Dispatched',
-                value: '${dispatchState.totalVehiclesForSelectedDate}',
-                subtitle: 'Plant Gate Out',
-                icon: Icons.local_shipping_rounded,
-                color: AppColors.primary,
-              ),
-              _buildDispatchReportMetricTile(
-                title: 'Total Crates',
-                value: Formatters.formatSmart(dispatchState.totalCratesForSelectedDate),
-                subtitle: 'Standard Crates',
-                icon: Icons.inventory_2_rounded,
-                color: const Color(0xFF0F766E),
-              ),
-              _buildDispatchReportMetricTile(
-                title: 'Total Pieces',
-                value: Formatters.formatInt(dispatchState.totalPiecesForSelectedDate),
-                subtitle: 'Packets Dispatched',
-                icon: Icons.format_list_bulleted_rounded,
-                color: const Color(0xFF2563EB),
-              ),
-              _buildDispatchReportMetricTile(
-                title: 'Liquid Milk / Lassi',
-                value: '${Formatters.formatSmart(dispatchState.totalLitresForSelectedDate)} L',
-                subtitle: 'Fluid Volume',
-                icon: Icons.water_drop_rounded,
-                color: const Color(0xFF0284C7),
-              ),
-              _buildDispatchReportMetricTile(
-                title: 'Curd / Solids',
-                value: '${Formatters.formatSmart(dispatchState.totalKgForSelectedDate)} kg',
-                subtitle: 'Solid Products',
-                icon: Icons.takeout_dining_rounded,
-                color: const Color(0xFFD97706),
-              ),
-              _buildDispatchReportMetricTile(
-                title: 'Total Sales Revenue',
-                value: '₹${Formatters.formatSmart(dispatchState.totalRevenueForSelectedDate)}',
-                subtitle: 'Commercial Value',
-                icon: Icons.currency_rupee_rounded,
-                color: const Color(0xFF059669),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Primary Section: TODAY'S DISPATCH SUMMARY (Product Catalogue Rollup)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryLight,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(Icons.table_chart_rounded, size: 16, color: AppColors.primary),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Today\'s Dispatch Summary (Catalogue Rollup for ${dispatchState.selectedDate})',
-                    style: const TextStyle(
-                      fontSize: AppTextSizes.subheading,
-                      fontWeight: AppFontWeights.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: const Color(0xFFA7F3D0)),
+          // 2. Controls & Filters Bar: Month/Year Selector + Date Presets & Manual Day Picker
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.cardBorder, width: 1),
+            ),
+            child: Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                // Month & Year Selector
+                _buildMonthYearSelector(
+                  context: context,
+                  selectedMonth: _selectedDispatchMonth,
+                  onMonthChanged: (m) => setState(() {
+                    _selectedDispatchMonth = m;
+                    _dispatchDatePreset = 'Selected Month';
+                  }),
                 ),
-                child: Text(
-                  '${summaries.length} Products Active',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: AppFontWeights.bold,
-                    color: Color(0xFF065F46),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
 
-          if (summaries.isEmpty)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF8FAFC),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.cardBorder),
-              ),
-              child: Column(
-                children: [
-                  const Icon(Icons.inbox_outlined, size: 44, color: AppColors.textSecondary),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'No Dispatches Recorded for this Date',
-                    style: TextStyle(
-                      fontSize: AppTextSizes.body,
-                      fontWeight: AppFontWeights.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Select another date above or record vehicle dispatches in the Dispatch Records page.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            )
-          else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(minWidth: 800),
-                child: Table(
-                  border: TableBorder(
-                    horizontalInside: BorderSide(
-                      color: AppColors.divider.withValues(alpha: 0.6),
-                      width: 1,
-                    ),
-                  ),
-                  columnWidths: const {
-                    0: FlexColumnWidth(1.2), // Item Code
-                    1: FlexColumnWidth(3.0), // Product Name
-                    2: FlexColumnWidth(1.2), // Pack Size
-                    3: FlexColumnWidth(1.2), // Crates
-                    4: FlexColumnWidth(1.2), // Pieces
-                    5: FlexColumnWidth(1.6), // Quantity
-                    6: FlexColumnWidth(1.2), // Vehicles
-                    7: FlexColumnWidth(1.5), // Revenue
-                  },
+                // Date Presets Chips
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
-                    TableRow(
-                      decoration: const BoxDecoration(color: Color(0xFFF8FAFC)),
-                      children: [
-                        _buildDispatchTableHeaderCell('Item Code'),
-                        _buildDispatchTableHeaderCell('Product Name'),
-                        _buildDispatchTableHeaderCell('Pack Size'),
-                        _buildDispatchTableHeaderCell('Total Crates', alignRight: true),
-                        _buildDispatchTableHeaderCell('Total Pieces', alignRight: true),
-                        _buildDispatchTableHeaderCell('Volume / Solids', alignRight: true),
-                        _buildDispatchTableHeaderCell('Vehicles', alignRight: true),
-                        _buildDispatchTableHeaderCell('Sales Value (₹)', alignRight: true),
-                      ],
-                    ),
-                    ...summaries.map((s) {
-                      final isLiquid = s.normalizedUnit.toLowerCase().startsWith('l');
-                      return TableRow(
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Text(
-                              s.itemCode,
-                              style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Text(
-                              s.productName,
-                              style: const TextStyle(
-                                fontWeight: AppFontWeights.bold,
-                                fontSize: 13,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Text(s.packSizeDisplay, style: const TextStyle(fontSize: 12)),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedCrates,
-                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedPieces,
-                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedQuantity,
-                                style: TextStyle(
-                                  fontWeight: AppFontWeights.bold,
-                                  fontSize: 13,
-                                  color: isLiquid ? const Color(0xFF0369A1) : const Color(0xFFB45309),
-                                ),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                '${s.vehicleCount}',
-                                style: const TextStyle(fontSize: 13),
-                              ),
-                            ),
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                s.formattedRevenue,
-                                style: const TextStyle(
-                                  fontWeight: AppFontWeights.bold,
-                                  fontSize: 13,
-                                  color: Color(0xFF047857),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
+                    for (final preset in ['Selected Month', 'Today', 'Yesterday', 'All Time'])
+                      ChoiceChip(
+                        label: Text(preset, style: const TextStyle(fontSize: 11)),
+                        selected: _dispatchDatePreset == preset,
+                        selectedColor: AppColors.primary,
+                        labelStyle: TextStyle(
+                          color: _dispatchDatePreset == preset ? Colors.white : AppColors.textPrimary,
+                          fontWeight: _dispatchDatePreset == preset ? AppFontWeights.bold : FontWeight.normal,
+                        ),
+                        onSelected: (val) {
+                          if (val) {
+                            setState(() {
+                              _dispatchDatePreset = preset;
+                            });
+                          }
+                        },
+                      ),
                   ],
                 ),
-              ),
-            ),
-          const SizedBox(height: 28),
 
-          // Secondary Section: VEHICLE DISPATCH LOG
-          if (dispatches.isNotEmpty) ...[
-            Row(
-              children: [
+                // Manual Single Day Selector with < >
                 Container(
-                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFF6FF),
-                    borderRadius: BorderRadius.circular(6),
+                    color: _dispatchDatePreset == 'Custom' ? const Color(0xFFE8F5E9) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: _dispatchDatePreset == 'Custom' ? AppColors.primary : AppColors.cardBorder,
+                      width: _dispatchDatePreset == 'Custom' ? 1.4 : 1.0,
+                    ),
                   ),
-                  child: const Icon(Icons.local_shipping_outlined, size: 16, color: Color(0xFF2563EB)),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'Vehicles Dispatched (${dispatches.length} Gate Out Records)',
-                  style: const TextStyle(
-                    fontSize: AppTextSizes.subheading,
-                    fontWeight: AppFontWeights.bold,
-                    color: AppColors.textPrimary,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chevron_left_rounded, size: 20, color: AppColors.textPrimary),
+                        tooltip: 'Previous Day',
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          setState(() {
+                            final current = _selectedDispatchCustomDate ?? now;
+                            _selectedDispatchCustomDate = current.subtract(const Duration(days: 1));
+                            _dispatchDatePreset = 'Custom';
+                          });
+                        },
+                      ),
+                      InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: _selectedDispatchCustomDate ?? now,
+                            firstDate: DateTime(2020),
+                            lastDate: DateTime(2035),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              _selectedDispatchCustomDate = picked;
+                              _dispatchDatePreset = 'Custom';
+                            });
+                          }
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.calendar_today_rounded, size: 14, color: AppColors.primary),
+                              const SizedBox(width: 6),
+                              Text(
+                                DateFormat('EEE, dd MMM yyyy').format(_selectedDispatchCustomDate ?? now),
+                                style: const TextStyle(
+                                  fontWeight: AppFontWeights.bold,
+                                  fontSize: 12.5,
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.chevron_right_rounded, size: 20, color: AppColors.textPrimary),
+                        tooltip: 'Next Day',
+                        padding: const EdgeInsets.all(6),
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          setState(() {
+                            final current = _selectedDispatchCustomDate ?? now;
+                            _selectedDispatchCustomDate = current.add(const Duration(days: 1));
+                            _dispatchDatePreset = 'Custom';
+                          });
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+          ),
+          const SizedBox(height: 14),
 
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: dispatches.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 8),
-              itemBuilder: (context, index) {
-                final d = dispatches[index];
-                return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: AppColors.cardBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+          // 3. Metric KPI Cards
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardCrates = _buildDispatchReportMetricTile(
+                title: 'Total Crates',
+                value: displayReportCrates == displayReportCrates.roundToDouble()
+                    ? '${displayReportCrates.toInt()} crt'
+                    : '${Formatters.formatSmart(displayReportCrates)} crt',
+                subtitle: (totalProductCratesSum > 0 || totalMilkCratesSum > 0)
+                    ? 'Prod: $totalProductCratesSum • Milk: $totalMilkCratesSum'
+                    : 'Dispatched volume',
+                icon: Icons.inventory_rounded,
+                color: const Color(0xFF0284C7),
+              );
+
+              final cardBoxes = _buildDispatchReportMetricTile(
+                title: 'Total Boxes',
+                value: totalBoxesSum > 0
+                    ? (totalBoxesSum == totalBoxesSum.roundToDouble()
+                        ? '${totalBoxesSum.toInt()} box'
+                        : '${Formatters.formatSmart(totalBoxesSum)} box')
+                    : '0 box',
+                subtitle: 'Curd & paneer pack',
+                icon: Icons.all_inbox_rounded,
+                color: const Color(0xFF1D4ED8),
+              );
+
+              final cardPieces = _buildDispatchReportMetricTile(
+                title: 'Total Pieces',
+                value: '$totalPiecesSum pcs',
+                subtitle: 'Individual packages',
+                icon: Icons.category_rounded,
+                color: const Color(0xFF7C3AED),
+              );
+
+              final cardVolume = _buildDispatchReportMetricTile(
+                title: 'Base Volume Dispatched',
+                value: '${Formatters.formatSmart(totalLiquidSum)} L / ${Formatters.formatSmart(totalSolidSum)} kg',
+                subtitle: 'Milk (L) & Curd/Paneer (kg)',
+                icon: Icons.water_drop_rounded,
+                color: const Color(0xFF0D9488),
+              );
+
+              final cardRevenue = _buildDispatchReportMetricTile(
+                title: 'Total Dispatch Value',
+                value: totalRevenueSum > 0 ? '₹${Formatters.formatSmart(totalRevenueSum)}' : '₹0',
+                subtitle: 'Gross sales value',
+                icon: Icons.currency_rupee_rounded,
+                color: const Color(0xFF16A34A),
+              );
+
+              if (constraints.maxWidth >= 950) {
+                return Row(
+                  children: [
+                    Expanded(child: cardCrates),
+                    const SizedBox(width: 8),
+                    Expanded(child: cardBoxes),
+                    const SizedBox(width: 8),
+                    Expanded(child: cardPieces),
+                    const SizedBox(width: 8),
+                    Expanded(child: cardVolume),
+                    const SizedBox(width: 8),
+                    Expanded(child: cardRevenue),
+                  ],
+                );
+              }
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  cardCrates,
+                  cardBoxes,
+                  cardPieces,
+                  cardVolume,
+                  cardRevenue,
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // 4. Product Wise Table (Tabulation Data)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth < 1000 ? 1000.0 : constraints.maxWidth;
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.cardBorder, width: 1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Table(
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      border: const TableBorder(
+                        horizontalInside: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                        bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1),
+                      ),
+                      columnWidths: const {
+                        0: FlexColumnWidth(2.6), // Product Name
+                        1: FlexColumnWidth(1.2), // Pack Size
+                        2: FlexColumnWidth(1.2), // Total Crates
+                        3: FlexColumnWidth(1.2), // Total Boxes
+                        4: FlexColumnWidth(1.2), // Total Pieces
+                        5: FlexColumnWidth(1.6), // Base Unit Equivalent
+                        6: FlexColumnWidth(1.4), // Total Value (₹)
+                      },
+                      children: [
+                        // Header Row
+                        const TableRow(
+                          decoration: BoxDecoration(color: Color(0xFFF8FAFC)),
+                          children: [
+                            _LedgerHeaderCell('Product Name'),
+                            _LedgerHeaderCell('Pack Size'),
+                            _LedgerHeaderCell('Total Crates'),
+                            _LedgerHeaderCell('Total Boxes'),
+                            _LedgerHeaderCell('Total Pieces'),
+                            _LedgerHeaderCell('Base Unit Equivalent'),
+                            _LedgerHeaderCell('Total Value (₹)'),
+                          ],
+                        ),
+                        // Data Rows
+                        ...summaries.map((s) {
+                          final isLiquid = s.normalizedUnit.toLowerCase().startsWith('l');
+                          return TableRow(
                             children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: Text(
-                                  d.vehicleNumber,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: AppFontWeights.bold,
-                                    fontSize: 13,
-                                    letterSpacing: 0.5,
+                              // Product Name
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.productName,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 13,
+                                      color: s.totalQuantity > 0 ? AppColors.textPrimary : AppColors.textSecondary,
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                d.distributorName,
-                                style: const TextStyle(
-                                  fontWeight: AppFontWeights.bold,
-                                  fontSize: 14,
-                                  color: AppColors.textPrimary,
+                              // Pack Size
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.packSizeDisplay,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
                                 ),
                               ),
-                              if (d.driverName.isNotEmpty) ...[
-                                const SizedBox(width: 8),
-                                Text(
-                                  '• Driver: ${d.driverName}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              // Total Crates
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.formattedCrates,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 13,
+                                      color: s.totalCrates > 0 ? AppColors.textPrimary : AppColors.textSecondary,
+                                    ),
+                                  ),
                                 ),
-                              ],
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                '${Formatters.formatSmart(d.totalCrates)} Crates',
-                                style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13),
                               ),
-                              const SizedBox(width: 10),
-                              Text(
-                                d.dispatchTime,
-                                style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                              // Total Boxes
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.formattedBoxes,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 13,
+                                      color: s.piecesPerBox == null
+                                          ? AppColors.textMuted
+                                          : (s.totalBoxes != null && s.totalBoxes! > 0
+                                              ? const Color(0xFF1D4ED8)
+                                              : AppColors.textSecondary),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Total Pieces
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.formattedPieces,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 13,
+                                      color: s.totalPieces > 0 ? AppColors.textPrimary : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Base Unit Equivalent
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.formattedQuantity,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 12.5,
+                                      color: s.totalQuantity == 0
+                                          ? AppColors.textSecondary
+                                          : (isLiquid ? const Color(0xFF0369A1) : const Color(0xFFB45309)),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              // Total Value (₹)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                                child: Center(
+                                  child: Text(
+                                    s.formattedRevenue,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontWeight: AppFontWeights.bold,
+                                      fontSize: 13,
+                                      color: s.revenue > 0 ? const Color(0xFF047857) : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      // Product Chips
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        children: d.items.map((item) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: const Color(0xFFCBD5E1)),
-                            ),
-                            child: Text(
-                              '${item.productName}: ${Formatters.formatSmart(item.crates)} crt (${Formatters.formatInt(item.pieces)} pcs)',
-                              style: const TextStyle(fontSize: 11, color: Color(0xFF1E293B)),
-                            ),
                           );
-                        }).toList(),
-                      ),
-                    ],
+                        }),
+                        // Total Summary Row
+                        TableRow(
+                          decoration: const BoxDecoration(color: Color(0xFFE2E8F0)),
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.summarize_rounded, size: 16, color: AppColors.primary),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'TOTAL (${summaries.length})',
+                                      style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12.5, color: AppColors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Text('—', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Text(
+                                  totalCratesSum == totalCratesSum.roundToDouble()
+                                      ? '${totalCratesSum.toInt()} crates'
+                                      : '${Formatters.formatSmart(totalCratesSum)} crates',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13, color: AppColors.textPrimary),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Text(
+                                  totalBoxesSum > 0
+                                      ? (totalBoxesSum == totalBoxesSum.roundToDouble()
+                                          ? '${totalBoxesSum.toInt()} boxes'
+                                          : '${Formatters.formatSmart(totalBoxesSum)} boxes')
+                                      : '0 boxes',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13, color: Color(0xFF1D4ED8)),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Text(
+                                  '$totalPiecesSum pcs',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13, color: AppColors.textPrimary),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Text(
+                                  '${Formatters.formatSmart(totalLiquidSum)} L / ${Formatters.formatSmart(totalSolidSum)} kg',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 12, color: Color(0xFF0369A1)),
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
+                              child: Center(
+                                child: Text(
+                                  totalRevenueSum > 0 ? '₹${Formatters.formatSmart(totalRevenueSum)}' : '₹0',
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontWeight: AppFontWeights.bold, fontSize: 13, color: Color(0xFF047857)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                );
-              },
-            ),
-          ],
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
@@ -7057,23 +7102,248 @@ class _ReportsPageState extends ConsumerState<ReportsPage> {
     );
   }
 
-  Widget _buildDispatchTableHeaderCell(String text, {bool alignRight = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-      child: Align(
-        alignment: alignRight ? Alignment.centerRight : Alignment.centerLeft,
-        child: Text(
-          text,
-          style: const TextStyle(
-            fontSize: AppTextSizes.caption,
-            fontWeight: AppFontWeights.bold,
-            letterSpacing: 0.5,
-            color: AppColors.textSecondary,
+  void _showPrintableDispatchProductWiseDialog(
+    BuildContext context,
+    List<DailyDispatchProductSummary> summaries,
+    String periodTitle,
+    double totalCrates,
+    double totalBoxes,
+    int totalPieces,
+    double totalLiquid,
+    double totalSolid,
+    double totalRevenue,
+  ) {
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 960, maxHeight: 780),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: AppColors.primaryContainer,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.print_rounded, color: AppColors.primary, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Dispatch Product Wise Report',
+                                style: TextStyle(fontSize: AppTextSizes.subheading, fontWeight: AppFontWeights.bold),
+                              ),
+                              Text('CASEYA • Purabi Dairy (NEDFL), Silchar Plant', style: TextStyle(fontSize: AppTextSizes.caption, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            icon: const Icon(Icons.print_rounded, size: 16),
+                            label: const Text('Print Sheet'),
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Sent Product Wise Dispatch Sheet to default system printer.'),
+                                  backgroundColor: AppColors.primary,
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                              Navigator.pop(dialogCtx);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded),
+                            tooltip: 'Close',
+                            onPressed: () => Navigator.pop(dialogCtx),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: AppColors.cardBorder),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            const Text(
+                              'CASEYA',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 18, letterSpacing: 1.5, color: Color(0xFF0F172A)),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'a digital solution by biraj goswami',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 11, fontStyle: FontStyle.italic, fontWeight: AppFontWeights.medium, color: Color(0xFF64748B), letterSpacing: 0.3),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Purabi Dairy (NEDFL), Silchar Plant',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: AppFontWeights.bold, fontSize: 14, color: Color(0xFF334155)),
+                            ),
+                            const SizedBox(height: 3),
+                            const Text(
+                              'Product Wise Dispatch Register',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: AppFontWeights.semiBold, fontSize: 12.5, color: AppColors.textSecondary, letterSpacing: 0.5),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Period: $periodTitle • Generated: ${DateFormat('dd MMM yyyy, hh:mm a').format(DateTime.now())}',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textSecondary),
+                            ),
+                            const SizedBox(height: 16),
+                            Table(
+                              border: TableBorder.all(color: const Color(0xFFCBD5E1), width: 1),
+                              columnWidths: const {
+                                0: FlexColumnWidth(2.6),
+                                1: FlexColumnWidth(1.2),
+                                2: FlexColumnWidth(1.2),
+                                3: FlexColumnWidth(1.2),
+                                4: FlexColumnWidth(1.2),
+                                5: FlexColumnWidth(1.6),
+                                6: FlexColumnWidth(1.4),
+                              },
+                              children: [
+                                const TableRow(
+                                  decoration: BoxDecoration(color: Color(0xFFF1F5F9)),
+                                  children: [
+                                    _PrintTableHeader('Product Name'),
+                                    _PrintTableHeader('Pack Size'),
+                                    _PrintTableHeader('Total Crates'),
+                                    _PrintTableHeader('Total Boxes'),
+                                    _PrintTableHeader('Total Pieces'),
+                                    _PrintTableHeader('Base Unit Eq.'),
+                                    _PrintTableHeader('Total Value (₹)'),
+                                  ],
+                                ),
+                                ...summaries.map((s) {
+                                  return TableRow(
+                                    children: [
+                                      _PrintTableCell(s.productName, isBold: true),
+                                      _PrintTableCell(s.packSizeDisplay),
+                                      _PrintTableCell(s.formattedCrates),
+                                      _PrintTableCell(s.formattedBoxes),
+                                      _PrintTableCell(s.formattedPieces),
+                                      _PrintTableCell(s.formattedQuantity),
+                                      _PrintTableCell(s.formattedRevenue),
+                                    ],
+                                  );
+                                }),
+                                TableRow(
+                                  decoration: const BoxDecoration(color: Color(0xFFE2E8F0)),
+                                  children: [
+                                    _PrintTableCell('TOTAL (${summaries.length})', isBold: true),
+                                    const _PrintTableCell('—'),
+                                    _PrintTableCell(
+                                      totalCrates == totalCrates.roundToDouble()
+                                          ? '${totalCrates.toInt()} crates'
+                                          : '${Formatters.formatSmart(totalCrates)} crates',
+                                      isBold: true,
+                                    ),
+                                    _PrintTableCell(
+                                      totalBoxes > 0
+                                          ? (totalBoxes == totalBoxes.roundToDouble()
+                                              ? '${totalBoxes.toInt()} boxes'
+                                              : '${Formatters.formatSmart(totalBoxes)} boxes')
+                                          : '0 boxes',
+                                      isBold: true,
+                                    ),
+                                    _PrintTableCell('$totalPieces pcs', isBold: true),
+                                    _PrintTableCell(
+                                      '${Formatters.formatSmart(totalLiquid)} L / ${Formatters.formatSmart(totalSolid)} kg',
+                                      isBold: true,
+                                    ),
+                                    _PrintTableCell(
+                                      totalRevenue > 0 ? '₹${Formatters.formatSmart(totalRevenue)}' : '₹0',
+                                      isBold: true,
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 36),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: const [
+                                _PrintSignature(name: 'Biraj Goswami', title: 'Caseya Developer'),
+                                _PrintSignature(title: 'Verified by (Dispatch Officer)'),
+                                _PrintSignature(title: 'Plant Head'),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-        ),
+        );
+      },
+    );
+  }
+
+  void _exportDispatchProductWiseCsv(
+    List<DailyDispatchProductSummary> summaries,
+    String periodTitle,
+  ) {
+    final buffer = StringBuffer();
+    buffer.writeln('Product Name,Pack Size,Total Crates,Total Boxes,Total Pieces,Base Unit Equivalent,Total Value (INR)');
+    for (final s in summaries) {
+      final sanitizedName = s.productName.replaceAll('"', '""');
+      final sanitizedPack = s.packSizeDisplay.replaceAll('"', '""');
+      final boxesStr = s.formattedBoxes.replaceAll('"', '""');
+      final cratesStr = s.formattedCrates.replaceAll('"', '""');
+      final qtyStr = s.formattedQuantity.replaceAll('"', '""');
+      final revStr = s.revenue.toStringAsFixed(2);
+      buffer.writeln('"$sanitizedName","$sanitizedPack","$cratesStr","$boxesStr",${s.totalPieces},"$qtyStr",$revStr');
+    }
+    final filename = 'Dispatch_Product_Wise_${DateFormat('yyyyMMdd').format(DateTime.now())}.csv';
+    downloadLedgerCsv(filename, buffer.toString());
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('✓ Exported Product Wise Dispatch Report ($filename)'),
+        backgroundColor: AppColors.primary,
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }
+
 }
 
 class _PrintTableHeader extends StatelessWidget {

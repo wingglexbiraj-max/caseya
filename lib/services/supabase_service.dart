@@ -14,6 +14,20 @@ class AccountSuspendedException implements Exception {
   String toString() => message;
 }
 
+class SignUpResult {
+  final bool isSessionEstablished;
+  final bool isEmailConfirmationRequired;
+  final UserModel user;
+  final String? message;
+
+  const SignUpResult({
+    required this.isSessionEstablished,
+    required this.isEmailConfirmationRequired,
+    required this.user,
+    this.message,
+  });
+}
+
 class SupabaseService {
   static SupabaseClient? _client;
   static bool _initialized = false;
@@ -127,7 +141,7 @@ class SupabaseService {
   }
 
   /// Register new employee account
-  static Future<UserModel> signUp({
+  static Future<SignUpResult> signUp({
     required String email,
     required String password,
     required String fullName,
@@ -153,9 +167,9 @@ class SupabaseService {
         throw Exception('Sign up failed. Please check your credentials.');
       }
 
-      // If email confirmation is enabled, session may be null until confirmed
+      // If email confirmation is enabled, session is null until verified
       if (response.session == null) {
-        return UserModel(
+        final unconfirmedUser = UserModel(
           userId: user.id,
           employeeCode: 'EMP-${user.id.substring(0, 4).toUpperCase()}',
           name: fullName.trim(),
@@ -163,16 +177,27 @@ class SupabaseService {
           role: 'Employee',
           department: department.trim(),
           accountStatus: 'invited',
-          active: true,
+          active: false,
+        );
+        return SignUpResult(
+          isSessionEstablished: false,
+          isEmailConfirmationRequired: true,
+          user: unconfirmedUser,
+          message: 'Registration successful! If email verification is enabled, please check your inbox at $email to confirm your account before signing in.',
         );
       }
 
-      // If auto-confirmed or session active, fetch or return profile
+      // If auto-confirmed or session is active, fetch or create profile
       try {
         final profile = await fetchUserProfile(user.id, authEmail: user.email);
-        return profile;
+        return SignUpResult(
+          isSessionEstablished: true,
+          isEmailConfirmationRequired: false,
+          user: profile,
+          message: 'Account created and authenticated successfully.',
+        );
       } catch (_) {
-        return UserModel(
+        final profile = UserModel(
           userId: user.id,
           employeeCode: 'EMP-${user.id.substring(0, 4).toUpperCase()}',
           name: fullName.trim(),
@@ -181,6 +206,12 @@ class SupabaseService {
           department: department.trim(),
           accountStatus: 'active',
           active: true,
+        );
+        return SignUpResult(
+          isSessionEstablished: true,
+          isEmailConfirmationRequired: false,
+          user: profile,
+          message: 'Account created and authenticated successfully.',
         );
       }
     } on AuthException catch (e) {
@@ -564,6 +595,13 @@ class SupabaseService {
 
   static String _mapAuthError(String message) {
     final lower = message.toLowerCase();
+    if (lower.contains('signups not allowed') ||
+        lower.contains('signup is disabled') ||
+        lower.contains('signups disabled') ||
+        lower.contains('registration is disabled') ||
+        lower.contains('signup requires an invitation')) {
+      return 'Public registration is restricted for CASEYA Dairy ERP. Only invited plant personnel provisioned by an administrator can activate accounts. Please request an employee invitation from plant management.';
+    }
     if (lower.contains('invalid login credentials') || lower.contains('invalid_credentials')) {
       return 'Incorrect email or password. Please verify your credentials and try again.';
     }
@@ -571,7 +609,7 @@ class SupabaseService {
       return 'Your email address has not been confirmed yet. Please verify your inbox.';
     }
     if (lower.contains('user already registered')) {
-      return 'An employee account is already registered with this email address.';
+      return 'An employee account is already registered with this email address. Please sign in instead.';
     }
     if (lower.contains('password should be at least') || lower.contains('weak_password')) {
       return 'Password must be at least 8 characters long and include numbers or symbols.';

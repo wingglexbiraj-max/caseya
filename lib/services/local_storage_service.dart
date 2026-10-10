@@ -337,35 +337,26 @@ class LocalStorageService {
     if (jsonStr != null && jsonStr.isNotEmpty) {
       try {
         final user = UserModel.fromJson(jsonDecode(jsonStr));
-        if (user.name == 'R. K. Baruah' || user.name.isEmpty) {
-          final updated = UserModel(
-            userId: user.userId.isEmpty ? 'EMP-0101' : user.userId,
-            employeeCode: user.employeeCode.isEmpty ? 'ADMIN-01' : user.employeeCode,
-            name: 'Biraj Goswami',
-            email: 'biraj.goswami@caseya-plant.com',
-            role: user.role,
-            department: user.department,
-            active: true,
-          );
-          await saveCurrentUser(updated);
-          return updated;
+        if (user.userId.isNotEmpty && !user.isGuest) {
+          return user;
         }
-        return user;
       } catch (_) {}
     }
-    return const UserModel(
-      userId: 'EMP-0101',
-      employeeCode: 'ADMIN-01',
-      name: 'Biraj Goswami',
-      email: 'biraj.goswami@caseya-plant.com',
-      role: 'Admin',
-      department: 'Processing & Operations',
-    );
+    return UserModel.guest;
   }
 
   static Future<void> saveCurrentUser(UserModel user) async {
     final prefs = await _instance;
-    await prefs.setString(AppConstants.storageKeyUser, jsonEncode(user.toJson()));
+    if (user.isGuest) {
+      await prefs.remove(AppConstants.storageKeyUser);
+    } else {
+      await prefs.setString(AppConstants.storageKeyUser, jsonEncode(user.toJson()));
+    }
+  }
+
+  static Future<void> clearCurrentUser() async {
+    final prefs = await _instance;
+    await prefs.remove(AppConstants.storageKeyUser);
   }
 
   static Future<bool> getBoilerTopUpIncluded() async {

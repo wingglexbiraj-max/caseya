@@ -228,15 +228,23 @@ class DispatchState {
 
   /// Consolidated product-wise daily summary for the selected date
   List<DailyDispatchProductSummary> get dailyProductSummaries {
-    return _aggregateProductsForList(dispatchesForSelectedDate);
+    return aggregateProductsForList(dispatchesForSelectedDate);
   }
 
   /// Consolidated product-wise summary for the currently active date range
   List<DailyDispatchProductSummary> get productSummariesForDateRange {
-    return _aggregateProductsForList(dispatchesForDateRange);
+    return aggregateProductsForList(dispatchesForDateRange);
   }
 
-  List<DailyDispatchProductSummary> _aggregateProductsForList(List<VehicleDispatch> list) {
+  /// Consolidated product-wise summary for a specific distributor in active date range
+  List<DailyDispatchProductSummary> productSummariesForDistributor(String distributorName) {
+    final list = dispatchesForDateRange
+        .where((d) => d.distributorName.trim().toLowerCase() == distributorName.trim().toLowerCase())
+        .toList();
+    return aggregateProductsForList(list);
+  }
+
+  List<DailyDispatchProductSummary> aggregateProductsForList(List<VehicleDispatch> list) {
     final Map<String, List<DispatchItem>> groupedByProduct = {};
     final Map<String, Set<String>> productVehicles = {};
     final Map<String, Set<String>> productDistributors = {};
@@ -256,8 +264,80 @@ class DispatchState {
     final productByName = {for (final p in allProducts) p.productName.toLowerCase(): p};
 
     final List<DailyDispatchProductSummary> summaries = [];
+    final Set<String> processedKeys = {};
 
+    for (final p in allProducts) {
+      List<DispatchItem>? items;
+      String? matchedKey;
+
+      if (groupedByProduct.containsKey(p.productId)) {
+        matchedKey = p.productId;
+        items = groupedByProduct[p.productId];
+      } else {
+        for (final entry in groupedByProduct.entries) {
+          if (processedKeys.contains(entry.key)) continue;
+          final first = entry.value.firstOrNull;
+          if (first != null) {
+            final match = (p.shortCode.isNotEmpty && first.shortCode.toLowerCase() == p.shortCode.toLowerCase()) ||
+                (p.itemCode.isNotEmpty && p.itemCode != 'NA' && first.itemCode.toLowerCase() == p.itemCode.toLowerCase()) ||
+                first.productName.toLowerCase() == p.productName.toLowerCase();
+            if (match) {
+              matchedKey = entry.key;
+              items = entry.value;
+              break;
+            }
+          }
+        }
+      }
+
+      if (matchedKey != null) {
+        processedKeys.add(matchedKey);
+      }
+
+      if (items != null && items.isNotEmpty) {
+        final first = items.first;
+        final double cratesSum = items.fold(0.0, (acc, i) => acc + i.crates);
+        final int piecesSum = items.fold(0, (acc, i) => acc + i.pieces);
+        final double quantitySum = items.fold(0.0, (acc, i) => acc + i.normalizedQuantity);
+
+        final price = p.pricePerPiece;
+        final double revenueSum = price > 0 ? piecesSum * price : 0.0;
+
+        summaries.add(DailyDispatchProductSummary(
+          productId: p.productId,
+          productName: p.productName,
+          shortCode: p.shortCode.isNotEmpty ? p.shortCode : first.shortCode,
+          itemCode: p.itemCode,
+          packSizeDisplay: p.packSizeDisplay.isNotEmpty ? p.packSizeDisplay : first.packSizeDisplay,
+          totalCrates: cratesSum,
+          totalPieces: piecesSum,
+          totalQuantity: quantitySum,
+          normalizedUnit: p.baseUnitLabel,
+          vehicleCount: matchedKey != null ? (productVehicles[matchedKey]?.length ?? 1) : 1,
+          distributorCount: matchedKey != null ? (productDistributors[matchedKey]?.length ?? 1) : 1,
+          revenue: revenueSum,
+        ));
+      } else {
+        summaries.add(DailyDispatchProductSummary(
+          productId: p.productId,
+          productName: p.productName,
+          shortCode: p.shortCode,
+          itemCode: p.itemCode,
+          packSizeDisplay: p.packSizeDisplay,
+          totalCrates: 0.0,
+          totalPieces: 0,
+          totalQuantity: 0.0,
+          normalizedUnit: p.baseUnitLabel,
+          vehicleCount: 0,
+          distributorCount: 0,
+          revenue: 0.0,
+        ));
+      }
+    }
+
+    // Also include any custom dispatched items that were not in catalog
     for (final entry in groupedByProduct.entries) {
+      if (processedKeys.contains(entry.key)) continue;
       final items = entry.value;
       if (items.isEmpty) continue;
       final first = items.first;
@@ -289,7 +369,16 @@ class DispatchState {
       ));
     }
 
-    summaries.sort((a, b) => b.totalQuantity.compareTo(a.totalQuantity));
+    // Sort: dispatched items first (by quantity desc), then zero-dispatched alphabetically by name
+    summaries.sort((a, b) {
+      if (a.totalQuantity > 0 && b.totalQuantity == 0) return -1;
+      if (a.totalQuantity == 0 && b.totalQuantity > 0) return 1;
+      if (a.totalQuantity > 0 && b.totalQuantity > 0) {
+        return b.totalQuantity.compareTo(a.totalQuantity);
+      }
+      return a.productName.compareTo(b.productName);
+    });
+
     return summaries;
   }
 
@@ -513,6 +602,7 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
       rangeStartDate: start,
       rangeEndDate: end,
       datePreset: preset,
+      selectedDate: (preset == 'Today' || preset == 'Yesterday') ? start : state.selectedDate,
     );
   }
 
@@ -579,11 +669,11 @@ class DispatchNotifier extends StateNotifier<DispatchState> {
   String generateProductWiseCsv(List<DailyDispatchProductSummary> summaries, String dateRangeLabel) {
     final buffer = StringBuffer();
     buffer.writeln('Report Period: $dateRangeLabel');
-    buffer.writeln('Product Code,Product Name,Pack Size,Total Crates,Total Pieces,Base Unit Equivalent,Unit,Vehicles Supplied,Distributors Served,Total Revenue (INR)');
+    buffer.writeln('Product Name,Pack Size,Total Crates,Total Boxes,Total Pieces,Base Unit Equivalent,Unit,Vehicles Supplied,Distributors Served,Total Revenue (INR)');
 
     for (final s in summaries) {
       buffer.writeln(
-        '"${s.itemCode}","${s.productName}","${s.packSizeDisplay}",${s.totalCrates},${s.totalPieces},${s.totalQuantity},"${s.normalizedUnit}",${s.vehicleCount},${s.distributorCount},${s.revenue}',
+        '"${s.productName}","${s.packSizeDisplay}",${s.totalCrates},"${s.formattedBoxes}",${s.totalPieces},${s.totalQuantity},"${s.normalizedUnit}",${s.vehicleCount},${s.distributorCount},${s.revenue}',
       );
     }
     return buffer.toString();
